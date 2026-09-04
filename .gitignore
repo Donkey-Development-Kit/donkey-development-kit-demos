@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+
+# Local credentials (loaded by _paths.py) — never commit
+.env
+.env.local
