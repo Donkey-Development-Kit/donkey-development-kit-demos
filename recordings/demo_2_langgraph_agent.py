@@ -5,7 +5,7 @@
 Credentials come from .env.local (loaded by _paths).
 """
 
-# ruff: noqa: I001, E402  (the _paths shim must import before agent_fabric — do not reorder)
+# ruff: noqa: I001, E402  (the _paths shim must import before donkey_kit — do not reorder)
 import asyncio
 import sys
 from pathlib import Path
@@ -16,7 +16,7 @@ import _paths  # noqa: F401  (dev path shim + .env.local loader)
 from langchain.agents import create_agent
 from langchain_core.tools import tool
 
-from agent_fabric import Fabric
+from donkey_kit import Donkey
 
 MODEL = "gpt-4o-mini"
 QUESTION = "Can I ship SKU AF-1001 today, and what does it cost?"
@@ -35,11 +35,11 @@ def get_price(sku: str) -> str:
 
 
 async def main() -> None:
-    async with Fabric.from_env() as fabric:
-        model = fabric.langgraph.chat_model(MODEL, temperature=0)  # a real ChatOpenAI
+    async with Donkey.from_env() as donkey:
+        model = donkey.langgraph.chat_model(MODEL, temperature=0)  # a real ChatOpenAI
 
         print("model    :", type(model).__module__ + "." + type(model).__name__)
-        print("governed :", ", ".join(sorted(fabric.langgraph.connection_kwargs())))
+        print("governed :", ", ".join(sorted(donkey.langgraph.connection_kwargs())))
 
         agent = create_agent(model, tools=[check_inventory, get_price])
 
