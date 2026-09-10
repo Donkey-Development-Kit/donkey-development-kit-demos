@@ -5,7 +5,7 @@
 Credentials come from .env.local (loaded by _paths).
 """
 
-# ruff: noqa: I001, E402  (the _paths shim must import before agent_fabric — do not reorder)
+# ruff: noqa: I001, E402  (the _paths shim must import before donkey_kit — do not reorder)
 import asyncio
 import sys
 from pathlib import Path
@@ -15,15 +15,15 @@ import _paths  # noqa: F401  (dev path shim + .env.local loader)
 
 import openai
 
-from agent_fabric import Fabric
-from agent_fabric.core.errors import classify
+from donkey_kit import Donkey
+from donkey_kit.core.errors import classify
 
 MODEL = "gpt-4o"
 
 
 async def main() -> None:
-    async with Fabric.from_env() as fabric:
-        client = fabric.llm.client()  # a real openai.AsyncOpenAI, at the governed proxy
+    async with Donkey.from_env() as donkey:
+        client = donkey.llm.client()  # a real openai.AsyncOpenAI, at the governed proxy
         
         print("client   :", type(client).__module__ + "." + type(client).__name__)
         print("base_url :", client.base_url)
@@ -70,8 +70,8 @@ def without_asyncio() -> None:
     retry policy — the only thing that goes away is the event loop.
     """
 
-    with Fabric.from_env() as fabric:
-        client = fabric.llm.client(sync=True)
+    with Donkey.from_env() as donkey:
+        client = donkey.llm.client(sync=True)
 
         print("\nclient   :", type(client).__module__ + "." + type(client).__name__)
         print("injected :", [h for h in client.default_headers if h.startswith("client_")])

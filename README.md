@@ -1,4 +1,4 @@
-# Agent Fabric SDK — Demos
+# Donkey Development Kit (DDK) — Demos
 
 Runnable demos of **"What users can now do with #1"** — the live-verified LLM
 data-plane wiring (base URL, `client_id`/`client_secret` consumer auth,
@@ -6,10 +6,10 @@ attribution, error contract) exposed through the framework-free client and the
 eight framework adapters.
 
 This is the demo companion to the
-[**Agent Fabric SDK**](https://github.com/Agent-Fabric-SDK/agent-fabric-sdk).
+[**Donkey Development Kit (DDK)**](https://github.com/Donkey-Development-Kit/donkey-development-kit).
 These are scenario/presentation demos, grouped by **purpose**. For the
 per-framework *reference* snippets (one `main.py` per framework, CI-gated), see
-[`python/examples/`](https://github.com/Agent-Fabric-SDK/agent-fabric-sdk/tree/main/python/examples)
+[`python/examples/`](https://github.com/Donkey-Development-Kit/donkey-development-kit/tree/main/python/examples)
 in the SDK repo instead.
 
 ```
@@ -27,8 +27,8 @@ start there.
 
 | Demo | Deliverable | Needs creds? | Network? |
 |------|-------------|--------------|----------|
-| [`deliverables/01_framework_free_client.py`](deliverables/01_framework_free_client.py) | Framework-free `fabric.llm.client()` — chat + streaming, through **both** the async and the blocking (`sync=True`) client | ✅ | ✅ live |
-| [`deliverables/02_native_framework_objects.py`](deliverables/02_native_framework_objects.py) | Native objects for all 8 frameworks (`fabric.langgraph.chat_model`, …) | ✅ | ❌ builds objects only |
+| [`deliverables/01_framework_free_client.py`](deliverables/01_framework_free_client.py) | Framework-free `donkey.llm.client()` — chat + streaming, through **both** the async and the blocking (`sync=True`) client | ✅ | ✅ live |
+| [`deliverables/02_native_framework_objects.py`](deliverables/02_native_framework_objects.py) | Native objects for all 8 frameworks (`donkey.langgraph.chat_model`, …) | ✅ | ❌ builds objects only |
 | [`deliverables/03_governed_error_taxonomy.py`](deliverables/03_governed_error_taxonomy.py) | The 4 proxy rejections → typed exceptions via `classify()` | ❌ | ❌ uses committed live fixtures |
 | [`deliverables/04_model_handles.py`](deliverables/04_model_handles.py) | `resolve()` handles; honest `list_models(live=True)` | ❌ | ❌ |
 
@@ -60,20 +60,20 @@ real completion list.
 ## Setup
 
 > The canonical install + configure walkthrough is on the docs site —
-> **[Quickstart](https://agent-fabric-sdk.github.io/agent-fabric-sdk/quickstart)**.
+> **[Quickstart](https://donkey-development-kit.github.io/donkey-development-kit/quickstart)**.
 > The setup below is the demo-harness variant (repo-root paths, `DEMO_MODEL`); the
 > docs page is the source of truth for the install command and env-var names.
 
 ```bash
 # Install the SDK from its repo (not yet on PyPI). Add framework extras as
 # needed — e.g. [llm,langgraph] for demo 02 / the LangGraph recording.
-pip install "agent-fabric[llm] @ git+https://github.com/Agent-Fabric-SDK/agent-fabric-sdk.git#subdirectory=python"
+pip install "donkey-kit[llm] @ git+https://github.com/Donkey-Development-Kit/donkey-development-kit.git#subdirectory=python"
 
 # Governed model access (demos 01 and 02). The proxy authenticates on a
 # client_id/client_secret HEADER PAIR — not a bearer token.
-export AGENT_FABRIC_LLM_PROXY_URL="https://<ingress-gw>/<instance>/"   # note: no /v1
-export AGENT_FABRIC_LLM_PROXY_CLIENT_ID="<consumer client id>"
-export AGENT_FABRIC_LLM_PROXY_CLIENT_SECRET="<consumer client secret>"
+export DONKEY_LLM_PROXY_URL="https://<ingress-gw>/<instance>/"   # note: no /v1
+export DONKEY_LLM_PROXY_CLIENT_ID="<consumer client id>"
+export DONKEY_LLM_PROXY_CLIENT_SECRET="<consumer client secret>"
 export DEMO_MODEL="gpt-4o"                    # optional; a model your proxy routes
 ```
 
@@ -98,7 +98,7 @@ guidance and a clean exit; a framework extra not installed → the curated
 ## Honest status (§0.3)
 
 The proxy **contract** these demos exercise is live-verified (see
-[`docs/verified-apis.md`](https://github.com/Agent-Fabric-SDK/agent-fabric-sdk/blob/main/docs/verified-apis.md) §2–§4). The exact framework
+[`docs/verified-apis.md`](https://github.com/Donkey-Development-Kit/donkey-development-kit/blob/main/docs/verified-apis.md) §2–§4). The exact framework
 class names/kwargs in demo 02 are still being confirmed against installed
 versions (§8); Tier-1 adapters raise a clear "blocked on verification" error
 rather than guess. Tool discovery and provisioning are not part of #1.

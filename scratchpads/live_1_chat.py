@@ -2,15 +2,15 @@
 
 Type this out on camera. Every `.` gives full IntelliSense:
 
-    fabric.        -> llm, langgraph, adk, strands, anthropic, crewai, …
-    fabric.llm.    -> client(), resolve(), list_models()
+    donkey.        -> llm, langgraph, adk, strands, anthropic, crewai, …
+    donkey.llm.    -> client(), resolve(), list_models()
     client.        -> the whole AsyncOpenAI surface (chat, responses, embeddings…)
 
 Drop the `_paths` line if you have already exported the three
-AGENT_FABRIC_LLM_PROXY_* variables in your shell.
+DONKEY_LLM_PROXY_* variables in your shell.
 """
 
-# ruff: noqa: I001, E402  (the _paths shim must import before agent_fabric — do not reorder)
+# ruff: noqa: I001, E402  (the _paths shim must import before donkey_kit — do not reorder)
 import asyncio
 import sys
 from pathlib import Path
@@ -18,12 +18,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # repo root (holds _paths.py)
 import _paths  # noqa: F401  (loads .env.local into the environment)
 
-from agent_fabric import Fabric
+from donkey_kit import Donkey
 
 
 async def main() -> None:
-    async with Fabric.from_env() as fabric:
-        client = fabric.llm.client()
+    async with Donkey.from_env() as donkey:
+        client = donkey.llm.client()
         reply = await client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": "Say hi in three words."}],
