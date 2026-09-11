@@ -1,12 +1,99 @@
+# ---------------------------------------------------------------------------
+# Credentials and configuration values — NEVER commit these.
+#
+# The demos read config from the environment (see .env.example). Anything that
+# could hold a real gateway URL, consumer client_id/client_secret, Anypoint
+# org/environment id, or a captured live response is denied here by default.
+# `make scan` re-checks what is actually staged; this list is the first gate,
+# not the only one.
+# ---------------------------------------------------------------------------
+
+# dotenv files in any directory. .env.example is the ONLY one allowed through.
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+
+# SDK config files — .donkey-kit.toml holds llm_proxy_url / client_id /
+# client_secret exactly like the env vars do.
+.donkey-kit.toml
+.donkey-kit.*.toml
+**/.donkey-kit.toml
+**/.donkey-kit.*.toml
+donkey.lock
+donkey.lock.local
+
+# Anything a human named to signal "this is mine" — cheap catch-all for the
+# `cp .env.example .env.mine` / `config.local.yaml` habit.
+*.local
+*.local.*
+local.*
+secrets.*
+*credentials*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ---------------------------------------------------------------------------
+# Captured gateway traffic. Live captures carry real infrastructure identifiers
+# (Anypoint api-instance ids, org/environment UUIDs, cf-ray, openai-organization
+# and openai-project). Demos load fixtures from the INSTALLED SDK
+# (donkey_kit.simulator.fixtures) instead of vendoring copies here.
+# ---------------------------------------------------------------------------
+*.har
+*.pcap
+captures/
+**/_fixtures/
+**/*.headers.txt
+**/*.body.json
+
+# ---------------------------------------------------------------------------
+# Recording artifacts. Screen recordings routinely capture a shell prompt, a
+# browser tab, or an editor gutter holding a real URL — keep the binaries out of
+# git and publish them deliberately.
+# ---------------------------------------------------------------------------
+assets/**
+!assets/.gitkeep
+*.mp4
+*.mov
+*.webm
+*.gif
+*.cast
+*.png
+*.jpg
+*.jpeg
+!docs/**/*.png
+
+# Raw demo output, which by definition contains whatever the demo printed.
+*.log
+out/
+transcripts/
+
+# ---------------------------------------------------------------------------
 # Python
+# ---------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
 *.egg-info/
+.eggs/
+build/
+dist/
 .venv/
 venv/
+env/
 .mypy_cache/
 .ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Local credentials (loaded by _paths.py) — never commit
-.env
-.env.local
+# ---------------------------------------------------------------------------
+# Editors / OS
+# ---------------------------------------------------------------------------
+.DS_Store
+.idea/
+*.swp
+.vscode/*
+!.vscode/settings.shared.json

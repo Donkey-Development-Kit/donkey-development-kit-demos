@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "donkey-development-kit-demos"
+version = "0.1.0"
+description = "Runnable demos for the Donkey Development Kit (DDK)"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+
+# Deliberately minimal. The SDK itself is NOT pinned here: most people running
+# these demos already have an editable checkout of donkey-kit, and listing it
+# as a hard dependency would silently replace that checkout with a git snapshot.
+# Install it explicitly (see the `sdk` extra below, or the README).
+dependencies = ["httpx>=0.27"]
+
+[project.optional-dependencies]
+# Convenience only: `pip install -e ".[sdk]"` pulls the SDK from git with the
+# extras every offline demo needs. Skip it if you already have a local checkout.
+sdk = [
+  "donkey-kit[llm,local,test] @ git+https://github.com/Donkey-Development-Kit/donkey-development-kit.git#subdirectory=python",
+]
+# Everything the full walkthrough can exercise, including the deep adapter.
+full = [
+  "donkey-kit[llm,local,test,otel,langgraph] @ git+https://github.com/Donkey-Development-Kit/donkey-development-kit.git#subdirectory=python",
+]
+dev = ["ruff>=0.6"]
+
+[tool.hatch.build.targets.wheel]
+# `_harness` is the only importable package; demos are scripts, not modules.
+packages = ["_harness"]
+
+[tool.ruff]
+line-length = 92
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# Demos print for a living and catch broadly on purpose.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/scan_secrets.py" = ["E501"]
