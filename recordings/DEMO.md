@@ -1,4 +1,4 @@
-# Recording runbook — Agent Fabric SDK
+# Recording runbook — Donkey Development Kit (DDK)
 
 Three acts: the documentation site, then two short scripts written live in the
 editor. Both scripts run against a real Anypoint sandbox — nothing is mocked.
@@ -13,15 +13,15 @@ editor. Both scripts run against a real Anypoint sandbox — nothing is mocked.
 
 ```bash
 # Dependencies (once). The SDK is not on PyPI yet; install it from its repo.
-pip install "agent-fabric[llm,langgraph] @ git+https://github.com/Agent-Fabric-SDK/agent-fabric-sdk.git#subdirectory=python" langgraph langchain
+pip install "donkey-kit[llm,langgraph] @ git+https://github.com/Donkey-Development-Kit/donkey-development-kit.git#subdirectory=python" langgraph langchain
 
 # Credentials — .env.local, git-ignored, loaded by _paths.py
-#   AGENT_FABRIC_LLM_PROXY_URL / _CLIENT_ID / _CLIENT_SECRET
+#   DONKEY_LLM_PROXY_URL / _CLIENT_ID / _CLIENT_SECRET
 
 # Docs site (Act 1) — lives in the SDK repo, not here. Either run it locally:
-#   git clone https://github.com/Agent-Fabric-SDK/agent-fabric-sdk
-#   cd agent-fabric-sdk/website && npm install && npm run dev   # http://localhost:3000
-# or use the published site: https://agent-fabric-sdk.github.io/agent-fabric-sdk/
+#   git clone https://github.com/Donkey-Development-Kit/donkey-development-kit
+#   cd donkey-kit-sdk/website && npm install && npm run dev   # http://localhost:3000
+# or use the published site: https://donkey-development-kit.github.io/donkey-development-kit/
 
 # Smoke test everything before recording
 python recordings/demo_1_chat_completions.py
@@ -43,7 +43,7 @@ type code on camera than run a file, use the two scratchpads instead:
 | `live_2_langgraph.py` | 3 | a governed `ChatOpenAI`, no asyncio either |
 
 If you would rather not explain `async`/`await` on camera, start from
-`live_1_chat_sync.py`. `fabric.llm.client(sync=True)` returns the blocking
+`live_1_chat_sync.py`. `donkey.llm.client(sync=True)` returns the blocking
 `openai.OpenAI`, governed identically, which removes the event loop and the
 coroutine you can forget to await.
 
@@ -56,8 +56,8 @@ Both are fully typed end to end, so every `.` opens a real completion list —
 this is the part worth showing, because it is the argument that the SDK returns
 native objects rather than wrappers:
 
-- `fabric.` → `llm`, `langgraph`, `adk`, `strands`, `anthropic`, `crewai`, …
-- `fabric.llm.` → `client()`, `resolve()`, `list_models()`
+- `donkey.` → `llm`, `langgraph`, `adk`, `strands`, `anthropic`, `crewai`, …
+- `donkey.llm.` → `client()`, `resolve()`, `list_models()`
 - `client.` → the entire `AsyncOpenAI` surface, because it *is* an `AsyncOpenAI`
 - `model.` → the entire `ChatOpenAI` surface, for the same reason
 

@@ -3,12 +3,12 @@
 Demo-only sugar (the SDK itself never reads env files implicitly — see
 ``core/config.py`` in the SDK). Loads ``.env.local`` then ``.env`` from this
 directory and the current working directory into ``os.environ`` so
-``export``-ing the ``AGENT_FABRIC_LLM_PROXY_*`` vars by hand is optional. Values
+``export``-ing the ``DONKEY_LLM_PROXY_*`` vars by hand is optional. Values
 already present in the environment win — an explicit shell ``export`` is never
 overridden.
 
-The demos need ``agent_fabric`` importable; install the SDK first (see the
-README): ``pip install "agent-fabric[llm] @ git+https://github.com/Agent-Fabric-SDK/agent-fabric-sdk.git#subdirectory=python"``.
+The demos need ``donkey_kit`` importable; install the SDK first (see the
+README): ``pip install "donkey-kit[llm] @ git+https://github.com/Donkey-Development-Kit/donkey-development-kit.git#subdirectory=python"``.
 
 Importing this module runs the loader.
 """

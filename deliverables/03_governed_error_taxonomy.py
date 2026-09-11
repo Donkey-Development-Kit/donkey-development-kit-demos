@@ -7,7 +7,7 @@ This demo is deterministic and OFFLINE: it rebuilds the real captured responses
 from the committed fixtures under deliverables/_fixtures/ (copied from the SDK's
 python/tests/fixtures/anypoint/llm_proxy/) and runs them through classify().
 
-Note: the raw `fabric.llm.client()` (demo 01) surfaces failures as the OpenAI
+Note: the raw `donkey.llm.client()` (demo 01) surfaces failures as the OpenAI
 SDK's own `openai.APIStatusError` — classify() is the bridge you apply to
 `error.response` to get these typed governance exceptions, not something the
 raw client raises automatically.
@@ -16,7 +16,7 @@ Run:
     python deliverables/03_governed_error_taxonomy.py
 """
 
-# ruff: noqa: I001, E402  (the _paths shim must import before agent_fabric — do not reorder)
+# ruff: noqa: I001, E402  (the _paths shim must import before donkey_kit — do not reorder)
 from __future__ import annotations
 
 import json
@@ -28,7 +28,7 @@ import _paths  # noqa: F401
 
 import httpx
 
-from agent_fabric.core.errors import (
+from donkey_kit.core.errors import (
     AuthError,
     PIIDetected,
     PolicyViolation,
@@ -122,7 +122,7 @@ def main() -> None:
         "        ...\n"
         "    except AuthError as e:          # 401 bad/missing client_id/secret\n"
         "        ...\n"
-        "    except FabricError as e:        # upstream/provider + everything else\n"
+        "    except DonkeyError as e:        # upstream/provider + everything else\n"
         "        ..."
     )
 
