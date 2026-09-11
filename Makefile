@@ -13,6 +13,7 @@ help: ## Show this help
 	@echo
 	@echo "  Run one demo:      make demo N=03"
 	@echo "  Present a demo:    DEMO_PAUSE=1 make demo N=03"
+	@echo "  Against live:      make demo N=01 ARGS=\"--target live\""
 	@echo
 
 list: ## List the demos and what each one needs
@@ -21,9 +22,12 @@ list: ## List the demos and what each one needs
 offline: ## Run every demo that needs no credentials
 	@$(PY) run.py --offline
 
-demo: ## Run one demo, e.g. make demo N=03
+# Flags for the demo itself go in ARGS. They cannot be trailing words on the
+# make command line: make would eat `--` as its own end-of-options marker and
+# then treat `--target live` as two goals to build.
+demo: ## Run one demo, e.g. make demo N=03 ARGS="--target live"
 	@test -n "$(N)" || (echo "usage: make demo N=03"; exit 2)
-	@$(PY) run.py $(N)
+	@$(PY) run.py $(N) $(ARGS)
 
 mock: ## Start the local gateway simulator in the foreground (second pane)
 	@donkey mock --port $${DEMO_MOCK_PORT:-8080}

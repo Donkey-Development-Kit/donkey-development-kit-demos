@@ -6,10 +6,12 @@ that can therefore attach to it.
 
 ```bash
 make demo N=01                 # offline, against the local simulator
-make demo N=01 -- --target live
+make demo N=01 ARGS="--target live"
 ```
 
-**Needs:** nothing (`[llm]` + `[local]`).
+**Needs:** nothing (`[llm]` + `[local]`). Act 3 against `--target live` additionally
+needs the PII-detection policy applied with `Email` among its entities and its action
+set to `Reject` — the default action is `Log`, which does not block.
 
 **Three acts.** The governed client and its injected headers; one call, plus the
 budget/correlation/span it updated on the way past; then the same PII refusal

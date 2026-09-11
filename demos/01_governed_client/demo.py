@@ -32,6 +32,9 @@ from _harness import narrate as say
 
 MODEL = os.environ.get("DEMO_MODEL", "gpt-4o")
 PROMPT = "Say hello in exactly three words."
+# Act 3 needs a prompt the PII policy actually blocks. The Email entity is the one
+# the captured rejection carries, so it is the one to configure for a live run.
+PII_PROMPT = "My email is a@b.com"
 
 
 def _injected_headers(client: openai.AsyncOpenAI) -> dict[str, str]:
@@ -124,24 +127,26 @@ async def act_2_a_governed_call(donkey: Donkey) -> None:
 
 async def act_3_raw_vs_governed(donkey: Donkey) -> None:
     say.step(3, "The same refusal, through both clients")
-    say.note(
-        "The simulator serves a real captured PII rejection when the model id is "
-        "the sentinel below. This is the byte-identical body a live gateway sent."
-    )
 
-    pii_model = mock.sentinel("pii-detected") if _is_mock() else MODEL
-    if not _is_mock():
-        say.warn(
-            "Against a live proxy there is no sentinel: this act needs a prompt "
-            "your PII policy actually blocks. Skipping it."
+    if _is_mock():
+        pii_model = mock.sentinel("pii-detected")
+        say.note(
+            "The simulator serves a real captured PII rejection when the model id is "
+            "the sentinel below. This is the byte-identical body a live gateway sent."
         )
-        return
+    else:
+        pii_model = MODEL
+        say.note(
+            "There is no sentinel against a live proxy, so this act needs the "
+            "PII-detection policy in force with Email among its entities and its "
+            "action set to Reject — the default action is Log, which does not block."
+        )
 
     say.code(
         f"""
         # A: stock OpenAI client, no SDK — just base_url + headers
         raw = openai.AsyncOpenAI(base_url=..., api_key=..., default_headers=...)
-        await raw.responses.create(model={pii_model!r}, input="...")
+        await raw.responses.create(model={pii_model!r}, input={PII_PROMPT!r})
         """
     )
 
@@ -155,13 +160,20 @@ async def act_3_raw_vs_governed(donkey: Donkey) -> None:
         max_retries=0,
     )
     try:
-        await raw.responses.create(model=pii_model, input="My email is a@b.com")
-        say.warn("expected a refusal and did not get one")
-        return
+        await raw.responses.create(model=pii_model, input=PII_PROMPT)
     except openai.APIStatusError as exc:
         say.field("A: raised", f"openai.{type(exc).__name__}")
         say.field("A: status", exc.status_code, raw=True)
         say.field("A: you get", "a JSON body to parse, and a status code to guess from")
+    else:
+        say.warn("expected a refusal and did not get one")
+        if not _is_mock():
+            say.note(
+                "The prompt was not blocked, so nothing is refusing it. Check that "
+                "the PII-detection policy is applied to this API instance and that "
+                "its action is Reject rather than Log."
+            )
+        return
     finally:
         await raw.close()
 
@@ -178,7 +190,7 @@ async def act_3_raw_vs_governed(donkey: Donkey) -> None:
 
     client = donkey.openai()
     try:
-        await client.responses.create(model=pii_model, input="My email is a@b.com")
+        await client.responses.create(model=pii_model, input=PII_PROMPT)
     except openai.APIStatusError as exc:
         governed = classify(exc.response)
         say.field("B: raised", type(governed).__name__)
@@ -188,10 +200,16 @@ async def act_3_raw_vs_governed(donkey: Donkey) -> None:
         print()
         if isinstance(governed, PIIDetected):
             say.ok("A 403 that is a policy refusal, not an auth failure — and it says so.")
+        else:
+            say.warn(
+                f"refused, but as {type(governed).__name__} rather than PIIDetected"
+            )
         say.note(
             "classify() is the bridge, because the raw client raises openai.* errors "
             "and the SDK does not silently re-map them. Demo 02 walks the full taxonomy."
         )
+    else:
+        say.warn("the governed client was not refused either")
 
 
 def _is_mock() -> bool:
