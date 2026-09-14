@@ -16,7 +16,7 @@ grades any agent in any framework, including ones it has never heard of.
 This demo runs it twice — against an agent written the usual way, then against
 the same agent after the findings.
 
-    python demos/05_conformance/demo.py
+    python demos/claude-made/05_conformance/demo.py
 """
 
 from __future__ import annotations
@@ -30,7 +30,10 @@ from _harness import narrate as say
 from _harness import preflight
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[1]
+# The repo root is the ancestor holding `_harness`, found by walking up rather than
+# by counting parents: the pytest subprocess below needs it on PYTHONPATH, and
+# regrouping the demos into subdirectories would silently shift a fixed depth.
+REPO = next(p for p in HERE.parents if (p / "_harness").is_dir())
 
 
 PLUGIN = "donkey_kit.conformance.plugin"

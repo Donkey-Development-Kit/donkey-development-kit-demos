@@ -13,7 +13,7 @@ rather than keeping copies here, which is deliberate: those are the same bytes
 serves, so if a capture ever drifts, this demo and the SDK's own tests fail
 together.
 
-    python demos/02_typed_refusals/demo.py
+    python demos/claude-made/02_typed_refusals/demo.py
 """
 
 from __future__ import annotations

@@ -24,15 +24,15 @@ credentials off a screen recording.
 
 | # | Demo | Shows | Needs |
 |---|------|-------|-------|
-| 01 | [governed client](demos/01_governed_client/) | The two-line ergonomic, and a side-by-side of what the raw client leaves you holding | nothing |
-| 02 | [typed refusals](demos/02_typed_refusals/) | Seven captured rejection shapes through `classify()`, and why the hierarchy is shaped that way | nothing |
-| 03 | [budget and pacing](demos/03_budget_and_pacing/) | The token window as an object; `pace(reserve=)` refusing before the request goes out | nothing |
-| 04 | [simulating refusals](demos/04_simulate_refusals/) | `donkey.simulate()` running the `except` branch that has never executed | nothing |
-| 05 | [conformance suite](demos/05_conformance/) | `pytest --donkey-conformance` grading a naive agent, then the fixed one | nothing |
-| 06 | [telemetry](demos/06_telemetry/) | OTel GenAI spans, dual `gen_ai.*` + `donkey.*` attributes, and `donkey.run(id=…)` binding your own id across every call in a run | nothing |
-| 07 | [model handles](demos/07_model_handles/) | What the SDK does when the platform has no endpoint for what you asked | nothing |
-| 08 | [framework objects](demos/08_framework_objects/) | One deep adapter, seven at `connection_kwargs()`, no wrappers | nothing |
-| 09 | [LangGraph agent](demos/09_langgraph_agent/) | A real tool-calling loop, governed end to end | **credentials** |
+| 01 | [governed client](demos/claude-made/01_governed_client/) | The two-line ergonomic, and a side-by-side of what the raw client leaves you holding | nothing |
+| 02 | [typed refusals](demos/claude-made/02_typed_refusals/) | Seven captured rejection shapes through `classify()`, and why the hierarchy is shaped that way | nothing |
+| 03 | [budget and pacing](demos/claude-made/03_budget_and_pacing/) | The token window as an object; `pace(reserve=)` refusing before the request goes out | nothing |
+| 04 | [simulating refusals](demos/claude-made/04_simulate_refusals/) | `donkey.simulate()` running the `except` branch that has never executed | nothing |
+| 05 | [conformance suite](demos/claude-made/05_conformance/) | `pytest --donkey-conformance` grading a naive agent, then the fixed one | nothing |
+| 06 | [telemetry](demos/claude-made/06_telemetry/) | OTel GenAI spans, dual `gen_ai.*` + `donkey.*` attributes, and `donkey.run(id=…)` binding your own id across every call in a run | nothing |
+| 07 | [model handles](demos/claude-made/07_model_handles/) | What the SDK does when the platform has no endpoint for what you asked | nothing |
+| 08 | [framework objects](demos/claude-made/08_framework_objects/) | One deep adapter, seven at `connection_kwargs()`, no wrappers | nothing |
+| 09 | [LangGraph agent](demos/claude-made/09_langgraph_agent/) | A real tool-calling loop, governed end to end | **credentials** |
 
 Every demo takes `--target mock` (default) or `--target live`. Demo 09 is live
 only, because LangChain's `ChatOpenAI` calls `/chat/completions` and the
@@ -51,7 +51,7 @@ DEMO_PAUSE=1 make demo N=03 # pause between acts — use this when presenting
 ```
 
 `python run.py 03` works too, and each demo is a plain script
-(`python demos/03_budget_and_pacing/demo.py`) once the repo is installed.
+(`python demos/claude-made/03_budget_and_pacing/demo.py`) once the repo is installed.
 
 ## Setup
 

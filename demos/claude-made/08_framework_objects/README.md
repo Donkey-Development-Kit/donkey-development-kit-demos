@@ -27,4 +27,4 @@ is the raw client factory and got the good name.
 proxy contract is confirmed; the signatures are checked by a nightly matrix, and
 an adapter that cannot confirm one raises "blocked on verification".
 
-Build guide: `BG §1.8`. See [PRESENTING.md](../../PRESENTING.md#08--framework-objects).
+Build guide: `BG §1.8`. See [PRESENTING.md](../../../PRESENTING.md#08--framework-objects).

@@ -14,7 +14,7 @@ it is the entire supported surface for seven of the eight.
 
 No network calls are made — objects are only constructed.
 
-    python demos/08_framework_objects/demo.py
+    python demos/claude-made/08_framework_objects/demo.py
 """
 
 from __future__ import annotations

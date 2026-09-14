@@ -15,7 +15,7 @@ not implement rather than fabricate. Its refusal path *can* be exercised offline
 though — see act 6 of demo 04, which drives this same `ChatOpenAI` through
 `donkey.simulate()`.
 
-    python demos/09_langgraph_agent/demo.py        # needs real credentials
+    python demos/claude-made/09_langgraph_agent/demo.py        # needs real credentials
 """
 
 from __future__ import annotations

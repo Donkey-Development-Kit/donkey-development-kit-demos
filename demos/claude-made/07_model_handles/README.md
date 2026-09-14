@@ -22,4 +22,4 @@ trust than the missing feature ever would.
 
 Good filler if you are ahead of time; safe to cut if behind.
 
-Build guide: `BG §1.1`. See [PRESENTING.md](../../PRESENTING.md#07--model-handles).
+Build guide: `BG §1.1`. See [PRESENTING.md](../../../PRESENTING.md#07--model-handles).

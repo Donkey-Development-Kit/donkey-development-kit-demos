@@ -25,4 +25,4 @@ synthesised by the simulator and are not yet confirmed against a real proxy. The
 are live-verified on the **429**. Act 3 also observes a crafted near-exhausted
 window rather than issuing the ~200 calls it would take to drain the simulator's.
 
-Build guide: `BG §1.3`. See [PRESENTING.md](../../PRESENTING.md#03--budget-and-pacing).
+Build guide: `BG §1.3`. See [PRESENTING.md](../../../PRESENTING.md#03--budget-and-pacing).

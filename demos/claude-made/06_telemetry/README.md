@@ -38,4 +38,4 @@ say everything is fine, so refusals set `ERROR` and record
 **Not shipped yet:** zero-config OTLP export, and the validated cost-tag API.
 `donkey.cost.team` exists as an attribute key; the API that populates it does not.
 
-Build guide: `BG §1.6`, `BG §1.7`. See [PRESENTING.md](../../PRESENTING.md#06--telemetry).
+Build guide: `BG §1.6`, `BG §1.7`. See [PRESENTING.md](../../../PRESENTING.md#06--telemetry).

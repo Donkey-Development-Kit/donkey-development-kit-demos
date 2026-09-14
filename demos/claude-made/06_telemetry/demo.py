@@ -21,7 +21,7 @@ The run id is bound with `donkey.run(id=...)`, which works as both a sync and an
 async context manager and propagates into tasks the framework spawns.
 
     pip install "donkey-kit[otel]"
-    python demos/06_telemetry/demo.py
+    python demos/claude-made/06_telemetry/demo.py
 """
 
 from __future__ import annotations

@@ -14,8 +14,8 @@ the developer wired up.
 
 Runs offline against the local simulator by default:
 
-    python demos/01_governed_client/demo.py
-    python demos/01_governed_client/demo.py --target live
+    python demos/claude-made/01_governed_client/demo.py
+    python demos/claude-made/01_governed_client/demo.py --target live
 """
 
 from __future__ import annotations

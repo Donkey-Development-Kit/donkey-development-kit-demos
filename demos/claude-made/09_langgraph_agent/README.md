@@ -25,4 +25,4 @@ real consumption and one correlation id ties the whole loop together.
 instead. It constructs real framework objects and is not a simulator, which is
 what the room wants at that point in the session.
 
-Build guide: `BG §1.8`. See [PRESENTING.md](../../PRESENTING.md#09--langgraph-agent-live).
+Build guide: `BG §1.8`. See [PRESENTING.md](../../../PRESENTING.md#09--langgraph-agent-live).

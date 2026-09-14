@@ -10,7 +10,7 @@ Pacing is the useful half. `pace(reserve=…)` refuses locally *before* issuing 
 request that would cross your reserve, which turns a 429 you have to recover
 from into an exception you chose to raise.
 
-    python demos/03_budget_and_pacing/demo.py
+    python demos/claude-made/03_budget_and_pacing/demo.py
 """
 
 from __future__ import annotations

@@ -9,7 +9,7 @@ next N calls. The body it injects is the *same captured fixture* `classify()` is
 tested against, so the branch runs against exactly the refusal a real gateway
 sent — with no network, no server and no credentials.
 
-    python demos/04_simulate_refusals/demo.py
+    python demos/claude-made/04_simulate_refusals/demo.py
 """
 
 from __future__ import annotations

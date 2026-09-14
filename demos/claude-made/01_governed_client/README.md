@@ -24,4 +24,4 @@ people get wrong from first principles.
 **Expect:** against the simulator the reply is a captured response and will not
 answer the prompt. The demo prints a warning saying so; read it aloud.
 
-Build guide: `BG §1.1`. See [PRESENTING.md](../../PRESENTING.md#01--governed-client).
+Build guide: `BG §1.1`. See [PRESENTING.md](../../../PRESENTING.md#01--governed-client).

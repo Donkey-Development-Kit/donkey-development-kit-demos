@@ -32,4 +32,4 @@ quietly excused a scenario the demo needs to fail.
 **This is the deliverable** — the internal adapter matrix is ours, this suite is
 theirs, and it runs in their CI.
 
-Build guide: `BG §1.5`. See [PRESENTING.md](../../PRESENTING.md#05--conformance).
+Build guide: `BG §1.5`. See [PRESENTING.md](../../../PRESENTING.md#05--conformance).

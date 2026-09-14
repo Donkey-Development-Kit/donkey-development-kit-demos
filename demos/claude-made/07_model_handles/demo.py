@@ -12,7 +12,7 @@ clearly-heuristic capability handle instead.
 That is a small demo with a large point: a fabricated endpoint that 404s in a
 customer's sandbox costs more trust than the missing feature ever would.
 
-    python demos/07_model_handles/demo.py
+    python demos/claude-made/07_model_handles/demo.py
 """
 
 from __future__ import annotations

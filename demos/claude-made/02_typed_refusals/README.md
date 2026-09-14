@@ -23,4 +23,4 @@ That shape has never been captured from a real gateway, so it is left unnamed
 rather than given a class that implies more certainty than exists.
 `ContentSafetyBlocked` exists in the taxonomy but `classify()` never produces it.
 
-Build guide: `BG §1.2`. See [PRESENTING.md](../../PRESENTING.md#02--typed-refusals).
+Build guide: `BG §1.2`. See [PRESENTING.md](../../../PRESENTING.md#02--typed-refusals).

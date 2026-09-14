@@ -24,4 +24,4 @@ the SDK does not wrap.
 **Why it matters:** this needs no gateway, so it belongs in your unit tests
 rather than in a manual pre-release checklist.
 
-Build guide: `BG §1.5`. See [PRESENTING.md](../../PRESENTING.md#04--simulate).
+Build guide: `BG §1.5`. See [PRESENTING.md](../../../PRESENTING.md#04--simulate).
