@@ -97,3 +97,4 @@ htmlcov/
 *.swp
 .vscode/*
 !.vscode/settings.shared.json
+!.vscode/launch.json
