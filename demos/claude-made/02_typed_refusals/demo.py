@@ -21,6 +21,7 @@ from __future__ import annotations
 import httpx
 from donkey_kit import (
     AuthError,
+    ContentSafetyBlocked,
     PIIDetected,
     PolicyViolation,
     PromptInjectionBlocked,
@@ -32,14 +33,16 @@ from donkey_kit.simulator.fixtures import load
 from _harness import narrate as say
 from _harness import preflight, redact
 
-# The six documented rejection shapes plus the consumer-auth 401, in the order
+# The documented rejection shapes plus the consumer-auth 401, in the order
 # that tells the story: auth, then the policy refusals, then upstream.
 SHAPES: tuple[tuple[str, str], ...] = (
     ("client-id-missing", "consumer auth — a genuinely missing/wrong client id"),
     ("pii-detected", "PII policy — a 403 that is NOT an auth failure"),
     ("token-rate-limit", "token budget — a 429 with an EMPTY body; state is header-only"),
     ("injection-protection", "prompt injection — identified by a header, not a status"),
-    ("content-moderation", "content moderation — shape not yet captured live"),
+    ("regex-prompt-guard", "regex prompt guard — 403 keyed on matched_patterns, not auth"),
+    ("content-safety", "content safety / guardrails — 403 keyed on a vendor reject header"),
+    ("content-moderation", "undiscriminated moderation — no live capture, left unnamed"),
     ("model-not-found", "upstream passthrough — the provider's own error, not a policy"),
     ("upstream-5xx", "provider failure — retryable, unlike every refusal above"),
 )
@@ -51,6 +54,8 @@ EXPECTED: dict[str, type[Exception]] = {
     "pii-detected": PIIDetected,
     "token-rate-limit": TokenBudgetExceeded,
     "injection-protection": PromptInjectionBlocked,
+    "regex-prompt-guard": PromptInjectionBlocked,
+    "content-safety": ContentSafetyBlocked,
     "content-moderation": PolicyViolation,
     "model-not-found": UpstreamRequestError,
 }
@@ -70,7 +75,15 @@ def _rebuild(shape: str) -> httpx.Response:
 def _detail(error: Exception) -> list[tuple[str, object]]:
     """The attributes worth showing for whichever exception came back."""
     out: list[tuple[str, object]] = []
-    for attr in ("policy", "entities", "retry_after", "code", "error_type", "param"):
+    for attr in (
+        "policy",
+        "entities",
+        "categories",
+        "retry_after",
+        "code",
+        "error_type",
+        "param",
+    ):
         value = getattr(error, attr, None)
         if value not in (None, [], ""):
             out.append((attr, value))
@@ -78,7 +91,7 @@ def _detail(error: Exception) -> list[tuple[str, object]]:
 
 
 def act_1_the_taxonomy() -> None:
-    say.section("Seven captured responses through classify()")
+    say.section("Nine captured responses through classify()")
     say.code(
         """
         from donkey_kit.core.errors import classify
@@ -108,6 +121,8 @@ def act_2_what_the_hierarchy_buys() -> None:
 
     pii = classify(_rebuild("pii-detected"))
     budget = classify(_rebuild("token-rate-limit"))
+    safety = classify(_rebuild("content-safety"))
+    regex = classify(_rebuild("regex-prompt-guard"))
     upstream = classify(_rebuild("model-not-found"))
 
     checks = [
@@ -119,6 +134,15 @@ def act_2_what_the_hierarchy_buys() -> None:
             "a token-budget 429 is also a policy refusal — so one `except "
             "PolicyViolation` catches both",
             isinstance(budget, PolicyViolation),
+        ),
+        (
+            "content-safety is ContentSafetyBlocked, still a PolicyViolation",
+            isinstance(safety, ContentSafetyBlocked) and isinstance(safety, PolicyViolation),
+        ),
+        (
+            "regex-prompt-guard is PromptInjectionBlocked with its own policy name",
+            isinstance(regex, PromptInjectionBlocked)
+            and getattr(regex, "policy", None) == "regex-prompt-guard",
         ),
         (
             "an upstream 400 is NOT a policy refusal — it is your request that is "
@@ -146,6 +170,8 @@ def act_3_how_you_write_it() -> None:
 
         except PIIDetected as e:          # 403, and e.entities says what tripped
             redact_and_retry(e.entities)
+        except ContentSafetyBlocked as e: # 403, e.categories is the moderation analog
+            revise(e.categories)
         except TokenBudgetExceeded as e:  # 429, terminal — never retry it
             await donkey.budget.wait_for_reset()
         except PolicyViolation as e:      # any other gateway refusal
@@ -159,14 +185,15 @@ def act_3_how_you_write_it() -> None:
 
 
 def act_4_honesty() -> None:
-    say.section("What is not typed yet")
+    say.section("What is typed from docs, and what is still unnamed")
     say.note(
         "Four of these shapes are live-verified against a real proxy: consumer "
-        "auth, PII, token rate limit, and upstream passthrough. Injection is typed "
-        "by its header, and its body is still pending a live capture. Content "
-        "moderation has no captured shape at all, so it deliberately falls through "
-        "to a generic PolicyViolation instead of being given a class that would "
-        "imply more certainty than exists."
+        "auth, PII, token rate limit, and upstream passthrough. Injection, regex "
+        "prompt guard, and content-safety are typed from the documented wire "
+        "shapes — classify() produces PromptInjectionBlocked / ContentSafetyBlocked "
+        "— and are pending a live sandbox capture. That is the same posture as "
+        "header-based injection: named because the shape is specified, not because "
+        "a capture has landed yet."
     )
     print()
     moderation = classify(_rebuild("content-moderation"))
@@ -174,9 +201,10 @@ def act_4_honesty() -> None:
     say.field("remediation", redact.text(getattr(moderation, "remediation", "")))
     print()
     say.note(
-        "ContentSafetyBlocked exists in the taxonomy but classify() never produces "
-        "it, and donkey.simulate() refuses to inject it — an unverified shape is "
-        "left unclaimed rather than guessed at."
+        "An undiscriminated content-moderation 4xx still falls through to a generic "
+        "PolicyViolation. That leftover shape has never been captured from a live "
+        "gateway, so it is left unnamed rather than given a class that would imply "
+        "more certainty than exists."
     )
 
 

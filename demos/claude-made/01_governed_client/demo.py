@@ -65,11 +65,14 @@ async def act_1_the_governed_client(donkey: Donkey) -> None:
         """
         donkey = Donkey.from_env()
         client = donkey.openai()          # -> openai.AsyncOpenAI
+        blocking = donkey.openai(sync=True)  # -> openai.OpenAI, same governance
         """
     )
 
     client = donkey.openai()
     say.field("type", f"{type(client).__module__}.{type(client).__name__}")
+    blocking = donkey.openai(sync=True)
+    say.field("sync=True", f"{type(blocking).__module__}.{type(blocking).__name__}")
     say.field("base_url", redact.url(str(client.base_url)))
     print()
     say.table(redact.headers(_injected_headers(client)), title_="headers the SDK injects:")
@@ -77,7 +80,8 @@ async def act_1_the_governed_client(donkey: Donkey) -> None:
     say.note(
         "Note the base URL has no /v1 — the ingress is https://<host>/<instance>/ "
         "and the OpenAI SDK appends /responses itself. Auth is the client_id / "
-        "client_secret header pair, not a bearer token."
+        "client_secret header pair, not a bearer token. sync=True is the same "
+        "client without asyncio — useful for a straight-line script."
     )
 
 

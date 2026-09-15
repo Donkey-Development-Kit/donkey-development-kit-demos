@@ -23,6 +23,7 @@ from donkey_kit import (
     Donkey,
     PIIDetected,
     TokenBudgetExceeded,
+    ToolInvocationError,
 )
 from donkey_kit.core.errors import DonkeyError, classify
 
@@ -54,6 +55,8 @@ class TinyAgent:
         self.handled.append(type(error).__name__)
         if isinstance(error, PIIDetected):
             return f"redacted {error.entities} and asked the user to rephrase"
+        if isinstance(error, ContentSafetyBlocked):
+            return f"revised {error.categories} and did not retry"
         if isinstance(error, TokenBudgetExceeded):
             return f"queued for retry after {error.retry_after:.0f}s — did NOT retry now"
         return f"escalated: {type(error).__name__}"
@@ -84,7 +87,7 @@ async def act_2_inject(donkey: Donkey, agent: TinyAgent) -> None:
 
 async def act_3_each_refusal(donkey: Donkey, agent: TinyAgent) -> None:
     say.step(3, "Every refusal you need to handle, one line each")
-    for error_type in (TokenBudgetExceeded, PIIDetected):
+    for error_type in (TokenBudgetExceeded, PIIDetected, ContentSafetyBlocked):
         with donkey.simulate(error_type):
             result = await agent.run("anything")
         say.field(error_type.__name__, result)
@@ -107,25 +110,39 @@ async def act_4_times_and_scope(donkey: Donkey, agent: TinyAgent) -> None:
 
 
 async def act_5_what_it_refuses_to_fake(donkey: Donkey) -> None:
-    say.step(5, "It will not invent a refusal it has never seen")
+    say.step(5, "It will inject a documented shape, and refuse to invent the rest")
     say.code(
         """
         with donkey.simulate(ContentSafetyBlocked):
+            await agent.run("...")     # a real ContentSafetyBlocked
+        """
+    )
+    agent = TinyAgent(donkey)
+    with donkey.simulate(ContentSafetyBlocked):
+        result = await agent.run("anything")
+    say.field("ContentSafetyBlocked", result)
+    say.ok("The documented content-safety fixture classifies and injects.")
+
+    print()
+    say.code(
+        """
+        with donkey.simulate(ToolInvocationError):
             ...
         """
     )
     try:
-        with donkey.simulate(ContentSafetyBlocked):
+        with donkey.simulate(ToolInvocationError):
             pass
         say.fail("expected a ValueError")
     except ValueError as exc:
-        say.ok("ValueError, not a hand-rolled stand-in")
+        say.ok("ValueError — no captured fixture maps back to it")
         say.field("message", exc)
     print()
     say.note(
-        "The content-moderation shape has not been captured from a live gateway "
-        "yet. Injecting a plausible-looking body would let you write a handler "
-        "against a body that does not exist — so it refuses instead."
+        "Tool invocation, registry, and provisioning errors are not gateway "
+        "refusals, and they have no captured wire shape. Injecting a plausible "
+        "body would let you write a handler against a body that does not exist "
+        "— so simulate() refuses instead."
     )
 
 

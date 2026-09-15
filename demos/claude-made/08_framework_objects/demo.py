@@ -133,6 +133,11 @@ def act_2_connection_kwargs(donkey: Donkey) -> None:
         "is demand-driven and happens one at a time, so this is not a stepping "
         "stone that everything is queued behind — it is the supported surface."
     )
+    say.note(
+        "LangGraph is the only adapter held to the conformance bar, and it sets "
+        "use_responses_api=True so ChatOpenAI calls the live-verified /responses "
+        "route rather than the unverified /chat/completions default."
+    )
 
 
 def _flatten(kwargs: dict[str, object]) -> dict[str, str]:

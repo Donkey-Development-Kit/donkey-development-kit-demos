@@ -20,8 +20,10 @@ as a decision than to explain as a gap.
 
 **Point at:** `connection_kwargs()` is the *entire supported surface* for seven
 of the eight, which makes it the most load-bearing method here, not the least.
-And `donkey.openai_agents` is the OpenAI Agents SDK adapter — `donkey.openai()`
-is the raw client factory and got the good name.
+LangGraph is the only adapter held to the conformance bar, and it sets
+`use_responses_api=True` so `ChatOpenAI` hits the live-verified `/responses`
+route. And `donkey.openai_agents` is the OpenAI Agents SDK adapter —
+`donkey.openai()` is the raw client factory and got the good name.
 
 **Not verified:** the exact framework class names and constructor kwargs. The
 proxy contract is confirmed; the signatures are checked by a nightly matrix, and

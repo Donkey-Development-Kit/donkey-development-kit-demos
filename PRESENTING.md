@@ -126,10 +126,14 @@ a warning saying so. Read the warning aloud — the honesty is part of the pitch
 **Say:** "A PII block is a 403. So is an auth failure. If you branch on the
 status code you will treat a governance decision as a credentials problem."
 
-**Point at:** `content-moderation` classifying as a generic `PolicyViolation`.
-Someone will ask why it is not its own class. The answer — *we have never
-captured that shape from a real gateway, so we will not name it* — does more for
-your credibility than any feature on the slide.
+**Point at:** `content-safety` classifying as `ContentSafetyBlocked`, and
+`regex-prompt-guard` as `PromptInjectionBlocked` with its own policy name.
+Those are typed from the documented wire format, pending a live capture — the
+same posture as header-based injection. Then point at `content-moderation`
+still classifying as a generic `PolicyViolation`. Someone will ask why that
+leftover 4xx is not its own class. The answer — *we have never captured that
+shape from a real gateway, so we will not name it* — does more for your
+credibility than any feature on the slide.
 
 ### 03 — budget and pacing
 
@@ -142,17 +146,19 @@ that stops an agent that could have run."
 deliberate taxonomy decision: a refusal is the gateway saying no and is terminal;
 this is your own client-side signal that you are expected to recover from.
 
-**Expect:** the demo prints a warning that happy-path budget headers are
-simulator-synthesised. Do not skip it. If you are asked, the 429 path is
-live-verified; the 200 path is pending a capture.
+**Expect:** the demo notes that a live 200 carries the window as prose
+`x-llm-proxy-ratelimit` (live-verified) and that the simulator's decreasing
+numbers are illustrative. Do not skip it. The numeric `x-token-*` trio is
+verified on the 429.
 
 ### 04 — simulate
 
 **Say:** "Every one of you has an `except PIIDetected` branch that has never
 executed."
 
-**Point at:** act 5, where `ContentSafetyBlocked` raises `ValueError` instead of
-injecting something plausible. And act 6, where the same injection works through
+**Point at:** act 5, where `ContentSafetyBlocked` now injects the documented
+fixture — the branch runs — and `ToolInvocationError` still raises `ValueError`
+instead of inventing a body. And act 6, where the same injection works through
 LangChain's own `ChatOpenAI` — because it sits on the transport, not on a wrapper.
 
 ### 05 — conformance
@@ -179,7 +185,10 @@ is stable — renaming one of those keys is a breaking change."
 
 **Point at:** the pinned semconv version. The keys are transcribed in the SDK
 rather than imported from the semconv package, whose default drifts release to
-release, so what lands on a span changes only by a reviewable edit. Then act 3:
+release, so what lands on a span changes only by a reviewable edit. Then act 1:
+`gen_ai.prompt` / `gen_ai.completion` stay off unless you opt in — spans are
+emitted upstream of the gateway's PII mask. Then act 2's cost tags: the fixed
+four dimensions, set on `from_env()` and overridable per `run()`. Then act 3:
 a refused request produces an `ERROR` span, because a span that ends OK on a
 refusal makes a dashboard say everything is fine.
 
@@ -210,13 +219,14 @@ first.
 
 **Point at:** `connection_kwargs()` being the *entire supported surface* for
 seven of the eight — which makes it the most load-bearing method in the module,
-not the least. And at `donkey.openai_agents`, which is the Agents SDK adapter;
-`donkey.openai()` is the raw client and got the good name.
+not the least. LangGraph is the only adapter held to the conformance bar, and
+it targets `/responses`. And at `donkey.openai_agents`, which is the Agents SDK
+adapter; `donkey.openai()` is the raw client and got the good name.
 
 ### 09 — LangGraph agent (live)
 
-**Say:** "The only DDK line in this file is the one that builds the
-model. Everything else is ordinary LangGraph."
+**Say:** "The DDK lines are the one that builds the model, `donkey.run(id=…)`
+around the loop, and `typed_refusals()` so a gateway 403 is `PIIDetected`."
 
 **Point at:** the budget after the run — several model calls in one agent loop,
 one transport, so the number is the run's real consumption.
@@ -284,8 +294,9 @@ The rejection shapes, the base URL shape, the header pair and streaming are
 live-verified against a real gateway. The simulator replays *those captures*,
 byte for byte — it is not a hand-written fake, and the SDK's own `classify()`
 tests read the same files, so a drifted capture breaks both at once. What is not
-verified is stated in the demos as they run: happy-path budget headers, the
-content-moderation shape, and the framework constructor signatures.
+verified is stated in the demos as they run: the simulator's illustrative
+happy-path budget numbers, the unnamed leftover content-moderation 4xx, and
+the framework constructor signatures.
 
 **"What about tool discovery / provisioning?"**
 Not built, and deliberately not demoed. Those code paths raise

@@ -1,10 +1,12 @@
 """Demo 03 — the token budget, and refusing to cross it before the gateway does.
 
-The gateway reports budget only in-band, on `x-token-*` response headers. There
-is no endpoint to ask "how much is left", so a brand-new process knows nothing
-until its first call returns. `donkey.budget` is that window as an object: the
-developer never parses a header, and `observed_at` is there so nobody mistakes
-stale data for live data.
+The gateway reports budget only in-band, on response headers — there is no
+endpoint to ask "how much is left". The same three values arrive in two shapes:
+the numeric `x-token-*` trio on the 429 that pacing exists to prevent, and the
+prose `x-llm-proxy-ratelimit` sentence on a successful 200 (and on a 403).
+`donkey.budget` reads both, so a brand-new process knows nothing until its first
+call returns, and `observed_at` is there so nobody mistakes stale data for live
+data.
 
 Pacing is the useful half. `pace(reserve=…)` refuses locally *before* issuing a
 request that would cross your reserve, which turns a 429 you have to recover
@@ -67,11 +69,11 @@ async def act_2_in_band(donkey: Donkey) -> None:
     say.field("observed_at", donkey.budget.observed_at, raw=True)
     say.field("reset_at", donkey.budget.reset_at, raw=True)
     print()
-    say.warn(
-        "Honesty note: the simulator synthesises this decreasing window. Budget "
-        "headers on a 200 are NOT yet confirmed against a real proxy — they are "
-        "verified on the 429 refusal. Treat the shape as real and the happy-path "
-        "numbers as illustrative."
+    say.note(
+        "A live 200 carries this window as the prose header x-llm-proxy-ratelimit "
+        "— that sentence is live-verified. The numeric x-token-* trio is verified "
+        "on the 429. The simulator synthesises a decreasing window in the same "
+        "prose shape, so the numbers above are illustrative; the parse path is not."
     )
 
 

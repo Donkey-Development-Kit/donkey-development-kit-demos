@@ -13,9 +13,10 @@ make demo N=01 ARGS="--target live"
 needs the PII-detection policy applied with `Email` among its entities and its action
 set to `Reject` — the default action is `Log`, which does not block.
 
-**Three acts.** The governed client and its injected headers; one call, plus the
-budget/correlation/span it updated on the way past; then the same PII refusal
-through a stock `openai` client and through this one, side by side.
+**Three acts.** The governed client and its injected headers (async by default,
+`sync=True` for a blocking `OpenAI`); one call, plus the budget/correlation/span
+it updated on the way past; then the same PII refusal through a stock `openai`
+client and through this one, side by side.
 
 **Point at:** the base URL has no `/v1`, and auth is a `client_id`/`client_secret`
 header pair rather than a bearer token. Both are live-verified details that

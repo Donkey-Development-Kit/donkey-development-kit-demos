@@ -35,8 +35,10 @@ credentials off a screen recording.
 | 09 | [LangGraph agent](demos/claude-made/09_langgraph_agent/) | A real tool-calling loop, governed end to end | **credentials** |
 
 Every demo takes `--target mock` (default) or `--target live`. Demo 09 is live
-only, because LangChain's `ChatOpenAI` calls `/chat/completions` and the
-simulator deliberately does not implement a route it has never captured.
+only, because it is a real tool-calling loop — the simulator replays a captured
+`/responses` completion and will not decide to call tools. The LangGraph adapter
+itself targets `/responses` (`use_responses_api=True`), the same live-verified
+route as `donkey.openai()`.
 
 ## Running them
 
@@ -114,11 +116,14 @@ the rejection shapes. See
 
 Three things the demos say out loud rather than gloss over:
 
-- **Happy-path budget headers are synthesised by the simulator.** `x-token-*` on
-  a 200 is not yet confirmed against a real proxy; it is verified on the 429.
-  Demo 03 prints that warning itself.
-- **Content moderation has no captured shape**, so it falls through to a generic
-  `PolicyViolation` and `simulate()` refuses to inject `ContentSafetyBlocked`.
+- **Happy-path budget numbers on the simulator are illustrative.** A live 200
+  (with the token-rate policy applied) carries the window as prose
+  `x-llm-proxy-ratelimit` — that sentence is live-verified. The numeric
+  `x-token-*` trio is verified on the 429. Demo 03 prints the distinction.
+- **Content-safety and regex-prompt-guard are typed from the documented wire
+  shapes**, pending a live capture — the same posture as header-based injection.
+  An undiscriminated `content-moderation` 4xx still falls through to a generic
+  `PolicyViolation`.
 - **Framework class names are unverified.** The proxy contract is confirmed; the
   exact constructor signatures are checked by a nightly matrix, and an adapter
   that cannot confirm one raises "blocked on verification" rather than guessing.

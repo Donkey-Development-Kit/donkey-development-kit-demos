@@ -9,11 +9,12 @@ LangChain's own `ChatOpenAI` — not a wrapper the SDK invented.
 This is the deep, conformance-gated adapter. The other seven frameworks are
 supported at `connection_kwargs()` (demo 08).
 
-**Live only.** The local simulator serves the Responses API; LangChain's
-`ChatOpenAI` talks to `/chat/completions`, which the simulator deliberately does
-not implement rather than fabricate. Its refusal path *can* be exercised offline
-though — see act 6 of demo 04, which drives this same `ChatOpenAI` through
-`donkey.simulate()`.
+**Live only.** This is a real multi-step tool-calling loop, so it needs a model
+that can actually decide to call tools. The local simulator replays a captured
+`/responses` completion and will not drive that loop. The adapter itself *does*
+target `/responses` (`use_responses_api=True`) — the same live-verified route
+as `donkey.openai()`. The refusal path can be exercised offline: see act 6 of
+demo 04, which drives this same `ChatOpenAI` through `donkey.simulate()`.
 
     python demos/claude-made/09_langgraph_agent/demo.py        # needs real credentials
 """
@@ -76,22 +77,32 @@ async def _main() -> None:
         agent = create_agent(model, tools=[check_inventory, get_price])
         say.field("question", QUESTION)
         print()
+        say.code(
+            """
+            async with donkey.run(id="sku-lookup"):
+                with donkey.langgraph.typed_refusals():
+                    async for chunk in agent.astream(...):
+                        ...
+            """
+        )
 
         calls = 0
-        async for chunk in agent.astream(
-            {"messages": [("user", QUESTION)]}, stream_mode="updates"
-        ):
-            for node, update in chunk.items():
-                for message in update.get("messages", []):
-                    if getattr(message, "tool_calls", None):
-                        for call in message.tool_calls:
-                            calls += 1
-                            print(f"    tool call    {call['name']}({call['args']})")
-                    elif node == "tools":
-                        print(f"    tool result  {redact.text(message.content)}")
-                    elif message.content:
-                        print()
-                        say.field("answer", redact.text(message.content))
+        async with donkey.run(id="sku-lookup"):
+            with donkey.langgraph.typed_refusals():
+                async for chunk in agent.astream(
+                    {"messages": [("user", QUESTION)]}, stream_mode="updates"
+                ):
+                    for node, update in chunk.items():
+                        for message in update.get("messages", []):
+                            if getattr(message, "tool_calls", None):
+                                for call in message.tool_calls:
+                                    calls += 1
+                                    print(f"    tool call    {call['name']}({call['args']})")
+                            elif node == "tools":
+                                print(f"    tool result  {redact.text(message.content)}")
+                            elif message.content:
+                                print()
+                                say.field("answer", redact.text(message.content))
 
         say.pause()
         say.step(3, "What the governance layer saw")
@@ -105,16 +116,20 @@ async def _main() -> None:
         )
         say.note(
             "Several model calls in one agent run, all through one transport — so "
-            "the budget is the run's real consumption, and a single correlation id "
-            "ties the whole loop together in the gateway's observability view."
+            "the budget is the run's real consumption, and donkey.run(id=…) ties "
+            "the whole loop together. typed_refusals() is the node-level bridge: "
+            "a proxy 403 surfaces out of astream as PIIDetected, not a "
+            "framework-wrapped generic error."
         )
 
         print()
         say.section("The point")
         say.note(
-            "The agent code is ordinary LangGraph. The only DDK line is "
-            "the one that built the model. That is the whole proposition: "
-            "governance at the boundary, not in your agent's control flow."
+            "The agent code is ordinary LangGraph. The DDK lines are the one "
+            "that built the model, donkey.run(id=…) around the loop, and "
+            "typed_refusals() so a gateway 403 is PIIDetected rather than a "
+            "framework-wrapped generic. Governance at the boundary, not in "
+            "the agent's control flow."
         )
 
 

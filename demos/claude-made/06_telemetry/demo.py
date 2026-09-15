@@ -33,6 +33,8 @@ import openai
 from donkey_kit import Donkey
 from donkey_kit.core.errors import classify
 from donkey_kit.core.telemetry import (
+    GEN_AI_COMPLETION,
+    GEN_AI_PROMPT,
     GEN_AI_SEMCONV_VERSION,
     SPAN_LLM_CHAT,
     current_correlation_id,
@@ -91,7 +93,15 @@ async def act_1_a_span_per_call(donkey: Donkey, exporter) -> None:
     )
     client = donkey.openai()
     await client.responses.create(model=MODEL, input="hello")
+    spans = exporter.get_finished_spans()
     _show_spans(exporter, expect=1)
+    print()
+    attributes = dict(spans[0].attributes or {}) if spans else {}
+    leaked = [k for k in (GEN_AI_PROMPT, GEN_AI_COMPLETION) if k in attributes]
+    if leaked:
+        say.fail(f"content attributes present by default: {leaked}")
+    else:
+        say.ok("gen_ai.prompt / gen_ai.completion are absent — capture is opt-in")
     print()
     say.note(
         f"The gen_ai.* keys are pinned to semantic-convention version "
@@ -100,33 +110,50 @@ async def act_1_a_span_per_call(donkey: Donkey, exporter) -> None:
         f"to release — so what lands on your span is decided by a reviewable edit, "
         f"not by a transitive upgrade."
     )
+    say.note(
+        "Prompt and completion stay off the span unless you set "
+        "telemetry_capture_content=True (or DONKEY_TELEMETRY_CAPTURE_CONTENT=1). "
+        "The gateway masks PII in its logs; spans are emitted upstream of that, "
+        "so defaulting capture on would re-export the content the platform just "
+        "masked."
+    )
 
 
 async def act_2_correlation(donkey: Donkey, exporter) -> None:
     say.step(2, "One correlation id for a whole run, however many calls it makes")
     say.code(
         """
-        async with donkey.run(id=ticket.id):       # your own business id
-            await client.responses.create(...)     # all three calls
-            await client.responses.create(...)     # share one id, on the
-            await client.responses.create(...)     # wire and on the spans
+        async with donkey.run(id=ticket.id, team="support", project="triage"):
+            await client.responses.create(...)     # all three calls share
+            await client.responses.create(...)     # one id, and the cost
+            await client.responses.create(...)     # tags, on wire and spans
         """
     )
     client = donkey.openai()
     # A ticket number, not a uuid: the value of binding the id yourself is that
     # the gateway record is searchable by something the business already knows.
     ticket = "ticket-4417"
-    async with donkey.run(id=ticket):
+    async with donkey.run(id=ticket, team="support", project="triage"):
         say.field("run id", current_correlation_id(), raw=True)
         for _ in range(3):
             await client.responses.create(model=MODEL, input="fan out")
 
     spans = exporter.get_finished_spans()
     ids = {(s.attributes or {}).get("donkey.correlation_id") for s in spans}
+    teams = {(s.attributes or {}).get("donkey.cost.team") for s in spans}
+    projects = {(s.attributes or {}).get("donkey.cost.project") for s in spans}
+    envs = {(s.attributes or {}).get("donkey.cost.env") for s in spans}
     say.field("spans emitted", len(spans), raw=True)
     say.field("distinct correlation ids", len(ids), raw=True)
     if ids == {ticket}:
         say.ok(f"all {len(spans)} spans carry the one run id")
+    if teams == {"support"} and projects == {"triage"} and envs == {"dev"}:
+        say.ok("run() overrode team/project; env inherited from from_env()")
+    else:
+        say.warn(
+            f"cost tags: team={teams} project={projects} env={envs} "
+            "(expected support / triage / dev)"
+        )
     exporter.clear()
 
     print()
@@ -135,7 +162,9 @@ async def act_2_correlation(donkey: Donkey, exporter) -> None:
         "context, and tasks the framework spawns copy that context — so a "
         "LangGraph node running the model on a child task is inside the same run "
         "without knowing the run exists. Concurrent runs do not leak into each "
-        "other, and nested run() blocks rebind then restore."
+        "other, and nested run() blocks rebind then restore. Cost tags ride the "
+        "same context: run(team=..., project=...) overrides those dimensions for "
+        "the block and inherits the rest from from_env()."
     )
 
     print()
@@ -190,7 +219,7 @@ async def act_3_refusal_spans(donkey: Donkey, exporter) -> None:
 
 async def _main() -> None:
     exporter = _install_exporter()
-    async with Donkey.from_env() as donkey:
+    async with Donkey.from_env(team="platform", env="dev") as donkey:
         await act_1_a_span_per_call(donkey, exporter)
         say.pause()
         await act_2_correlation(donkey, exporter)
@@ -206,9 +235,10 @@ async def _main() -> None:
             f"they all landed in one milestone rather than three."
         )
         say.note(
-            "Not shipped yet: zero-config OTLP export and validated cost tags. "
-            "donkey.cost.team exists as an attribute key; the validated API that "
-            "populates it is still open."
+            "Cost tags are the fixed four — team / project / env / enduser.id — "
+            "set on from_env() and overridable per donkey.run(). They land on "
+            "donkey.cost.* whether or not the gateway-side header names are "
+            "verified yet. Still not shipped: zero-config OTLP export."
         )
 
 

@@ -20,9 +20,11 @@ because `0` would be a lie that stops an agent that could have run. And
 gateway saying no and is terminal, this is a local signal you are expected to
 recover from.
 
-**Honest limitation, printed by the demo:** `x-token-*` headers on a **200** are
-synthesised by the simulator and are not yet confirmed against a real proxy. They
-are live-verified on the **429**. Act 3 also observes a crafted near-exhausted
-window rather than issuing the ~200 calls it would take to drain the simulator's.
+**Two header shapes, both live-verified.** A successful 200 (with the token-rate
+policy applied) carries the window as prose `x-llm-proxy-ratelimit`. The numeric
+`x-token-*` trio is verified on the 429. The simulator synthesises a decreasing
+window in the prose shape so pacing can be exercised locally; act 3 also observes
+a crafted near-exhausted window rather than issuing the ~200 calls it would take
+to drain it.
 
 Build guide: `BG §1.3`. See [PRESENTING.md](../../../PRESENTING.md#03--budget-and-pacing).

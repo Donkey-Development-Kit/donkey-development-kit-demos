@@ -40,6 +40,8 @@ REJECTION_SHAPES = (
     "token-rate-limit",
     "pii-detected",
     "injection-protection",
+    "regex-prompt-guard",
+    "content-safety",
     "content-moderation",
     "model-not-found",
     "upstream-5xx",
