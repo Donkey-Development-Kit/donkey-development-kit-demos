@@ -24,8 +24,9 @@ import asyncio
 import os
 
 import openai
-from donkey_kit import Donkey, PIIDetected
+from donkey_kit import Donkey, PIIDetected, registered_tools
 from donkey_kit.core.errors import classify
+from donkey_kit.core.telemetry import current_correlation_id, current_cost_tags
 
 from _harness import mock, preflight, redact
 from _harness import narrate as say
@@ -113,7 +114,7 @@ async def act_2_a_governed_call(donkey: Donkey) -> None:
 
     print()
     say.note(
-        "That call also did four things nobody asked for, because every request "
+        "That call also did these things nobody asked for, because every request "
         "leaves through one client:"
     )
     budget = donkey.budget
@@ -125,8 +126,18 @@ async def act_2_a_governed_call(donkey: Donkey) -> None:
         raw=True,
     )
     say.field("budget.observed_at", budget.observed_at, raw=True)
+    last = donkey.last_call
+    say.field("last_call.status", last.status.value, raw=True)
+    say.field("last_call.served_model", last.served_model, raw=True)
+    say.field("last_call.total_tokens", last.total_tokens, raw=True)
     say.bullet("a correlation id went out on the request")
     say.bullet("a gen_ai.* span opened and closed around it (demo 06)")
+    say.note(
+        "donkey.last_call is the success-path counterpart to a typed refusal: "
+        "who served this, what they actually routed to, and what the call cost. "
+        "Demo 10 walks the whole record — routing, fallback, cached/reasoning "
+        "tokens, and the opt-in ModelSubstituted error."
+    )
 
 
 async def act_3_raw_vs_governed(donkey: Donkey) -> None:
@@ -216,6 +227,86 @@ async def act_3_raw_vs_governed(donkey: Donkey) -> None:
         say.warn("the governed client was not refused either")
 
 
+async def act_4_the_one_line_onramps(donkey: Donkey) -> None:
+    say.step(4, "@donkey.governed and @donkey.tool — the one-line on-ramps")
+    say.code(
+        """
+        @donkey.governed(team="support")
+        async def handle_ticket(ticket):
+            ...  # every model call inside shares one run id
+        """
+    )
+    say.note(
+        "There is deliberately no id= on the decorator: a fixed id pinned across "
+        "every call would collapse unrelated tickets into one correlation. When "
+        "you need to pin a business id, use donkey.run(id=...) directly (demo 06)."
+    )
+
+    seen: list[str | None] = []
+    outer = current_correlation_id()
+
+    @donkey.governed(team="support", project="triage")
+    async def handle_ticket(ticket: str) -> str:
+        seen.append(current_correlation_id())
+        tags = current_cost_tags()
+        say.field("run id inside", current_correlation_id(), raw=True)
+        say.field(
+            "cost tags",
+            f"team={tags.team} project={tags.project}" if tags else "—",
+        )
+        return ticket
+
+    await handle_ticket("4417")
+    await handle_ticket("4418")
+    after = current_correlation_id()
+    if seen[0] and seen[1] and seen[0] != seen[1]:
+        say.ok("each invocation opened a fresh run")
+    else:
+        say.warn(f"expected two distinct run ids, got {seen}")
+    say.field("run id after", after, raw=True)
+    if after == outer:
+        say.ok("restored to the enclosing context — nested run() rebinds, then restores")
+    else:
+        say.warn(f"expected restore to {outer!r}, got {after!r}")
+
+    print()
+    say.code(
+        """
+        @donkey.tool
+        def lookup_sku(sku: str) -> str:
+            \"\"\"Return stock for a product SKU.\"\"\"
+            ...
+        """
+    )
+
+    @donkey.tool
+    def lookup_sku(sku: str) -> str:
+        """Return stock for a product SKU."""
+        return "42"
+
+    spec = next(s for s in registered_tools() if s.func is lookup_sku)
+    say.field("registered", spec.name, raw=True)
+    say.field("signature", str(spec.signature), raw=True)
+    say.field("docstring", spec.docstring)
+    if lookup_sku is spec.func and lookup_sku("AF-1001") == "42":
+        say.ok("same function object — the decorator records it, it does not wrap it")
+
+    try:
+
+        @donkey.tool
+        def undescribed(sku: str) -> str:
+            return sku
+
+        say.fail("expected ValueError for an undescribed tool")
+    except ValueError:
+        say.ok("ValueError — an undescribed tool is rejected at decoration time")
+    say.note(
+        "The same marker is what a Phase 2 scanner and an A2A agent-card "
+        "generator will both read. Neither consumer is built yet; this is the "
+        "annotation they will look for, not a wrapper around the tool."
+    )
+
+
 def _is_mock() -> bool:
     from _harness import env
 
@@ -229,14 +320,18 @@ async def _main() -> None:
         await act_2_a_governed_call(donkey)
         say.pause()
         await act_3_raw_vs_governed(donkey)
+        say.pause()
+        await act_4_the_one_line_onramps(donkey)
 
         print()
         say.section("The point")
         say.note(
             "The wrapper is not sold as a way to reach the gateway. It is the one "
             "place every request enters and every response leaves — which is why "
-            "budget, typed refusals, correlation ids, spans and simulation can all "
-            "attach without the developer wiring each one."
+            "budget, last_call, typed refusals, correlation ids, spans and "
+            "simulation can all attach without the developer wiring each one. "
+            "@donkey.governed is that attachment as a function decorator; "
+            "@donkey.tool is the marker a scanner can find without executing it."
         )
 
 

@@ -18,10 +18,11 @@ path *can* be exercised offline — act 6 of [demo 04](../04_simulate_refusals/)
 drives this same `ChatOpenAI` through `donkey.simulate()`.
 
 **Point at:** the only DDK lines in the file are the one that builds the model,
-`donkey.run(id=…)` around the loop, and `typed_refusals()` so a proxy 403 comes
+`donkey.run(id=…)` around the loop, `typed_refusals()` so a proxy 403 comes
 out of `astream` as `PIIDetected` rather than a framework-wrapped generic
-error. And the budget afterwards — several model calls in one agent loop
-through one transport, so the number is the run's real consumption.
+error, and `@donkey.tool` on the two functions — a marker, not a wrapper.
+And afterwards: the budget (the run's real consumption) and
+`donkey.last_call` on the most recent model call.
 
 **Fallback if the sandbox is down:** run [demo 08](../08_framework_objects/)
 instead. It constructs real framework objects and is not a simulator, which is

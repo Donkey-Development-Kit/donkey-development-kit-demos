@@ -4,7 +4,7 @@ import openai
 
 
 async def main() -> None:
-    # Needs OPENAI_API_KEY in the environment. No base_url, so the SDK's
+    # Needs OPENAI_API_KEY. No base_url — stock OpenAI, not the gateway.
     client = openai.AsyncOpenAI()
 
     response = await client.responses.create(

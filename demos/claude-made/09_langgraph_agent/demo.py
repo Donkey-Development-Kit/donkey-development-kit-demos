@@ -24,7 +24,7 @@ from __future__ import annotations
 import asyncio
 import os
 
-from donkey_kit import Donkey
+from donkey_kit import Donkey, registered_tools
 from langchain.agents import create_agent
 from langchain_core.tools import tool
 
@@ -39,12 +39,14 @@ PRICES = {"AF-1001": "EUR 129.00", "AF-2002": "EUR 89.50"}
 
 
 @tool
+@Donkey.tool
 def check_inventory(sku: str) -> str:
     """Return the units in stock and warehouse for a product SKU."""
     return INVENTORY.get(sku, "unknown SKU")
 
 
 @tool
+@Donkey.tool
 def get_price(sku: str) -> str:
     """Return the list price for a product SKU."""
     return PRICES.get(sku, "unknown SKU")
@@ -114,22 +116,35 @@ async def _main() -> None:
             f"{budget.fraction_used:.1%}" if budget.fraction_used is not None else "unobserved",
             raw=True,
         )
+        last = donkey.last_call
+        say.field("last_call.status", last.status.value, raw=True)
+        say.field("last_call.served_model", last.served_model, raw=True)
+        say.field("last_call.total_tokens", last.total_tokens, raw=True)
+        say.field("last_call.substituted", last.substituted, raw=True)
+        marked = {s.name: s for s in registered_tools()}
+        for name in ("check_inventory", "get_price"):
+            spec = marked.get(name)
+            if spec is not None:
+                say.field(f"@donkey.tool {name}", spec.docstring)
         say.note(
             "Several model calls in one agent run, all through one transport — so "
             "the budget is the run's real consumption, and donkey.run(id=…) ties "
-            "the whole loop together. typed_refusals() is the node-level bridge: "
-            "a proxy 403 surfaces out of astream as PIIDetected, not a "
-            "framework-wrapped generic error."
+            "the whole loop together. last_call is the most recent model call in "
+            "this context: who served it, what they served, what it cost. "
+            "typed_refusals() is the node-level bridge: a proxy 403 surfaces out "
+            "of astream as PIIDetected, not a framework-wrapped generic error. "
+            "@donkey.tool marked the same functions the agent just called — it "
+            "records them for a scanner, it does not wrap them."
         )
 
         print()
         say.section("The point")
         say.note(
             "The agent code is ordinary LangGraph. The DDK lines are the one "
-            "that built the model, donkey.run(id=…) around the loop, and "
+            "that built the model, donkey.run(id=…) around the loop, "
             "typed_refusals() so a gateway 403 is PIIDetected rather than a "
-            "framework-wrapped generic. Governance at the boundary, not in "
-            "the agent's control flow."
+            "framework-wrapped generic, and @donkey.tool on the two functions. "
+            "Governance at the boundary, not in the agent's control flow."
         )
 
 

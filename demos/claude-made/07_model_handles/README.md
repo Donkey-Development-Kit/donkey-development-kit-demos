@@ -12,7 +12,9 @@ make demo N=07
 **Three acts.** `resolve()` returning local, explicitly heuristic capability
 handles; `list_models(live=True)` raising a `ConfigError` that explains the
 verified absence of a catalog endpoint; and config validation reporting every
-missing field at once rather than one per run.
+missing field at once rather than one per run. Act 3 also points at
+`donkey doctor` — the CLI that tells wrong URL from wrong credentials from
+model-not-allowed, reusing the same remediation strings.
 
 **Point at:** `GET /models` returns 404 — verified against a real gateway, not
 assumed — because model-based routing only routes requests that already carry

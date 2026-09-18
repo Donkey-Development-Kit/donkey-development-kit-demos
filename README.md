@@ -2,7 +2,7 @@
 
 Runnable demos for the [**Donkey Development Kit (DDK)**](https://github.com/Donkey-Development-Kit/donkey-development-kit).
 
-**Eight of the nine run with no credentials and no gateway**, against the SDK's
+**Nine of the ten run with no credentials and no gateway**, against the SDK's
 local simulator — which replays the same captured responses the SDK's own tests
 are written against. So you can clone this, install, and see the whole
 governance story in about a minute.
@@ -24,15 +24,16 @@ credentials off a screen recording.
 
 | # | Demo | Shows | Needs |
 |---|------|-------|-------|
-| 01 | [governed client](demos/claude-made/01_governed_client/) | The two-line ergonomic, and a side-by-side of what the raw client leaves you holding | nothing |
+| 01 | [governed client](demos/claude-made/01_governed_client/) | The two-line ergonomic, a side-by-side of what the raw client leaves you holding, then `@donkey.governed` / `@donkey.tool` | nothing |
 | 02 | [typed refusals](demos/claude-made/02_typed_refusals/) | Seven captured rejection shapes through `classify()`, and why the hierarchy is shaped that way | nothing |
 | 03 | [budget and pacing](demos/claude-made/03_budget_and_pacing/) | The token window as an object; `pace(reserve=)` refusing before the request goes out | nothing |
 | 04 | [simulating refusals](demos/claude-made/04_simulate_refusals/) | `donkey.simulate()` running the `except` branch that has never executed | nothing |
 | 05 | [conformance suite](demos/claude-made/05_conformance/) | `pytest --donkey-conformance` grading a naive agent, then the fixed one | nothing |
-| 06 | [telemetry](demos/claude-made/06_telemetry/) | OTel GenAI spans, dual `gen_ai.*` + `donkey.*` attributes, and `donkey.run(id=…)` binding your own id across every call in a run | nothing |
+| 06 | [telemetry](demos/claude-made/06_telemetry/) | OTel GenAI spans, dual `gen_ai.*` + `donkey.*` attributes (cost, routing, usage), `donkey.run(id=…)`, and zero-config OTLP | nothing |
 | 07 | [model handles](demos/claude-made/07_model_handles/) | What the SDK does when the platform has no endpoint for what you asked | nothing |
 | 08 | [framework objects](demos/claude-made/08_framework_objects/) | One deep adapter, seven at `connection_kwargs()`, no wrappers | nothing |
 | 09 | [LangGraph agent](demos/claude-made/09_langgraph_agent/) | A real tool-calling loop, governed end to end | **credentials** |
+| 10 | [last_call](demos/claude-made/10_last_call/) | Gateway identity, routing/fallback and per-call usage on a 200; `ModelSubstituted` when you opt in | nothing |
 
 Every demo takes `--target mock` (default) or `--target live`. Demo 09 is live
 only, because it is a real tool-calling loop — the simulator replays a captured
@@ -45,7 +46,7 @@ route as `donkey.openai()`.
 ```bash
 make list                   # the table above, from the filesystem
 make demo N=03              # one demo
-make offline                # all eight offline ones
+make offline                # all nine offline ones
 make doctor                 # what is installed, what will therefore run
 make mock                   # simulator in the foreground, for a second pane
 

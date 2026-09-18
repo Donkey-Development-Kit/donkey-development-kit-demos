@@ -6,8 +6,9 @@ that speak the standard GenAI vocabulary so they land in existing dashboards
 rather than a bespoke one.
 
 Both come from the same place the budget and the typed refusals come from — the
-one client every request leaves through. The developer configures an exporter
-and gets the rest.
+one client every request leaves through. Set `OTEL_EXPORTER_OTLP_ENDPOINT` and
+`Donkey.from_env()` installs the exporter; with no endpoint the path is inert
+and silent. This demo installs an in-memory exporter so the spans can be a table.
 
 Two attribute namespaces land on one span, deliberately:
 
@@ -33,8 +34,15 @@ import openai
 from donkey_kit import Donkey
 from donkey_kit.core.errors import classify
 from donkey_kit.core.telemetry import (
+    DONKEY_ROUTING_FALLBACK,
+    DONKEY_ROUTING_TYPE,
+    DONKEY_USAGE_CACHE_WRITE_TOKENS,
+    DONKEY_USAGE_CACHED_TOKENS,
+    DONKEY_USAGE_REASONING_TOKENS,
     GEN_AI_COMPLETION,
     GEN_AI_PROMPT,
+    GEN_AI_REQUEST_MODEL,
+    GEN_AI_RESPONSE_MODEL,
     GEN_AI_SEMCONV_VERSION,
     SPAN_LLM_CHAT,
     current_correlation_id,
@@ -116,6 +124,36 @@ async def act_1_a_span_per_call(donkey: Donkey, exporter) -> None:
         "The gateway masks PII in its logs; spans are emitted upstream of that, "
         "so defaulting capture on would re-export the content the platform just "
         "masked."
+    )
+    print()
+    say.section("Routing and usage, on the same span")
+    routing = {
+        "gen_ai.request.model": attributes.get(GEN_AI_REQUEST_MODEL),
+        "gen_ai.response.model": attributes.get(GEN_AI_RESPONSE_MODEL),
+        DONKEY_ROUTING_TYPE: attributes.get(DONKEY_ROUTING_TYPE),
+        DONKEY_ROUTING_FALLBACK: attributes.get(DONKEY_ROUTING_FALLBACK),
+    }
+    usage = {
+        k: attributes.get(k)
+        for k in (
+            DONKEY_USAGE_CACHED_TOKENS,
+            DONKEY_USAGE_CACHE_WRITE_TOKENS,
+            DONKEY_USAGE_REASONING_TOKENS,
+        )
+        if k in attributes
+    }
+    say.table({k: str(v) for k, v in routing.items() if v is not None}, title_="routing")
+    if usage:
+        say.table({k: str(v) for k, v in usage.items()}, title_="donkey.usage.*")
+    else:
+        say.note("donkey.usage.* is absent when the gateway reported no cached/reasoning counts.")
+    print()
+    say.note(
+        "gen_ai.response.model is what the gateway actually served. When it "
+        "differs from gen_ai.request.model, a failover happened — the fastest "
+        "read on a latency spike. donkey.routing.fallback is emitted even when "
+        "False: 'we routed normally' is a signal, not the absence of one. The "
+        "same facts live on donkey.last_call without a span backend (demo 10)."
     )
 
 
@@ -217,6 +255,44 @@ async def act_3_refusal_spans(donkey: Donkey, exporter) -> None:
         )
 
 
+async def act_4_otlp_export() -> None:
+    say.step(4, "Zero-config OTLP: set the standard env var, or stay silent")
+    say.code(
+        """
+        # no Donkey-specific variable
+        export OTEL_EXPORTER_OTLP_ENDPOINT=https://…
+        donkey = Donkey.from_env()   # installs OTLP behind a BatchSpanProcessor
+        # no endpoint → inert, silent, nothing connects
+        # DONKEY_TELEMETRY=false    → opt out even if an endpoint is set
+        """
+    )
+    traces = os.environ.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "").strip()
+    endpoint = traces or os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
+    if endpoint:
+        say.field(
+            "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT" if traces else "OTEL_EXPORTER_OTLP_ENDPOINT",
+            "set",
+        )
+        say.note(
+            "An endpoint is set, so Donkey.from_env() would install OTLP — unless "
+            "a TracerProvider is already in place. This demo installed an "
+            "in-memory one first, so Donkey rode it rather than replacing it. "
+            "Your spans still land in the table above. Opt out with "
+            "DONKEY_TELEMETRY=false."
+        )
+    else:
+        say.ok("no OTEL_EXPORTER_OTLP_ENDPOINT — export stayed inert and silent")
+        say.note(
+            "Donkey.from_env() installs OTLP only when that standard env var is "
+            "set. It will not clobber a TracerProvider the host already installed "
+            "— which is why this demo's in-memory table still works. Opt out with "
+            "DONKEY_TELEMETRY=false (or telemetry = false in .donkey-kit.toml). "
+            "Cost tags on donkey.run(team=..., project=...) are what let a "
+            "backend slice refusals, budget and latency by agent without another "
+            "attribute convention."
+        )
+
+
 async def _main() -> None:
     exporter = _install_exporter()
     async with Donkey.from_env(team="platform", env="dev") as donkey:
@@ -225,6 +301,8 @@ async def _main() -> None:
         await act_2_correlation(donkey, exporter)
         say.pause()
         await act_3_refusal_spans(donkey, exporter)
+        say.pause()
+        await act_4_otlp_export()
 
         print()
         say.section("The point")
@@ -238,7 +316,9 @@ async def _main() -> None:
             "Cost tags are the fixed four — team / project / env / enduser.id — "
             "set on from_env() and overridable per donkey.run(). They land on "
             "donkey.cost.* whether or not the gateway-side header names are "
-            "verified yet. Still not shipped: zero-config OTLP export."
+            "verified yet. Routing (donkey.routing.*) and cached/reasoning usage "
+            "(donkey.usage.*) land on the same span. Zero-config OTLP is shipped: "
+            "OTEL_EXPORTER_OTLP_ENDPOINT, otherwise silent."
         )
 
 

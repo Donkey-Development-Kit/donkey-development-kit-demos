@@ -93,10 +93,11 @@ async def act_3_pacing(donkey: Donkey) -> None:
 
     near_exhausted = httpx.Response(
         200,
-        headers={LIMIT_HEADER: "100000", REMAINING_HEADER: "4000", RESET_HEADER: "3000"},
+        headers={LIMIT_HEADER: "100000", REMAINING_HEADER: "4000", RESET_HEADER: "1000"},
     )
     donkey.budget.observe(near_exhausted)
     _show(donkey.budget, "observed")
+    say.field("reset_at", donkey.budget.reset_at, raw=True)
 
     print()
     try:
@@ -124,7 +125,15 @@ async def act_3_pacing(donkey: Donkey) -> None:
             await donkey.budget.wait_for_reset()   # one sleep, never a spin loop
         """
     )
-    say.note("wait_for_reset() would sleep ~3s here; skipping the sleep for the demo.")
+    await donkey.budget.wait_for_reset()
+    _show(donkey.budget, "after wait_for_reset")
+    print()
+    say.ok("wait_for_reset() slept until reset_at — one sleep, never a spin loop")
+    say.note(
+        "The local object is still the last observation. Waiting does not invent "
+        "a fresh window; the next call is what refreshes remaining / limit / "
+        "reset_at. That is the same in-band rule as act 1."
+    )
 
 
 async def act_4_the_refusal_itself(donkey: Donkey) -> None:

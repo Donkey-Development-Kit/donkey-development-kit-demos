@@ -2,7 +2,9 @@ import asyncio
 
 import openai
 from donkey_kit import (
+    ContentSafetyBlocked,
     Donkey,
+    GatewayUnavailable,
     PIIDetected,
     PolicyViolation,
     PromptInjectionBlocked,
@@ -13,6 +15,7 @@ from donkey_kit.core.errors import classify
 REFUSALS = (
     PIIDetected,
     PromptInjectionBlocked,
+    ContentSafetyBlocked,
     TokenBudgetExceeded,
     PolicyViolation,
 )
@@ -27,6 +30,8 @@ def report(error: PolicyViolation) -> None:
     print(f"  request_id     {error.request_id}")
     if isinstance(error, PIIDetected) and error.entities:
         print(f"  entities       {', '.join(error.entities)}")
+    if isinstance(error, ContentSafetyBlocked) and error.categories:
+        print(f"  categories     {', '.join(error.categories)}")
     if isinstance(error, TokenBudgetExceeded):
         print(f"  retry_after    {error.retry_after}")
     print()
@@ -50,6 +55,14 @@ async def main() -> None:
                         report(classify(err.response))
                     else:
                         print(f"{refusal.__name__}: no refusal raised\n")
+
+        # No captured body to replay — simulate() refuses rather than invent one.
+        try:
+            with donkey.simulate(GatewayUnavailable):
+                pass
+        except ValueError as err:
+            print("simulate(GatewayUnavailable)")
+            print(f"  {err}")
 
 
 asyncio.run(main())

@@ -12,7 +12,8 @@ make demo N=03
 
 **Four acts.** A cold process knowing nothing; the window updating in-band from
 each response; `pace(reserve=0.05)` tripping `BudgetReserveReached` before the
-request goes out; and the terminal 429 if you do cross it.
+request goes out, then `wait_for_reset()` actually sleeping until `reset_at`;
+and the terminal 429 if you do cross it.
 
 **Point at:** an unobserved budget reports `None` for every field, never `0` —
 because `0` would be a lie that stops an agent that could have run. And

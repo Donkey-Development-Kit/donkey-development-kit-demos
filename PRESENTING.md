@@ -18,7 +18,7 @@ Run this the morning of, not five minutes before:
 
 ```bash
 make doctor
-make offline        # ~30s; proves all eight offline demos still pass
+make offline        # ~30s; proves all nine offline demos still pass
 ```
 
 `make doctor` tells you what is installed and what will therefore run, without
@@ -97,10 +97,12 @@ that?" reaction that the rest of the session is trying to earn.
 
 ### The full version — add the live proof
 
-Append demo 09 to the 30-minute track. It is the only demo where an actual model
-makes actual tool calls, and after 30 minutes of simulator output the room needs
-it. Budget five minutes and have a fallback (see below), because it is the one
-demo that depends on a sandbox being up.
+Append demo 10 (offline, ~4 min) then demo 09 to the 30-minute track. Demo 10 is
+the success-path counterpart to typed refusals — last_call, routing, usage,
+`ModelSubstituted`. Demo 09 is the only demo where an actual model makes actual
+tool calls, and after 30 minutes of simulator output the room needs it. Budget
+five minutes for 09 and have a fallback (see below), because it is the one demo
+that depends on a sandbox being up.
 
 If you cannot run live, run `make demo N=08` instead: it constructs real
 framework objects for every installed framework and reports honestly on the rest.
@@ -115,7 +117,12 @@ It is not as satisfying, but it is not a simulator either.
 
 **Point at:** the `base_url` with no `/v1` (a real, verified detail people get
 wrong), and the fact that `client_id` / `client_secret` are headers rather than
-a bearer token.
+a bearer token. Act 2 now also prints `donkey.last_call` after the happy call —
+who served it, what they served, what it cost. Demo 10 is the deep dive. Act 4
+is the one-line on-ramps: `@donkey.governed` opens a fresh `donkey.run()` per
+call (no `id=` — that would collapse unrelated tickets), and `@donkey.tool`
+records a callable without wrapping it. An undescribed tool is a `ValueError`
+at decoration time.
 
 **Expect:** the reply text is a story about a unicorn and does not answer the
 prompt. That is the simulator replaying a captured response, and the demo prints
@@ -133,7 +140,8 @@ same posture as header-based injection. Then point at `content-moderation`
 still classifying as a generic `PolicyViolation`. Someone will ask why that
 leftover 4xx is not its own class. The answer — *we have never captured that
 shape from a real gateway, so we will not name it* — does more for your
-credibility than any feature on the slide.
+credibility than any feature on the slide. Then act 5: `GatewayUnavailable`
+when nothing is listening. It is not a refusal. The request never arrived.
 
 ### 03 — budget and pacing
 
@@ -149,7 +157,8 @@ this is your own client-side signal that you are expected to recover from.
 **Expect:** the demo notes that a live 200 carries the window as prose
 `x-llm-proxy-ratelimit` (live-verified) and that the simulator's decreasing
 numbers are illustrative. Do not skip it. The numeric `x-token-*` trio is
-verified on the 429.
+verified on the 429. Act 3 actually calls `wait_for_reset()` (~1s sleep) so
+the recovery half is visible, not just the snippet.
 
 ### 04 — simulate
 
@@ -160,6 +169,9 @@ executed."
 fixture — the branch runs — and `ToolInvocationError` still raises `ValueError`
 instead of inventing a body. And act 6, where the same injection works through
 LangChain's own `ChatOpenAI` — because it sits on the transport, not on a wrapper.
+Act 7 is the running-simulator form of the same idea: `donkey mock --scenario`
+scripts PII, injection and a real wall-clock budget window so a stock client
+with no SDK in the process sees the refusal.
 
 ### 05 — conformance
 
@@ -190,7 +202,12 @@ release, so what lands on a span changes only by a reviewable edit. Then act 1:
 emitted upstream of the gateway's PII mask. Then act 2's cost tags: the fixed
 four dimensions, set on `from_env()` and overridable per `run()`. Then act 3:
 a refused request produces an `ERROR` span, because a span that ends OK on a
-refusal makes a dashboard say everything is fine.
+refusal makes a dashboard say everything is fine. Act 1 also now shows
+`gen_ai.response.model` vs `gen_ai.request.model` and `donkey.routing.*` —
+when those differ, a failover happened. Act 4 is zero-config OTLP: set
+`OTEL_EXPORTER_OTLP_ENDPOINT` and `Donkey.from_env()` installs it; no endpoint
+is inert and silent; `DONKEY_TELEMETRY=false` opts out. This demo's in-memory
+`TracerProvider` is left alone — Donkey will not clobber a host provider.
 
 **The line that lands with platform teams** is act 2. `donkey.run(id="ticket-4417")`
 binds *your* identifier — not a uuid — and every call inside the block carries
@@ -209,6 +226,9 @@ The short one. **Say:** "`GET /models` returns 404. That is verified, not
 assumed. We could have guessed a path. A fabricated endpoint that 404s in your
 sandbox costs more trust than the missing feature ever would."
 
+Act 3 closes on `donkey doctor`: the CLI that tells wrong URL from wrong
+credentials from model-not-allowed, reusing the same remediation strings.
+
 Good filler if you are running ahead; safe to cut entirely if behind.
 
 ### 08 — framework objects
@@ -226,10 +246,25 @@ adapter; `donkey.openai()` is the raw client and got the good name.
 ### 09 — LangGraph agent (live)
 
 **Say:** "The DDK lines are the one that builds the model, `donkey.run(id=…)`
-around the loop, and `typed_refusals()` so a gateway 403 is `PIIDetected`."
+around the loop, `typed_refusals()` so a gateway 403 is `PIIDetected`, and
+`@donkey.tool` on the two functions — a marker, not a wrapper."
 
 **Point at:** the budget after the run — several model calls in one agent loop,
-one transport, so the number is the run's real consumption.
+one transport, so the number is the run's real consumption. And `last_call` on
+the most recent model call: who served it, what they served, what it cost.
+
+### 10 — last_call
+
+**Say:** "On a refusal you already get the gateway's ids. On a 200 the same
+facts used to vanish. `donkey.last_call` is that record."
+
+**Point at:** three honest states, never a bare `None`. Then `substituted` —
+against the simulator this lights up because the captured fixture was served
+by a different model than the one we asked for; that is the fixture talking,
+and it is exactly the mismatch the record exists to surface. Then
+`on_model_substitution="raise"` turning the flag into `ModelSubstituted`,
+which is not a `PolicyViolation`. Pair this with demo 06 if the room is
+platform-heavy: the same facts land on the span.
 
 ## Screen-recording safety
 
@@ -275,7 +310,7 @@ DEMO_REDACT=0 python run.py 01     # never `export DEMO_REDACT=0`
 | Output wraps badly | Terminal under 100 columns | Widen, or reduce font one step |
 | A demo raises | Anything | The traceback is suppressed and masked by default; `DEMO_TRACEBACK=1` shows it, still masked |
 
-The general rule: **eight of the nine demos need nothing**. If live access is
+The general rule: **nine of the ten demos need nothing**. If live access is
 down, you have lost one demo, not the session. Say so plainly and move on —
 trying to fix a sandbox in front of a room costs more than the demo was worth.
 

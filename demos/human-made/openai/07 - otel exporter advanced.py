@@ -9,6 +9,9 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
 # Needs DONKEY_LLM_PROXY_URL, DONKEY_LLM_PROXY_CLIENT_ID, DONKEY_LLM_PROXY_CLIENT_SECRET
 # Needs OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS
+#
+# Host TracerProvider is already installed, so Donkey rides it (does not clobber).
+# Zero-config (Donkey installs OTLP when the env var is set): 10 - zero-config-otlp.py.
 
 MODEL = "gpt-4o"
 PII_PROMPT = (
@@ -27,6 +30,7 @@ with donkey.run(id="agent-greeter", team="cx", project="welcome"):
     reply = client.responses.create(model=MODEL, input="Say hello in exactly three words.")
     print("greeter:", reply.output_text)
     print("  remaining", donkey.budget.remaining, "used", donkey.budget.fraction_used)
+    print("  last_call", donkey.last_call.status.value, donkey.last_call.served_model, donkey.last_call.total_tokens)
 
 with donkey.run(id="agent-support", team="cx", project="tickets"):
     try:

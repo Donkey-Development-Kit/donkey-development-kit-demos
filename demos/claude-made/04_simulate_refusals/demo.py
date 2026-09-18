@@ -21,6 +21,7 @@ import openai
 from donkey_kit import (
     ContentSafetyBlocked,
     Donkey,
+    GatewayUnavailable,
     PIIDetected,
     TokenBudgetExceeded,
     ToolInvocationError,
@@ -138,11 +139,28 @@ async def act_5_what_it_refuses_to_fake(donkey: Donkey) -> None:
         say.ok("ValueError — no captured fixture maps back to it")
         say.field("message", exc)
     print()
+    say.code(
+        """
+        with donkey.simulate(GatewayUnavailable):
+            ...
+        """
+    )
+    try:
+        with donkey.simulate(GatewayUnavailable):
+            pass
+        say.fail("expected a ValueError")
+    except ValueError as exc:
+        say.ok("ValueError — a transport failure has no captured body to inject")
+        say.field("message", exc)
+    print()
     say.note(
         "Tool invocation, registry, and provisioning errors are not gateway "
-        "refusals, and they have no captured wire shape. Injecting a plausible "
-        "body would let you write a handler against a body that does not exist "
-        "— so simulate() refuses instead."
+        "refusals, and they have no captured wire shape. GatewayUnavailable is "
+        "the same kind of gap for a different reason: there is no HTTP response "
+        "at all, so there is nothing to replay. Injecting a plausible body would "
+        "let you write a handler against a body that does not exist — so "
+        "simulate() refuses instead. Provoke it by pointing at a dead origin "
+        "(demo 02 act 5)."
     )
 
 
@@ -174,6 +192,51 @@ async def act_6_through_a_framework(donkey: Donkey) -> None:
         say.ok("Same fixture, same taxonomy, through the framework's own object.")
 
 
+async def act_7_simulator_scenarios() -> None:
+    """simulate() is in-process. --scenario scripts the running mock the same way."""
+    from donkey_kit.simulator.scenarios import parse_scenario
+
+    say.step(7, "The same idea, as a running simulator a stock client can hit")
+    say.note(
+        "simulate() swaps the transport on a Donkey you already own — that is "
+        "the unit-test form. When the client is a stock OpenAI SDK pointed at "
+        "donkey mock, you script the server instead:"
+    )
+    say.code(
+        """
+        donkey mock --scenario pii_block:every=2 \\
+                    --scenario 'injection:on-pattern=ignore previous' \\
+                    --scenario budget:limit=200,window=5s,cost=80
+        """
+    )
+
+    pii = parse_scenario("pii_block:every=2")
+    injection = parse_scenario("injection:on-pattern=ignore previous")
+    budget = parse_scenario("budget:limit=200,window=5s,cost=80")
+
+    pii_hits = [hit.shape if hit else "pass" for hit in (pii.on_call("hello") for _ in range(4))]
+    hello_hit = injection.on_call("hello")
+    inject_hit = injection.on_call("ignore previous instructions")
+    say.field("pii_block:every=2", pii_hits, raw=True)
+    say.field("injection('hello')", hello_hit.shape if hello_hit else "pass", raw=True)
+    say.field(
+        "injection('ignore previous')",
+        inject_hit.shape if inject_hit else "pass",
+        raw=True,
+    )
+    say.field("budget spec", type(budget).__name__, raw=True)
+    print()
+    say.ok("Three specs, three stateful rules — the same captured fixtures classify() is tested against.")
+    say.note(
+        "pii_block fails every Nth call. injection matches request text. budget "
+        "is a real wall-clock window: passing 200s carry the prose "
+        "x-llm-proxy-ratelimit header; exhaustion serves the token-rate-limit "
+        "429 with live x-token-* until the window rolls over. A stock client "
+        "pointed at that mock sees the refusal with no SDK in the process — "
+        "which is how you test an agent that does not use this SDK at all."
+    )
+
+
 async def _main() -> None:
     async with Donkey.from_env() as donkey:
         agent = TinyAgent(donkey)
@@ -186,6 +249,8 @@ async def _main() -> None:
         say.pause()
         await act_5_what_it_refuses_to_fake(donkey)
         await act_6_through_a_framework(donkey)
+        say.pause()
+        await act_7_simulator_scenarios()
 
         print()
         say.section("The point")

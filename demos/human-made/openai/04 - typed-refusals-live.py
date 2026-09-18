@@ -1,14 +1,3 @@
-"""Every typed refusal the live gateway can produce, one block per scenario.
-
-Straight-line version of typed-refusals-live.py: no helper functions, and the
-blocking client so there is no `async def` / `await` / `asyncio.run` wrapper
-either. Read it top to bottom.
-
-Each block provokes one refusal, so each needs its own gateway setup — noted
-above the block. A block that prints NO REFUSAL means that policy is not applied.
-
-    python demos/human-made/openai/typed-refusals.py
-"""
 
 import openai
 from donkey_kit import Donkey, DonkeyConfig
@@ -44,8 +33,9 @@ with donkey.run(id="live-refusals-UpstreamRequestError"):
         print(f"  correlation_id {getattr(error, 'correlation_id', None)}")
         print(f"  call_id        {getattr(error, 'call_id', None)}")
     except openai.APIConnectionError as err:
-        # Never reached the gateway: a bad DONKEY_LLM_PROXY_URL, not a policy result.
-        print(f"  UNREACHABLE    {err.__cause__ or err}")
+        # Never reached the gateway. OpenAI wraps the transport error; the
+        # cause is GatewayUnavailable when the origin is down (see 11).
+        print(f"  UNREACHABLE    {type(err.__cause__ or err).__name__}: {err.__cause__ or err}")
     else:
         print(f"  NO REFUSAL     (HTTP {raw.status_code})")
         print(f"  served model   {raw.headers.get('x-llm-proxy-llm-model')}")
@@ -67,7 +57,7 @@ with donkey.run(id="live-refusals-PIIDetected"):
         print(f"  correlation_id {getattr(error, 'correlation_id', None)}")
         print(f"  call_id        {getattr(error, 'call_id', None)}")
     except openai.APIConnectionError as err:
-        print(f"  UNREACHABLE    {err.__cause__ or err}")
+        print(f"  UNREACHABLE    {type(err.__cause__ or err).__name__}: {err.__cause__ or err}")
     else:
         print(f"  NO REFUSAL     (HTTP {raw.status_code})")
         print(f"  served model   {raw.headers.get('x-llm-proxy-llm-model')}")
@@ -90,7 +80,7 @@ with donkey.run(id="live-refusals-TokenBudgetExceeded"):
         print(f"  correlation_id {getattr(error, 'correlation_id', None)}")
         print(f"  call_id        {getattr(error, 'call_id', None)}")
     except openai.APIConnectionError as err:
-        print(f"  UNREACHABLE    {err.__cause__ or err}")
+        print(f"  UNREACHABLE    {type(err.__cause__ or err).__name__}: {err.__cause__ or err}")
     else:
         print(f"  NO REFUSAL     (HTTP {raw.status_code})")
         print(f"  budget window  {raw.headers.get('x-llm-proxy-ratelimit')}")
@@ -122,7 +112,7 @@ with bad_donkey.run(id="live-refusals-AuthError"):
         print(f"  correlation_id {getattr(error, 'correlation_id', None)}")
         print(f"  call_id        {getattr(error, 'call_id', None)}")
     except openai.APIConnectionError as err:
-        print(f"  UNREACHABLE    {err.__cause__ or err}")
+        print(f"  UNREACHABLE    {type(err.__cause__ or err).__name__}: {err.__cause__ or err}")
     else:
         print(f"  NO REFUSAL     (HTTP {raw.status_code})")
 

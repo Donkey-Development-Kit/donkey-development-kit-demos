@@ -22,12 +22,15 @@ import httpx
 from donkey_kit import (
     AuthError,
     ContentSafetyBlocked,
+    Donkey,
+    DonkeyConfig,
+    GatewayUnavailable,
     PIIDetected,
     PolicyViolation,
     PromptInjectionBlocked,
     TokenBudgetExceeded,
 )
-from donkey_kit.core.errors import UpstreamRequestError, classify
+from donkey_kit.core.errors import UpstreamRequestError, classify, gateway_unavailable
 from donkey_kit.simulator.fixtures import load
 
 from _harness import narrate as say
@@ -124,6 +127,10 @@ def act_2_what_the_hierarchy_buys() -> None:
     safety = classify(_rebuild("content-safety"))
     regex = classify(_rebuild("regex-prompt-guard"))
     upstream = classify(_rebuild("model-not-found"))
+    unavailable = gateway_unavailable(
+        base_url="http://127.0.0.1:9",
+        cause=httpx.ConnectError("connection refused"),
+    )
 
     checks = [
         (
@@ -154,6 +161,16 @@ def act_2_what_the_hierarchy_buys() -> None:
             "(milliseconds, not an epoch)",
             getattr(budget, "retry_after", None) is not None,
         ),
+        (
+            "GatewayUnavailable is not a PolicyViolation — nothing was refused, "
+            "the request never arrived",
+            not isinstance(unavailable, PolicyViolation),
+        ),
+        (
+            "a transport failure has no request_id — there was no response to "
+            "read the gateway's id from",
+            unavailable.request_id is None,
+        ),
     ]
     for description, passed in checks:
         (say.ok if passed else say.fail)(description)
@@ -176,6 +193,10 @@ def act_3_how_you_write_it() -> None:
             await donkey.budget.wait_for_reset()
         except PolicyViolation as e:      # any other gateway refusal
             escalate(e.remediation)
+        except GatewayUnavailable as e:   # NO response — not a refusal
+            diagnose(e.base_url, e.cause) # checkpoint / shed / donkey doctor
+        except ModelSubstituted as e:     # NOT classify() — you opted in (demo 10)
+            pin_or_accept(e.served_model)
         except UpstreamRequestError as e: # your request was wrong (e.code)
             fix(e.code)
         except UpstreamModelError:        # provider 5xx — this one IS retryable
@@ -206,6 +227,86 @@ def act_4_honesty() -> None:
         "gateway, so it is left unnamed rather than given a class that would imply "
         "more certainty than exists."
     )
+    print()
+    say.note(
+        "ModelSubstituted is not in the table above because it is not a gateway "
+        "refusal and classify() never produces it. It is raised by the transport "
+        "when you opt into on_model_substitution='raise' and the gateway serves a "
+        "different model than you asked for. Demo 10."
+    )
+    print()
+    say.note(
+        "GatewayUnavailable is the other type classify() never produces: there is "
+        "no HTTP response to classify. DNS, connection refused, TLS, timeout — "
+        "the transport wraps those as a typed DonkeyError so a long-running agent "
+        "can tell 'lost the gateway' from a policy refusal without matching raw "
+        "httpx exceptions. It is not retried. Act 5 actually raises it."
+    )
+
+
+def _unwrap(exc: BaseException, cls: type[GatewayUnavailable]) -> GatewayUnavailable | None:
+    """The OpenAI client wraps transport-raised DonkeyErrors as APIConnectionError."""
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        if isinstance(current, cls):
+            return current
+        seen.add(id(current))
+        current = current.__cause__ or current.__context__
+    return None
+
+
+def act_5_when_the_gateway_is_gone() -> None:
+    say.section("A refused connection, typed — not a raw httpx error")
+    say.code(
+        """
+        donkey = Donkey(DonkeyConfig(llm_proxy_url="http://127.0.0.1:9/", ...))
+        client.responses.create(...)   # nothing is listening
+        # -> GatewayUnavailable, not ConnectError
+        """
+    )
+    cfg = DonkeyConfig(
+        llm_proxy_url="http://127.0.0.1:9/",
+        llm_proxy_client_id="demo-client-id-not-a-real-credential",
+        llm_proxy_client_secret="demo-client-secret-not-a-real-credential",
+        timeout_s=2.0,
+        max_retries=0,
+    )
+    raised: BaseException | None = None
+    error: GatewayUnavailable | None = None
+    with Donkey(cfg) as donkey:
+        client = donkey.openai(sync=True)
+        try:
+            client.responses.create(model="gpt-4o", input="hello")
+            say.fail("expected GatewayUnavailable")
+            return
+        except Exception as exc:  # noqa: BLE001 — OpenAI wraps the transport error
+            raised = exc
+            error = _unwrap(exc, GatewayUnavailable)
+
+    if error is None or raised is None:
+        say.fail(
+            f"raised {type(raised).__name__ if raised else 'nothing'}, "
+            "not GatewayUnavailable"
+        )
+        return
+
+    if type(raised) is not GatewayUnavailable:
+        say.field("raised", type(raised).__name__)
+        say.ok("cause is GatewayUnavailable — same wrap as ModelSubstituted (demo 10)")
+    else:
+        say.ok("GatewayUnavailable — the request never left the building")
+    say.field("base_url", error.base_url)
+    say.field("cause", type(error.cause).__name__ if error.cause else None)
+    say.field("request_id", error.request_id, raw=True)
+    say.field("call_id", error.call_id, raw=True)
+    print()
+    say.note(redact.text(error.remediation))
+    print()
+    if isinstance(error, PolicyViolation):
+        say.fail("GatewayUnavailable must not be a PolicyViolation")
+    else:
+        say.ok("not a PolicyViolation — nothing was refused, because nothing arrived")
 
 
 def main() -> None:
@@ -215,6 +316,8 @@ def main() -> None:
     say.pause()
     act_3_how_you_write_it()
     act_4_honesty()
+    say.pause()
+    act_5_when_the_gateway_is_gone()
 
 
 if __name__ == "__main__":
@@ -223,4 +326,5 @@ if __name__ == "__main__":
         title="Demo 02 — typed refusals",
         subtitle="The gateway's rejection shapes, mapped to exceptions you can branch on.",
         target="offline",
+        extras=("openai",),
     )

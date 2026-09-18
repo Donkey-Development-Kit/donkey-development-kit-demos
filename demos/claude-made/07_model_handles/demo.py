@@ -95,6 +95,13 @@ def act_3_config_errors() -> None:
         "the Anypoint control-plane one — a developer may legitimately have proxy "
         "access and no Exchange access."
     )
+    print()
+    say.note(
+        "When the failure is live rather than a missing variable — wrong URL, "
+        "wrong credentials, or a model the allow-list does not include — "
+        "`donkey doctor` is the CLI that distinguishes those three. It reuses "
+        "the same remediation strings the typed errors carry (demo 02)."
+    )
 
 
 async def _main() -> None:

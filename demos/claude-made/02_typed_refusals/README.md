@@ -25,5 +25,11 @@ capture — the same posture as header-based injection. Then point at
 `content-moderation` still classifying as a generic `PolicyViolation`. That
 leftover 4xx has never been captured from a real gateway, so it is left unnamed
 rather than given a class that implies more certainty than exists.
+`ModelSubstituted` is not in the table: it is not a gateway refusal and
+`classify()` never produces it — see [demo 10](../10_last_call/).
+`GatewayUnavailable` is the other type `classify()` cannot produce: there is
+no HTTP response. Act 5 points a governed client at a closed local port so
+you see the typed error, not a raw `httpx.ConnectError`. It is deliberately
+not a `PolicyViolation` — nothing was refused, because nothing arrived.
 
 Build guide: `BG §1.2`. See [PRESENTING.md](../../../PRESENTING.md#02--typed-refusals).
