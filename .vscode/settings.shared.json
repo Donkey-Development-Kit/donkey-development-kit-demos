@@ -1,0 +1,19 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        ".mule": true
+    },
+
+    "python.defaultInterpreterPath": "/usr/local/bin/python3",
+
+    "python.envFile": "${workspaceFolder}/.env.local",
+
+    "terminal.integrated.env.osx": {
+        "PYTHONPATH": "${workspaceFolder}"
+    },
+    "python.terminal.executeInFileDir": false
+}
