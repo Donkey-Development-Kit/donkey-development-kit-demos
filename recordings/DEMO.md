@@ -1,139 +1,113 @@
-# Recording runbook — Donkey Development Kit (DDK)
+# Recording runbook
 
-Three acts: the documentation site, then two short scripts written live in the
-editor. Both scripts run against a real Anypoint sandbox — nothing is mocked.
+For producing a screen recording rather than presenting live. If you are
+presenting to people, read [PRESENTING.md](../PRESENTING.md) instead — it has
+the talk tracks and the failure playbook. This page is about capture.
 
-| Act | On screen | Time |
-|-----|-----------|------|
-| 1 | Docs site at `localhost:3000` | ~3 min |
-| 2 | `demo_1_chat_completions.py` — the plain OpenAI SDK, governed | ~3 min |
-| 3 | `demo_2_langgraph_agent.py` — the same governance in LangGraph | ~3 min |
+Recordings go in `assets/`, which is git-ignored apart from its `.gitkeep`, so a
+video cannot be committed by reflex. Publish them deliberately.
 
 ## Before you hit record
 
-```bash
-# Dependencies (once). The SDK is not on PyPI yet; install it from its repo.
-pip install "donkey-kit[llm,langgraph] @ git+https://github.com/Donkey-Development-Kit/donkey-development-kit.git#subdirectory=python" langgraph langchain
-
-# Credentials — .env.local, git-ignored, loaded by _paths.py
-#   DONKEY_LLM_PROXY_URL / _CLIENT_ID / _CLIENT_SECRET
-
-# Docs site (Act 1) — lives in the SDK repo, not here. Either run it locally:
-#   git clone https://github.com/Donkey-Development-Kit/donkey-development-kit
-#   cd donkey-kit-sdk/website && npm install && npm run dev   # http://localhost:3000
-# or use the published site: https://donkey-development-kit.github.io/donkey-development-kit/
-
-# Smoke test everything before recording
-python recordings/demo_1_chat_completions.py
-python recordings/demo_2_langgraph_agent.py
-python scratchpads/live_1_chat.py
-python scratchpads/live_2_langgraph.py
-```
-
-## Typing it live
-
-`demo_1` and `demo_2` are the *narrated* scripts — they print the governed
-plumbing, and Acts 2 and 3 below walk through their output. If you would rather
-type code on camera than run a file, use the two scratchpads instead:
-
-| File | Lines of code | Shape |
-|------|---------------|-------|
-| `live_1_chat.py` | 9 | `chat.completions` through `AsyncOpenAI` |
-| `live_1_chat_sync.py` | 7 | the same call through the blocking `OpenAI` — no asyncio |
-| `live_2_langgraph.py` | 3 | a governed `ChatOpenAI`, no asyncio either |
-
-If you would rather not explain `async`/`await` on camera, start from
-`live_1_chat_sync.py`. `donkey.llm.client(sync=True)` returns the blocking
-`openai.OpenAI`, governed identically, which removes the event loop and the
-coroutine you can forget to await.
-
-Showing both is the stronger beat, though: type the sync version, then change one
-argument to get the async one. It makes the point that this is a transport swap,
-not a different product — and the overloads mean the editor re-narrows the
-return type from `OpenAI` to `AsyncOpenAI` as you type, live on screen.
-
-Both are fully typed end to end, so every `.` opens a real completion list —
-this is the part worth showing, because it is the argument that the SDK returns
-native objects rather than wrappers:
-
-- `donkey.` → `llm`, `langgraph`, `adk`, `strands`, `anthropic`, `crewai`, …
-- `donkey.llm.` → `client()`, `resolve()`, `list_models()`
-- `client.` → the entire `AsyncOpenAI` surface, because it *is* an `AsyncOpenAI`
-- `model.` → the entire `ChatOpenAI` surface, for the same reason
-
-If a completion list fails to appear, the language server has gone stale rather
-than the types being wrong — **Cmd+Shift+P → Developer: Reload Window** fixes
-it. Confirm the interpreter in the status bar is Python 3.13 (Framework build);
-the workspace already pins it in `.vscode/settings.json`. Consider turning off
-Cursor's Tab suggestions while recording, so ghost text does not sit on top of
-the completion popup you are trying to point at.
-
-## Act 1 — The documentation site
-
-Open `http://localhost:3000`.
-
-1. **Landing page** — read the opening line aloud: consume Agent Fabric
-   capabilities *from your own agent framework, in your own IDE, without
-   adopting Mule*. Then scroll to **The one design rule** — adapters return the
-   framework's native object, never a wrapper. Acts 2 and 3 demonstrate that
-   one sentence.
-2. **Make a governed call** — click the Python / TypeScript / cURL tabs. The
-   proxy is OpenAI-compatible HTTP, so the SDK is a convenience, not a lock-in.
-3. **The three pillars** — model access is live; tool access and
-   provisioning-as-code are roadmap. Say so plainly.
-4. **Verification policy** (`/concepts/verification`) — unverified endpoints
-   raise `NotImplementedError("blocked on verification: …")` rather than guess.
-   Worth dwelling on for a technical audience.
-5. **Frameworks → LangGraph** (`/frameworks/langgraph`) — show **The manual
-   equivalent**, the eject hatch that Act 3 prints live.
-6. **Error taxonomy** (`/errors`) — leave this open in a tab; Act 2 makes one of
-   these rejections happen for real.
-
-## Act 2 — Governed `chat.completions`
+Work through the checklist in
+[PRESENTING.md § screen-recording safety](../PRESENTING.md#screen-recording-safety).
+The short version, because this is the part people skip:
 
 ```bash
-python recordings/demo_1_chat_completions.py
+echo $DEMO_REDACT          # must be empty or 1
+clear && printf '\e[3J'    # scrollback is the most common leak, not demo output
+make doctor                # prints what is configured, never what it is set to
 ```
 
-Five things print, in order:
+Then close the editor tab holding `.env.local`, and check your shell prompt does
+not interpolate a hostname, cloud profile or kubectl context you would rather
+not publish.
 
-- **The client.** A real `openai.AsyncOpenAI` pointed at the gateway, with
-  `client_id` / `client_secret` injected. A header **pair**, not a bearer token,
-  and no `/v1` on the base URL — both verified against the sandbox.
-- **A completion.** Ordinary OpenAI SDK code, governed at the edge.
-- **A stream.** A governed hop does not cost you streaming.
-- **A rejection.** An unknown model returns HTTP 404, and `classify()` turns it
-  into a typed `UpstreamRequestError` — the provider's mistake passed through,
-  explicitly *not* a gateway policy refusal. This is the beat that sells it; cut
-  to the `/errors` tab here.
-- **The same thing, blocking.** `client(sync=True)` prints `openai.OpenAI` and
-  the same two injected headers. Worth one sentence: governance lives in the
-  transport, so it does not care whether you brought an event loop.
-
-## Act 3 — The same governance in LangGraph
+## Setup
 
 ```bash
-python recordings/demo_2_langgraph_agent.py
+export DEMO_PAUSE=1        # pause between acts, so you can narrate
+export DEMO_QUIET_MOCK=1   # keep uvicorn's request log out of the capture
 ```
 
-- **The model** is a genuine `langchain_openai.ChatOpenAI`. Not a wrapper.
-- **`connection_kwargs()`** prints the exact constructor arguments the factory
-  used, so you can build `ChatOpenAI` yourself and drop the SDK at any time.
-  Tie this back to *The manual equivalent* from Act 1.
-- **The tools** are ordinary `@tool` functions. The SDK governs model hops, not
-  your code.
-- **The agent runs live** — it plans, calls both tools in one turn, then
-  synthesises. Each of those model hops left through the gateway authenticated
-  and metered.
+Terminal: 18pt or larger, at least 100 columns, light background. Two panes —
+demos on the left, `make mock` on the right so the simulator's honesty banner is
+on screen throughout.
 
-Close on the three pillars: governed model access is live and verified today;
-tool access and provisioning-as-code are roadmap, with the SDK refusing to guess
-until those APIs are confirmed.
+## Three acts, about eight minutes
 
-## If something goes wrong on camera
+### Act 1 — the argument (2:30)
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| `ConfigError` listing the three env vars | `.env.local` missing or misplaced | It must sit in the repo root (next to `_paths.py`) or the current directory |
-| `ImportError` on `langchain.agents` | `langchain` meta-package missing | `pip install langchain` |
-| Docs site on a different port | Port 3000 taken | Next.js prints the real port at startup |
+```bash
+make demo N=01
+```
+
+Open by conceding that a stock OpenAI client reaches the gateway in two lines.
+Let the demo make that point itself, then let it show the same 403 arriving at
+both clients. Land the sentence: *the wrapper is not a way to reach the gateway,
+it is the one place every request passes through.*
+
+When the captured unicorn reply appears, read the warning above it aloud. The
+honesty is part of the pitch, and a viewer who spots the mismatch before you
+mention it will discount everything after.
+
+### Act 2 — what that buys (3:30)
+
+```bash
+make demo N=04      # the except branch that has never run
+make demo N=05      # red, then green, against someone else's agent
+```
+
+Demo 04 is the fastest payoff in the set. Demo 05 is the one worth the most
+screen time: read the naive agent's code out loud and ask what is wrong with it
+before running the suite, because the answer is *nothing obviously*.
+
+### Act 3 — live proof (2:00)
+
+```bash
+make demo N=09
+```
+
+The only demo with a real model and real tool calls. If the sandbox is down,
+record `make demo N=08` instead and say why — it constructs real framework
+objects and at least is not a simulator.
+
+## Typing on camera
+
+`scratchpads/` holds the minimal versions, small enough to write live. Each is
+fully typed, so every `.` opens a real completion list — which is the point of
+typing rather than pasting.
+
+| File | Lines | Needs |
+|---|---|---|
+| [`scratchpads/offline_simulate.py`](scratchpads/offline_simulate.py) | ~10 | nothing — start here |
+| [`scratchpads/live_chat.py`](scratchpads/live_chat.py) | ~8 | credentials |
+| [`scratchpads/live_chat_sync.py`](scratchpads/live_chat_sync.py) | ~4 | credentials |
+| [`scratchpads/live_langgraph.py`](scratchpads/live_langgraph.py) | ~3 | credentials |
+
+Prefer `offline_simulate.py` for a recording. It needs no gateway, so it cannot
+fail because a sandbox is down — and watching a typed refusal appear from a
+three-line block is a better beat than watching a completion stream.
+
+Point the simulator at your shell first:
+
+```bash
+donkey mock &
+export DONKEY_LLM_PROXY_URL=http://127.0.0.1:8080
+export DONKEY_LLM_PROXY_CLIENT_ID=anything
+export DONKEY_LLM_PROXY_CLIENT_SECRET=anything
+```
+
+With those exported you can delete the `import _harness` line from a scratchpad
+before you start typing — it only loads `.env.local`, and one less line of
+plumbing on camera is worth it.
+
+## Afterwards
+
+```bash
+make scan       # before committing anything from the session
+```
+
+Move the capture into `assets/`. If it is going somewhere public, watch it back
+once at full size specifically looking at the scrollback in the first few frames
+— that is where the leak is, if there is one.

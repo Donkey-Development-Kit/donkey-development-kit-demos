@@ -1,104 +1,174 @@
 # Donkey Development Kit (DDK) — Demos
 
-Runnable demos of **"What users can now do with #1"** — the live-verified LLM
-data-plane wiring (base URL, `client_id`/`client_secret` consumer auth,
-attribution, error contract) exposed through the framework-free client and the
-eight framework adapters.
+Runnable demos for the [**Donkey Development Kit (DDK)**](https://github.com/Donkey-Development-Kit/donkey-development-kit).
 
-This is the demo companion to the
-[**Donkey Development Kit (DDK)**](https://github.com/Donkey-Development-Kit/donkey-development-kit).
-These are scenario/presentation demos, grouped by **purpose**. For the
-per-framework *reference* snippets (one `main.py` per framework, CI-gated), see
-[`python/examples/`](https://github.com/Donkey-Development-Kit/donkey-development-kit/tree/main/python/examples)
-in the SDK repo instead.
+This repo holds **two suites on purpose**. They cover the same SDK, but they
+are not interchangeable:
 
+| | [`demos/claude-made/`](demos/claude-made/) | [`demos/human-made/`](demos/human-made/) |
+|---|---|---|
+| **For** | A room, a recording, or CI that must stay offline | A terminal you type in, or paste from |
+| **Shape** | Numbered narrative demos (`01`–`10`), each with `demo.py` + README | Straight-line OpenAI scripts (`01`–`11`), one file each |
+| **Runner** | `make demo N=03`, `make offline`, `_harness` (redact, mock, pause) | `python "demos/human-made/openai/….py"` — not in `make` |
+| **Network** | Nine of the ten need nothing (local simulator). Demo 09 is live-only | Most need `DONKEY_LLM_PROXY_*`. 09 and 11 need no gateway |
+
+For the per-framework *reference* snippets (one `main.py` per framework,
+CI-gated), see [`python/examples/`](https://github.com/Donkey-Development-Kit/donkey-development-kit/tree/main/python/examples)
+in the SDK repo. Those are not these demos.
+
+What is still missing from either suite is tracked in **[roadmap.md](roadmap.md)**.
+
+Presenting the narrative set? Read **[PRESENTING.md](PRESENTING.md)** — runbook,
+talk tracks, failure playbook, and screen-recording rules.
+
+```bash
+pip install -e ".[sdk]"     # or point at your own donkey-kit checkout
+make offline                # every claude-made demo that needs nothing
 ```
-smoke.py            # smallest live check: one governed chat.completions call
-deliverables/       # the "what you can do with #1" walkthrough (start here)
-  _fixtures/        # committed live proxy responses replayed by demo 03
-recordings/         # screen-recording scripts + the runbook (DEMO.md)
-scratchpads/        # minimal snippets to type live on camera
+
+## Claude-made — the narrative suite
+
+Each demo is a story with acts, a projector-safe narrator, and output masking.
+`run.py` discovers `**/demo.py` under `demos/`, so **only this suite** is listed
+by `make list` / `make offline`.
+
+**Nine of the ten run with no credentials and no gateway**, against the SDK's
+local simulator — the same captured responses the SDK's own tests are written
+against.
+
+| # | Demo | Shows | Needs |
+|---|------|-------|-------|
+| 01 | [governed client](demos/claude-made/01_governed_client/) | Stock vs governed client, then `@donkey.governed` / `@donkey.tool` | nothing |
+| 02 | [typed refusals](demos/claude-made/02_typed_refusals/) | Captured rejection shapes through `classify()`, plus `GatewayUnavailable` | nothing |
+| 03 | [budget and pacing](demos/claude-made/03_budget_and_pacing/) | The token window as an object; `pace(reserve=)` and `wait_for_reset()` | nothing |
+| 04 | [simulating refusals](demos/claude-made/04_simulate_refusals/) | `donkey.simulate()` and `donkey mock --scenario` parsing | nothing |
+| 05 | [conformance suite](demos/claude-made/05_conformance/) | `pytest --donkey-conformance` grading a naive agent, then the fixed one | nothing |
+| 06 | [telemetry](demos/claude-made/06_telemetry/) | GenAI spans (`gen_ai.*` + `donkey.*`), `donkey.run(id=…)`, zero-config OTLP | nothing |
+| 07 | [model handles](demos/claude-made/07_model_handles/) | Honest gaps: no `/models` catalog; points at `donkey doctor` | nothing |
+| 08 | [framework objects](demos/claude-made/08_framework_objects/) | One deep adapter (LangGraph), seven at `connection_kwargs()`, no wrappers | nothing |
+| 09 | [LangGraph agent](demos/claude-made/09_langgraph_agent/) | A real tool-calling loop, governed end to end | **credentials** |
+| 10 | [last_call](demos/claude-made/10_last_call/) | Gateway identity, routing/usage on a 200; `ModelSubstituted` when you opt in | nothing |
+
+Every claude-made demo takes `--target mock` (default) or `--target live`. Demo
+09 is live only: the simulator replays a captured `/responses` completion and
+will not decide to call tools. The LangGraph adapter itself targets
+`/responses` (`use_responses_api=True`), the same live-verified route as
+`donkey.openai()`.
+
+```bash
+make list                   # claude-made table, from the filesystem
+make demo N=03              # one narrative demo
+make offline                # all nine offline claude-made demos
+make doctor                 # what is installed, what will therefore run
+make mock                   # simulator in the foreground, for a second pane
+
+DEMO_PAUSE=1 make demo N=03 # pause between acts — use this when presenting
 ```
 
-## Deliverables — `deliverables/`
+`python run.py 03` works too, and each demo is a plain script
+(`python demos/claude-made/03_budget_and_pacing/demo.py`) once the repo is installed.
 
-The headline walkthrough. Demos **03** and **04** run offline with no setup —
-start there.
+## Human-made — the OpenAI scripts
 
-| Demo | Deliverable | Needs creds? | Network? |
-|------|-------------|--------------|----------|
-| [`deliverables/01_framework_free_client.py`](deliverables/01_framework_free_client.py) | Framework-free `donkey.llm.client()` — chat + streaming, through **both** the async and the blocking (`sync=True`) client | ✅ | ✅ live |
-| [`deliverables/02_native_framework_objects.py`](deliverables/02_native_framework_objects.py) | Native objects for all 8 frameworks (`donkey.langgraph.chat_model`, …) | ✅ | ❌ builds objects only |
-| [`deliverables/03_governed_error_taxonomy.py`](deliverables/03_governed_error_taxonomy.py) | The 4 proxy rejections → typed exceptions via `classify()` | ❌ | ❌ uses committed live fixtures |
-| [`deliverables/04_model_handles.py`](deliverables/04_model_handles.py) | `resolve()` handles; honest `list_models(live=True)` | ❌ | ❌ |
+Short, top-to-bottom Python under [`demos/human-made/openai/`](demos/human-made/openai/).
+No `_harness`, no redaction, no `make` target. Run with the same environment
+you already use for the SDK:
 
-## Recordings — `recordings/`
+```bash
+python "demos/human-made/openai/02 - basic-responses-gw.py"
+python "demos/human-made/openai/09 - governed-and-tool.py"   # no gateway
+python "demos/human-made/openai/11 - gateway-unavailable.py" # no gateway
+```
 
-Two short scripts for a screen recording — small enough to write live on camera,
-and they just print to the terminal.
+| # | Script | Shows | Needs |
+|---|--------|-------|-------|
+| 01 | [basic-responses-no-gw](demos/human-made/openai/01%20-%20basic-responses-no-gw.py) | Stock OpenAI, no gateway | `OPENAI_API_KEY` |
+| 02 | [basic-responses-gw](demos/human-made/openai/02%20-%20basic-responses-gw.py) | `donkey.openai()` + `last_call` on a 200 | proxy creds |
+| 03 | [typed-refusals-simulated](demos/human-made/openai/03%20-%20typed-refusals-simulated.py) | `simulate()` loop, including `ContentSafetyBlocked` | proxy creds (no network) |
+| 04 | [typed-refusals-live](demos/human-made/openai/04%20-%20typed-refusals-live.py) | Live refusals, blocking client, no `async` | proxy creds + policies |
+| 05 | [budget_and_pacing](demos/human-made/openai/05%20-%20budget_and_pacing.py) | `pace(reserve=)` then `wait_for_reset()` | proxy creds |
+| 06 | [otel exporter simple](demos/human-made/openai/06%20-%20otel%20exporter%20simple.py) | Host-owned `TracerProvider` (Donkey rides it) | proxy + OTLP |
+| 07 | [otel exporter advanced](demos/human-made/openai/07%20-%20otel%20exporter%20advanced.py) | Several `donkey.run(team=…, project=…)` + a refusal span | proxy + OTLP |
+| 08 | [last-call](demos/human-made/openai/08%20-%20last-call.py) | Full `last_call` record; `on_model_substitution="raise"` | proxy creds |
+| 09 | [governed-and-tool](demos/human-made/openai/09%20-%20governed-and-tool.py) | `@donkey.governed` and `@donkey.tool` | nothing |
+| 10 | [zero-config-otlp](demos/human-made/openai/10%20-%20zero-config-otlp.py) | `Donkey.from_env()` installs OTLP when the env var is set | proxy creds |
+| 11 | [gateway-unavailable](demos/human-made/openai/11%20-%20gateway-unavailable.py) | Dead origin → `GatewayUnavailable` as `__cause__` | nothing |
 
-| Demo | Shows | Needs creds? |
-|------|-------|--------------|
-| [`recordings/demo_1_chat_completions.py`](recordings/demo_1_chat_completions.py) | Governed `chat.completions` + streaming with the plain OpenAI SDK, a live 404 becoming a typed exception, then the same call blocking via `sync=True` | ✅ live |
-| [`recordings/demo_2_langgraph_agent.py`](recordings/demo_2_langgraph_agent.py) | The same governance inside a live LangGraph tool-calling agent | ✅ live |
-
-[`recordings/DEMO.md`](recordings/DEMO.md) is the recording runbook: setup, a
-three-act structure covering the docs site plus both scripts, and a
-troubleshooting table.
-
-## Scratchpads — `scratchpads/`
-
-Minimal versions to type on camera. Each is fully typed, so every `.` opens a
-real completion list.
-
-| File | Lines of code | Shape |
-|------|---------------|-------|
-| [`scratchpads/live_1_chat.py`](scratchpads/live_1_chat.py) | 9 | `chat.completions` through `AsyncOpenAI` |
-| [`scratchpads/live_1_chat_sync.py`](scratchpads/live_1_chat_sync.py) | 7 | the same call through the blocking `OpenAI` (`sync=True`) — no asyncio |
-| [`scratchpads/live_2_langgraph.py`](scratchpads/live_2_langgraph.py) | 3 | a governed `ChatOpenAI`, no asyncio either |
+Filenames contain spaces; quote the path. This folder is OpenAI-only — other
+frameworks live in claude-made 08/09 and in the SDK's `python/examples/`.
 
 ## Setup
 
-> The canonical install + configure walkthrough is on the docs site —
-> **[Quickstart](https://donkey-development-kit.github.io/donkey-development-kit/quickstart)**.
-> The setup below is the demo-harness variant (repo-root paths, `DEMO_MODEL`); the
-> docs page is the source of truth for the install command and env-var names.
-
 ```bash
-# Install the SDK from its repo (not yet on PyPI). Add framework extras as
-# needed — e.g. [llm,langgraph] for demo 02 / the LangGraph recording.
-pip install "donkey-kit[llm] @ git+https://github.com/Donkey-Development-Kit/donkey-development-kit.git#subdirectory=python"
+# 1. The demo harness (adds _harness to the path; no SDK pinned)
+pip install -e .
 
-# Governed model access (demos 01 and 02). The proxy authenticates on a
-# client_id/client_secret HEADER PAIR — not a bearer token.
-export DONKEY_LLM_PROXY_URL="https://<ingress-gw>/<instance>/"   # note: no /v1
-export DONKEY_LLM_PROXY_CLIENT_ID="<consumer client id>"
-export DONKEY_LLM_PROXY_CLIENT_SECRET="<consumer client secret>"
-export DEMO_MODEL="gpt-4o"                    # optional; a model your proxy routes
+# 2. The SDK. Either your own checkout…
+pip install -e ../donkey-development-kit/python[llm,local,test,otel,langgraph]
+
+#    …or from git
+pip install -e ".[full]"
 ```
 
-`_paths.py` also auto-loads a git-ignored `.env.local` (then `.env`) from the
-repo root or the current directory, so the `export`s above are optional on your
-own machine — a shell `export` always wins over a file value.
-
-## Run
+Live demos additionally need three variables. Copy the template and fill it in:
 
 ```bash
-python deliverables/03_governed_error_taxonomy.py   # offline, deterministic
-python deliverables/04_model_handles.py             # offline
-python deliverables/01_framework_free_client.py     # live (needs creds)
-python deliverables/02_native_framework_objects.py  # needs creds + framework extras
-python smoke.py                                     # smallest live check
+cp .env.example .env.local     # .env.local is git-ignored
 ```
 
-Every demo runs cleanly with missing prerequisites: no credentials → setup
-guidance and a clean exit; a framework extra not installed → the curated
-`ImportError` with the exact `pip install` command.
+A shell `export` always beats a file value, so you can skip the file entirely.
+`make doctor` will tell you what it found without printing any of it.
 
-## Honest status (§0.3)
+## Credentials never leave your machine
 
-The proxy **contract** these demos exercise is live-verified (see
-[`docs/verified-apis.md`](https://github.com/Donkey-Development-Kit/donkey-development-kit/blob/main/docs/verified-apis.md) §2–§4). The exact framework
-class names/kwargs in demo 02 are still being confirmed against installed
-versions (§8); Tier-1 adapters raise a clear "blocked on verification" error
-rather than guess. Tool discovery and provisioning are not part of #1.
+The **claude-made** suite is built on the assumption that a demo will be
+screen-shared, recorded, and committed to by someone in a hurry. Four things
+guard that:
+
+- **Output is masked by default.** Every value a narrative demo prints goes
+  through `_harness/redact.py`, which masks gateway hostnames, the
+  `client_id`/`client_secret` pair, and the tenant identifiers that ride along
+  in captured responses (`x-envoy-decorator-operation`, `openai-organization`,
+  `cf-ray`). Header *names* are always shown; their values never are.
+- **`DEMO_REDACT=0` announces itself.** Turning masking off prints a warning
+  banner in the run context of every narrative demo.
+- **No captured traffic is vendored.** Demo 02 loads fixtures from the installed
+  SDK (`donkey_kit.simulator.fixtures`) rather than keeping copies here.
+- **`make scan` reads content, not filenames.** `scripts/scan_secrets.py` fails
+  on assigned credential values, Anypoint instance ids, bearer tokens, UUIDs and
+  non-allowlisted hostnames. `make hooks` installs it as a pre-commit hook.
+
+**Human-made scripts do not redact.** They print completions and error strings
+as the SDK returned them. Use them on a private terminal, not on a shared
+recording.
+
+```bash
+make scan       # everything tracked
+make hooks      # then it runs on every commit
+```
+
+## Honest status
+
+The proxy contract these demos exercise is live-verified: the base URL shape
+(no `/v1`), the `client_id`/`client_secret` header pair, streaming, and four of
+the rejection shapes. See
+[`docs/verified-apis.md`](https://github.com/Donkey-Development-Kit/donkey-development-kit/blob/main/docs/verified-apis.md).
+
+Three things the demos say out loud rather than gloss over:
+
+- **Happy-path budget numbers on the simulator are illustrative.** A live 200
+  (with the token-rate policy applied) carries the window as prose
+  `x-llm-proxy-ratelimit` — that sentence is live-verified. The numeric
+  `x-token-*` trio is verified on the 429. Claude-made 03 prints the distinction.
+- **Content-safety and regex-prompt-guard are typed from the documented wire
+  shapes**, pending a live capture — the same posture as header-based injection.
+  An undiscriminated `content-moderation` 4xx still falls through to a generic
+  `PolicyViolation`.
+- **Framework class names are unverified.** The proxy contract is confirmed; the
+  exact constructor signatures are checked by a nightly matrix, and an adapter
+  that cannot confirm one raises "blocked on verification" rather than guessing.
+
+Not demoed at all, because the SDK raises `NotImplementedError("blocked on
+verification")`: Exchange discovery, MCP tool binding, and every provisioning
+verb except `validate` and `mock`. Do not add demos for those until the SDK
+unblocks them — see [roadmap.md](roadmap.md).
