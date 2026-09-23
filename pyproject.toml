@@ -28,6 +28,11 @@ full = [
 ]
 dev = ["ruff>=0.6"]
 
+[tool.hatch.metadata]
+# The `sdk` / `full` extras are `git+https://` references; hatchling rejects
+# those at metadata time unless this is on, even for a plain `pip install -e .`.
+allow-direct-references = true
+
 [tool.hatch.build.targets.wheel]
 # `_harness` is the only importable package; demos are scripts, not modules.
 packages = ["_harness"]
