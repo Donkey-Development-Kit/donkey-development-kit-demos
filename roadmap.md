@@ -25,21 +25,29 @@ room must see it.
 `develop` still has the pre-split deliverables layout. This branch rebuilds
 the repo around the two suites and tracks the current SDK.
 
-### Claude-made (`01`–`10`)
+### Claude-made (`01`–`14`)
 
-Governed client and raw-vs-governed 403; typed refusals including
-`GatewayUnavailable`; budget / `pace` / `wait_for_reset`; `simulate()` plus
-`--scenario` parsing; conformance plugin; GenAI spans, cost tags, routing/usage
-attributes, and **zero-config OTLP**; model handles; framework objects;
-LangGraph live loop; `last_call` and opt-in `ModelSubstituted`;
-`@donkey.governed` / `@donkey.tool` (in 01 and 09).
+Governed client (async and `sync=True`) and raw-vs-governed 403; typed refusals
+including live regex-prompt-guard and Azure content-safety,
+`GatewayUnavailable` and the two `AuthError` remediations;
+budget / `pace` / `wait_for_reset()` **only when `reset_at` is known**;
+`simulate()` plus `--scenario` parsing and **`start_gateway()`**; conformance
+plugin and `donkey test` as the CLI front-end; GenAI spans, cost tags,
+routing/usage attributes, and **zero-config OTLP**; model handles; framework
+objects including Agents SDK `connection_kwargs() → {openai_client}` and Agent
+Framework `policy_middleware()`; LangGraph live loop; `last_call` and opt-in
+`ModelSubstituted`; `@donkey.governed` / `@donkey.tool` (in 01 and 09);
+**`donkey init`**; **`ToolSet.filter`**; **JWT / model-wallet auth**
+(`llm_proxy_auth="jwt"`); **`donkey doctor` against the local simulator**.
 
-### Human-made OpenAI (`01`–`11`)
+### Human-made OpenAI (`01`–`15`)
 
 Stock client; governed call + `last_call`; `simulate()`; live refusals
-(blocking); budget; host-owned OTel exporter vs zero-config OTLP; last_call +
-`ModelSubstituted`; `@donkey.governed` / `@donkey.tool`; dead-origin
-`GatewayUnavailable`.
+(blocking), including regex-prompt-guard and Azure content-safety; budget;
+host-owned OTel exporter vs zero-config OTLP; last_call + `ModelSubstituted`;
+`@donkey.governed` / `@donkey.tool`; dead-origin `GatewayUnavailable`;
+**streaming** (`last_call` usage on the terminal SSE event); **JWT / model-wallet**
+(async-only); **`start_gateway()`**.
 
 ---
 
@@ -52,17 +60,16 @@ is blocked on verification.
 
 | Gap | Claude-made | Human-made | Notes |
 |---|---|---|---|
-| **`donkey doctor` as a run, not a mention** | 07 only *points at* the CLI | no script | Needs a live (or deliberately-wrong) proxy. Distinguish wrong URL / wrong creds / model-not-allowed. Do not confuse with `make doctor` in this repo (install/env probe). |
-| **Streaming** | mentioned as live-verified, no act | no script | `responses` stream through `donkey.openai()`, and `last_call` usage lands on the terminal SSE event. |
-| **`donkey mock --scenario` as a running server** | 04 *parses* specs in-process | no script | A second-pane `donkey mock --scenario pii_block:every=2` that a stock OpenAI client hits. |
-| **Prompt-injection / content-safety live** | typed from documented fixtures | 04 has no live blocks for them | Pending a live capture; keep the documented-shape honesty until then. |
+| **Streaming** | mentioned as live-verified, no act | **12** | `responses` stream through `donkey.openai()`, and `last_call` usage lands on the terminal SSE event. Mock streaming is truncated SSE — do not claim terminal usage against the simulator. |
+| **`donkey mock --scenario` as a long-running CLI** | 04 *parses* specs and boots `start_gateway()` | **15** is the Python twin | Remaining gap is a second-pane `donkey mock --scenario pii_block:every=2` that a stock OpenAI client hits. |
+| **Header injection-protection / Bedrock live** | 02/04 type them from docs; regex + Azure content-safety **are** live | **13** hits regex + Azure; 04 already hits PII / token / auth / upstream | Header-based Injection Protection and Bedrock Guardrails still have no deployed proxy to capture. `simulate(PromptInjectionBlocked)` keeps the documented injection-protection representative. |
+| **Live JWT / model-wallet end-to-end** | 13 is config + headers + guards | **14** is the live async call | Needs an org IdP and a wallet-backed proxy. Do not pretend the mock is that. |
 
 ### Claude-made only
 
 | Gap | Why |
 |---|---|
 | **Live loop for a second framework** | 08 constructs ADK / Strands / Agents SDK / Anthropic / CrewAI / LlamaIndex / Agent Framework and stops. Only LangGraph (09) runs tools. A CrewAI or Anthropic "hello + one tool" would show `connection_kwargs()` is enough. |
-| **Sync-blocking narrative** | 01 shows `sync=True` in passing. Human-made 04 is the full blocking script. A short claude-made act would help a room that does not want asyncio. |
 | **Wire human-made into `make list`?** | Deliberately not. `run.py` only finds `demo.py`. If we ever want `make demo N=08` to be ambiguous, rename human-made scripts into `NN_name/demo.py` groups — that is a product choice, not a missing feature. |
 
 ### Human-made only
@@ -84,7 +91,7 @@ Phase 2/3 on the SDK roadmap. A demo that pretends they work would be a lie.
 | SDK surface | Phase | Demo implication |
 |---|---|---|
 | Exchange discovery | blocked | No "list my tools from Exchange" demo |
-| MCP tool binding | Phase 2 | `@donkey.tool` is only the **marker**. The scanner and binder do not exist. 01/09 already show the marker; do not demo binding. |
+| MCP tool binding | Phase 2 | Filter is shipped (demo 12). Binding still raises. `@donkey.tool` is only the **marker**. Do not demo discovery or bind. |
 | Provisioning verbs other than `validate` / `mock` | blocked | No "stand up an API instance" demo |
 | A2A `serve` / `expose` / `dev` | Phase 2 | Agent-card generator will read `registered_tools()`; neither consumer is built |
 | Identity / on-behalf-of | Phase 2 | No OBO token-exchange demo |

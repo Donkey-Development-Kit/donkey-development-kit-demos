@@ -51,6 +51,7 @@ _EXTRA_FOR_MODULE = {
     "google.adk": "adk",
     "agents": "openai-agents",
     "agent_framework": "agent-framework",
+    "typer": "cli",
 }
 
 

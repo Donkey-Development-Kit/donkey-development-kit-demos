@@ -22,11 +22,19 @@ as a decision than to explain as a gap.
 of the eight, which makes it the most load-bearing method here, not the least.
 LangGraph is the only adapter held to the conformance bar, and it sets
 `use_responses_api=True` so `ChatOpenAI` hits the live-verified `/responses`
-route. And `donkey.openai_agents` is the OpenAI Agents SDK adapter —
-`donkey.openai()` is the raw client factory and got the good name.
+route. The Agents SDK is the exception that proves the rule: it takes a
+pre-built `AsyncOpenAI`, so `donkey.openai_agents.connection_kwargs()` is one
+key — `openai_client` — not "no connection_kwargs()". Agent Framework's
+`OpenAIChatClient` takes `model=` (verified against 1.19.0) and adds
+`policy_middleware()`: a `PolicyViolation` is re-raised, not retried. And
+`donkey.openai()` is still the raw client factory; `donkey.openai_agents` is
+this adapter.
 
-**Not verified:** the exact framework class names and constructor kwargs. The
-proxy contract is confirmed; the signatures are checked by a nightly matrix, and
-an adapter that cannot confirm one raises "blocked on verification".
+**Verified for Agent Framework:** `OpenAIChatClient(model=…, base_url, api_key,
+default_headers)` against 1.19.0 — the kwarg is `model=`, not `model_id`.
+**Not verified:** the other framework class names and constructor kwargs, and
+the middleware *protocol* `policy_middleware()` wraps. The proxy contract is
+confirmed; remaining signatures are checked by a nightly matrix, and an adapter
+that cannot confirm one raises "blocked on verification".
 
 Build guide: `BG §1.8`. See [PRESENTING.md](../../../PRESENTING.md#08--framework-objects).

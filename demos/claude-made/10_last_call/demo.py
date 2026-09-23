@@ -76,8 +76,9 @@ async def act_1_cold_start(donkey: Donkey) -> None:
         "sent no id' from 'we never saw a response'. Budget uses the same honesty "
         "rule for an unobserved window (demo 03). UNAVAILABLE is the third state, "
         "for adapters that never route through our transport — LiteLLM-backed ADK "
-        "and CrewAI, or default_headers-only LlamaIndex. Those surfaces report "
-        "UNAVAILABLE by name rather than looking like a cold read."
+        "and CrewAI, default_headers-only LlamaIndex, or Agent Framework "
+        "(observes_last_call = False). Those surfaces report UNAVAILABLE by name "
+        "rather than looking like a cold read."
     )
 
 

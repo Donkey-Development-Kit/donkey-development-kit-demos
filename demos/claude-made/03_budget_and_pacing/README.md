@@ -10,16 +10,19 @@ make demo N=03
 
 **Needs:** nothing (`[llm]` + `[local]`).
 
-**Four acts.** A cold process knowing nothing; the window updating in-band from
+**Five acts.** A cold process knowing nothing; the window updating in-band from
 each response; `pace(reserve=0.05)` tripping `BudgetReserveReached` before the
 request goes out, then `wait_for_reset()` actually sleeping until `reset_at`;
-and the terminal 429 if you do cross it.
+when `reset_at` is `None`, waiting returns immediately (do not spin) and an
+elapsed window lets the next call through; and the terminal 429 if you do
+cross it.
 
 **Point at:** an unobserved budget reports `None` for every field, never `0` —
 because `0` would be a lie that stops an agent that could have run. And
 `BudgetReserveReached` is deliberately not a `PolicyViolation`: a refusal is the
 gateway saying no and is terminal, this is a local signal you are expected to
-recover from.
+recover from — **only when `reset_at` is known**. An unconditional
+`wait_for_reset()` loop cannot make progress if the gateway never sent a reset.
 
 **Two header shapes, both live-verified.** A successful 200 (with the token-rate
 policy applied) carries the window as prose `x-llm-proxy-ratelimit`. The numeric

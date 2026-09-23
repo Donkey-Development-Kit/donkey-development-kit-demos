@@ -18,7 +18,7 @@ Run this the morning of, not five minutes before:
 
 ```bash
 make doctor
-make offline        # ~30s; proves all nine offline demos still pass
+make offline        # proves all thirteen offline demos still pass
 ```
 
 `make doctor` tells you what is installed and what will therefore run, without
@@ -116,10 +116,11 @@ It is not as satisfying, but it is not a simulator either.
 "Both of these got a 403. Watch what each one gives you."
 
 **Point at:** the `base_url` with no `/v1` (a real, verified detail people get
-wrong), and the fact that `client_id` / `client_secret` are headers rather than
-a bearer token. Act 2 now also prints `donkey.last_call` after the happy call —
-who served it, what they served, what it cost. Demo 10 is the deep dive. Act 4
-is the one-line on-ramps: `@donkey.governed` opens a fresh `donkey.run()` per
+wrong), and the fact that default auth is a `client_id` / `client_secret` header
+pair rather than a bearer token. The model-wallet JWT ingress is demo 13. Act 2 now also prints `donkey.last_call` after the happy call —
+who served it, what they served, what it cost — then repeats the same call on
+`donkey.openai(sync=True)` so a room that does not want asyncio still sees
+governance attach. Demo 10 is the deep dive. Act 4 is the one-line on-ramps: `@donkey.governed` opens a fresh `donkey.run()` per
 call (no `id=` — that would collapse unrelated tickets), and `@donkey.tool`
 records a callable without wrapping it. An undescribed tool is a `ValueError`
 at decoration time.
@@ -133,10 +134,11 @@ a warning saying so. Read the warning aloud — the honesty is part of the pitch
 **Say:** "A PII block is a 403. So is an auth failure. If you branch on the
 status code you will treat a governance decision as a credentials problem."
 
-**Point at:** `content-safety` classifying as `ContentSafetyBlocked`, and
-`regex-prompt-guard` as `PromptInjectionBlocked` with its own policy name.
-Those are typed from the documented wire format, pending a live capture — the
-same posture as header-based injection. Then point at `content-moderation`
+**Point at:** `content-safety` classifying as `ContentSafetyBlocked` (Azure,
+live), and `regex-prompt-guard` as `PromptInjectionBlocked` with its own
+policy name (also live). Header-based `injection-protection` and Bedrock
+guardrails stay typed from the documented wire format — pending a live
+capture of *those* policies. Then point at `content-moderation`
 still classifying as a generic `PolicyViolation`. Someone will ask why that
 leftover 4xx is not its own class. The answer — *we have never captured that
 shape from a real gateway, so we will not name it* — does more for your
@@ -152,7 +154,10 @@ that stops an agent that could have run."
 
 **Point at:** `BudgetReserveReached` not being a `PolicyViolation`. That is a
 deliberate taxonomy decision: a refusal is the gateway saying no and is terminal;
-this is your own client-side signal that you are expected to recover from.
+this is your own client-side signal that you are expected to recover from —
+**only when `reset_at` is known**. Act 4 shows the other half: no reset header
+means `wait_for_reset()` returns immediately and a spin loop cannot make
+progress; an elapsed `reset_at` is stale and `pace` lets the next call through.
 
 **Expect:** the demo notes that a live 200 carries the window as prose
 `x-llm-proxy-ratelimit` (live-verified) and that the simulator's decreasing
@@ -165,13 +170,19 @@ the recovery half is visible, not just the snippet.
 **Say:** "Every one of you has an `except PIIDetected` branch that has never
 executed."
 
-**Point at:** act 5, where `ContentSafetyBlocked` now injects the documented
-fixture — the branch runs — and `ToolInvocationError` still raises `ValueError`
+**Point at:** act 5, where `ContentSafetyBlocked` injects the live Azure
+fixture — the branch runs — then `PromptInjectionBlocked` injects the
+documented injection-protection representative, **not** the live regex
+capture. `simulate()` picks one fixture per exception type. Then
+`ToolInvocationError` still raises `ValueError`
 instead of inventing a body. And act 6, where the same injection works through
 LangChain's own `ChatOpenAI` — because it sits on the transport, not on a wrapper.
 Act 7 is the running-simulator form of the same idea: `donkey mock --scenario`
 scripts PII, injection and a real wall-clock budget window so a stock client
-with no SDK in the process sees the refusal.
+with no SDK in the process sees the refusal. Act 8 is the pytest-shaped form of
+that: `start_gateway()` on an ephemeral port, `set_scenarios("pii_block:every=1")`,
+a stock `httpx` POST, and `requests_received == 1` with `client_secret` already
+`***` in the spy.
 
 ### 05 — conformance
 
@@ -187,7 +198,8 @@ fails the run at collection time.
 
 **This is the deliverable.** Say that explicitly: the internal adapter matrix is
 ours, this suite is theirs, and it runs in their CI against their agent in
-whatever framework they picked.
+whatever framework they picked. `donkey test --agent=…` is the same suite as a
+CLI front-end: it execs pytest and returns pytest's exit code.
 
 ### 06 — telemetry
 
@@ -200,7 +212,10 @@ rather than imported from the semconv package, whose default drifts release to
 release, so what lands on a span changes only by a reviewable edit. Then act 1:
 `gen_ai.prompt` / `gen_ai.completion` stay off unless you opt in — spans are
 emitted upstream of the gateway's PII mask. Then act 2's cost tags: the fixed
-four dimensions, set on `from_env()` and overridable per `run()`. Then act 3:
+four dimensions, set on `from_env()` and overridable per `run()`. They live
+on `donkey.cost.*` spans; the gateway has no inbound cost-tag ingestion
+(verified-negative). `X-Correlation-Id` is the opposite — the gateway reads
+it and echoes it. Then act 3:
 a refused request produces an `ERROR` span, because a span that ends OK on a
 refusal makes a dashboard say everything is fine. Act 1 also now shows
 `gen_ai.response.model` vs `gen_ai.request.model` and `donkey.routing.*` —
@@ -226,8 +241,9 @@ The short one. **Say:** "`GET /models` returns 404. That is verified, not
 assumed. We could have guessed a path. A fabricated endpoint that 404s in your
 sandbox costs more trust than the missing feature ever would."
 
-Act 3 closes on `donkey doctor`: the CLI that tells wrong URL from wrong
-credentials from model-not-allowed, reusing the same remediation strings.
+Act 3 closes by pointing at `donkey doctor` (demo 14): the CLI that tells
+wrong URL from wrong credentials from model-not-allowed, reusing the same
+remediation strings.
 
 Good filler if you are running ahead; safe to cut entirely if behind.
 
@@ -241,7 +257,13 @@ first.
 seven of the eight — which makes it the most load-bearing method in the module,
 not the least. LangGraph is the only adapter held to the conformance bar, and
 it targets `/responses`. And at `donkey.openai_agents`, which is the Agents SDK
-adapter; `donkey.openai()` is the raw client and got the good name.
+adapter; `donkey.openai()` is the raw client and got the good name. Then point
+at `connection_kwargs()` for the Agents SDK: one key, `openai_client`, a real
+`AsyncOpenAI`. Agent Framework's `OpenAIChatClient(model=…)` is verified
+against 1.19.0 — the kwarg is `model=`, not `model_id`. Then
+`policy_middleware()`: a `PIIDetected` is re-raised, not
+swallowed, not retried. The middleware *protocol* is still unverified; the
+behaviour that is shipped is "a policy refusal is not a retryable error".
 
 ### 09 — LangGraph agent (live)
 
@@ -265,6 +287,44 @@ and it is exactly the mismatch the record exists to surface. Then
 `on_model_substitution="raise"` turning the flag into `ModelSubstituted`,
 which is not a `PolicyViolation`. Pair this with demo 06 if the room is
 platform-heavy: the same facts land on the span.
+
+### 11 — donkey init
+
+Short. **Say:** "The first five minutes of an SDK are usually one-missing-variable
+per run." Show the json payload: the file was written, the remaining gaps are
+named at once, and the proxy `client_secret` is not in the file. A second init
+leaves the file untouched.
+
+Good filler if you are running ahead. Pair with 07 if the room is ops-heavy.
+`doctor` still needs a live proxy — do not pretend this demo is that.
+
+### 12 — ToolSet.filter
+
+**Say:** "Filter shipped. Bind did not." Show two views of the same servers
+(`allow=` / `deny=`), the parent unchanged, colliding `get_employee` names
+prefixed. Then `tools.langgraph()` raising `blocked on verification`.
+
+Do not let this become a discovery demo. Exchange and the MCP Bridge are still
+unconfirmed. `@donkey.tool` (demo 01) is a different marker.
+
+### 13 — JWT / model-wallet auth
+
+**Say:** "The default header pair is not the only way in." Show jwt mode
+wanting a wallet selector, not a secret. Then `X-Client-Id` only in the
+snapshot, then `sync=True` refused.
+
+**Point at:** the JWT never lives in a config file. `classify()` has no
+dedicated JWT types yet — invalid 401 is `AuthError`, missing 400 is a
+generic `PolicyViolation`. Do not run this against a live wallet in a room.
+
+### 14 — donkey doctor
+
+Short. **Say:** "Wrong URL, wrong credentials, and model-not-allowed look the
+same from the outside." Incomplete config, then the simulator `[ok]`, then a
+dead port as `GatewayUnavailable`.
+
+**Point at:** this is not `make doctor` in this repo. Pair with 07 and 11 if
+the room is ops-heavy.
 
 ## Screen-recording safety
 
@@ -310,7 +370,7 @@ DEMO_REDACT=0 python run.py 01     # never `export DEMO_REDACT=0`
 | Output wraps badly | Terminal under 100 columns | Widen, or reduce font one step |
 | A demo raises | Anything | The traceback is suppressed and masked by default; `DEMO_TRACEBACK=1` shows it, still masked |
 
-The general rule: **nine of the ten demos need nothing**. If live access is
+The general rule: **thirteen of the fourteen demos need nothing**. If live access is
 down, you have lost one demo, not the session. Say so plainly and move on —
 trying to fix a sandbox in front of a room costs more than the demo was worth.
 
@@ -325,13 +385,17 @@ that one attachment point is worth more than the sum of the things you would
 otherwise wire six times.
 
 **"How much of this is real versus mocked?"**
-The rejection shapes, the base URL shape, the header pair and streaming are
-live-verified against a real gateway. The simulator replays *those captures*,
+Six rejection shapes, the base URL shape, the header pair, streaming, and
+inbound `X-Correlation-Id` echo are live-verified against a real gateway.
+The simulator replays *those captures*,
 byte for byte — it is not a hand-written fake, and the SDK's own `classify()`
 tests read the same files, so a drifted capture breaks both at once. What is not
 verified is stated in the demos as they run: the simulator's illustrative
-happy-path budget numbers, the unnamed leftover content-moderation 4xx, and
-the framework constructor signatures.
+happy-path budget numbers, header-based injection-protection and Bedrock
+guardrails (typed from docs), the unnamed leftover content-moderation 4xx,
+gateway cost-tag ingestion (verified-negative — tags live on spans), and
+framework constructor signatures other than Agent Framework's
+`OpenAIChatClient(model=…)`.
 
 **"What about tool discovery / provisioning?"**
 Not built, and deliberately not demoed. Those code paths raise

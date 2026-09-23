@@ -211,9 +211,11 @@ async def act_2_correlation(donkey: Donkey, exporter) -> None:
     say.field("call   header", CALL_ID_HEADER)
     say.note(
         "The run id answers 'show me everything this ticket did'. The per-call id "
-        "answers 'which one of those calls was this'. Both go out on every "
-        "request, which is what lets a line in your log join to the gateway's own "
-        "record of the same call."
+        "answers 'which one of those calls was this'. X-Correlation-Id is "
+        "live-verified inbound: the gateway reads it and echoes it, which is what "
+        "lets a line in your log join to the gateway's own record. Cost tags do "
+        "not: they live on donkey.cost.* spans; the gateway has no inbound "
+        "cost-tag ingestion (verified-negative)."
     )
 
 
@@ -315,9 +317,11 @@ async def _main() -> None:
         say.note(
             "Cost tags are the fixed four — team / project / env / enduser.id — "
             "set on from_env() and overridable per donkey.run(). They land on "
-            "donkey.cost.* whether or not the gateway-side header names are "
-            "verified yet. Routing (donkey.routing.*) and cached/reasoning usage "
-            "(donkey.usage.*) land on the same span. Zero-config OTLP is shipped: "
+            "donkey.cost.* as the authoritative carrier: the gateway has no "
+            "inbound cost-tag ingestion (verified-negative). X-Correlation-Id is "
+            "the opposite — the gateway reads it and echoes it. Routing "
+            "(donkey.routing.*) and cached/reasoning usage (donkey.usage.*) land "
+            "on the same span. Zero-config OTLP is shipped: "
             "OTEL_EXPORTER_OTLP_ENDPOINT, otherwise silent."
         )
 

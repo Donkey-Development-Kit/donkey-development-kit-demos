@@ -7,7 +7,8 @@ policy, which is slow, flaky, and not something you can put in CI.
 `donkey.simulate()` swaps a fixture-returning transport onto the client for the
 next N calls. The body it injects is the *same captured fixture* `classify()` is
 tested against, so the branch runs against exactly the refusal a real gateway
-sent — with no network, no server and no credentials.
+sent — with no network. `start_gateway()` is the out-of-process twin: a real
+port, a stock httpx client, and a request log the test can assert on.
 
     python demos/claude-made/04_simulate_refusals/demo.py
 """
@@ -23,6 +24,7 @@ from donkey_kit import (
     Donkey,
     GatewayUnavailable,
     PIIDetected,
+    PromptInjectionBlocked,
     TokenBudgetExceeded,
     ToolInvocationError,
 )
@@ -58,6 +60,8 @@ class TinyAgent:
             return f"redacted {error.entities} and asked the user to rephrase"
         if isinstance(error, ContentSafetyBlocked):
             return f"revised {error.categories} and did not retry"
+        if isinstance(error, PromptInjectionBlocked):
+            return f"blocked {error.policy} and did not retry"
         if isinstance(error, TokenBudgetExceeded):
             return f"queued for retry after {error.retry_after:.0f}s — did NOT retry now"
         return f"escalated: {type(error).__name__}"
@@ -88,7 +92,12 @@ async def act_2_inject(donkey: Donkey, agent: TinyAgent) -> None:
 
 async def act_3_each_refusal(donkey: Donkey, agent: TinyAgent) -> None:
     say.step(3, "Every refusal you need to handle, one line each")
-    for error_type in (TokenBudgetExceeded, PIIDetected, ContentSafetyBlocked):
+    for error_type in (
+        TokenBudgetExceeded,
+        PIIDetected,
+        PromptInjectionBlocked,
+        ContentSafetyBlocked,
+    ):
         with donkey.simulate(error_type):
             result = await agent.run("anything")
         say.field(error_type.__name__, result)
@@ -111,18 +120,36 @@ async def act_4_times_and_scope(donkey: Donkey, agent: TinyAgent) -> None:
 
 
 async def act_5_what_it_refuses_to_fake(donkey: Donkey) -> None:
-    say.step(5, "It will inject a documented shape, and refuse to invent the rest")
+    say.step(5, "It injects captured fixtures, and refuses to invent the rest")
     say.code(
         """
         with donkey.simulate(ContentSafetyBlocked):
-            await agent.run("...")     # a real ContentSafetyBlocked
+            await agent.run("...")     # the live Azure content-safety capture
         """
     )
     agent = TinyAgent(donkey)
     with donkey.simulate(ContentSafetyBlocked):
         result = await agent.run("anything")
     say.field("ContentSafetyBlocked", result)
-    say.ok("The documented content-safety fixture classifies and injects.")
+    say.ok("The live-captured Azure content-safety fixture classifies and injects.")
+
+    print()
+    say.code(
+        """
+        with donkey.simulate(PromptInjectionBlocked):
+            await agent.run("...")     # one representative per exception type
+        """
+    )
+    with donkey.simulate(PromptInjectionBlocked):
+        result = await agent.run("anything")
+    say.field("PromptInjectionBlocked", result)
+    say.note(
+        "simulate(PromptInjectionBlocked) injects the documented "
+        "injection-protection fixture (x-injection-protection: blocked), not "
+        "the live-verified regex-prompt-guard. Both classify as "
+        "PromptInjectionBlocked; regex is walked in demo 02. simulate() picks "
+        "one representative per exception type."
+    )
 
     print()
     say.code(
@@ -228,12 +255,65 @@ async def act_7_simulator_scenarios() -> None:
     print()
     say.ok("Three specs, three stateful rules — the same captured fixtures classify() is tested against.")
     say.note(
-        "pii_block fails every Nth call. injection matches request text. budget "
+        "pii_block fails every Nth call. injection:on-pattern still serves the "
+        "documented injection-protection 400 — not the live regex-prompt-guard "
+        "(force that shape with the model-id sentinel, demo 02). budget "
         "is a real wall-clock window: passing 200s carry the prose "
         "x-llm-proxy-ratelimit header; exhaustion serves the token-rate-limit "
         "429 with live x-token-* until the window rolls over. A stock client "
         "pointed at that mock sees the refusal with no SDK in the process — "
         "which is how you test an agent that does not use this SDK at all."
+    )
+
+
+def act_8_out_of_process_gateway() -> None:
+    """parse_scenario is in-memory. start_gateway() is the running server a
+    process that never imports donkey_kit can point at."""
+    import httpx
+    from donkey_kit.conformance.gateway import start_gateway
+    from donkey_kit.simulator.app import SIMULATOR_HEADER
+
+    say.step(8, "start_gateway() — a real port, a stock client, an assertable log")
+    say.code(
+        """
+        gw = start_gateway()
+        gw.set_scenarios("pii_block:every=1")
+        httpx.post(f"{gw.url}/responses", json={...}, headers={...})
+        gw.requests_received   # 1 — the agent stopped
+        """
+    )
+    gw = start_gateway()
+    try:
+        gw.set_scenarios("pii_block:every=1")
+        response = httpx.post(
+            f"{gw.url}/responses",
+            json={"model": "gpt-4o", "input": "hello"},
+            headers={"client_id": "demo-client-id-not-a-real-credential",
+                     "client_secret": "demo-client-secret-not-a-real-credential"},
+        )
+        error = classify(response)
+        say.field("status", response.status_code, raw=True)
+        say.field("classified", type(error).__name__)
+        if isinstance(error, PIIDetected):
+            say.ok("stock httpx saw the same PIIDetected classify() would")
+        say.field("x-donkey-simulator", response.headers.get(SIMULATOR_HEADER), raw=True)
+        say.field("requests_received", gw.requests_received, raw=True)
+        recorded = gw.requests[0] if gw.requests else None
+        if recorded is not None:
+            say.field("path", recorded.path, raw=True)
+            say.field("client_secret in spy", recorded.headers.get("client_secret"), raw=True)
+            if recorded.headers.get("client_secret") == "***":
+                say.ok("the spy redacted client_secret — safe to print on a failed assertion")
+        if gw.requests_received == 1:
+            say.ok("one request — the subject stopped after the refusal")
+    finally:
+        gw.close()
+    print()
+    say.note(
+        "simulate() is the in-process form. This is the out-of-process form: a "
+        "containerised agent, a Node service, curl. The pytest fixture is "
+        "`gateway` (needs [local]); donkey mock --scenario is the long-running "
+        "CLI twin. Same captured fixtures as classify()."
     )
 
 
@@ -251,6 +331,8 @@ async def _main() -> None:
         await act_6_through_a_framework(donkey)
         say.pause()
         await act_7_simulator_scenarios()
+        say.pause()
+        act_8_out_of_process_gateway()
 
         print()
         say.section("The point")
@@ -269,7 +351,7 @@ if __name__ == "__main__":
     preflight.cli(
         main,
         title="Demo 04 — simulating refusals in-process",
-        subtitle="Run the except branch that has never executed. No network, no server, no credentials.",
+        subtitle="Run the except branch that has never executed. In-process, or on a real port.",
         target="mock",
         extras=("openai",),
     )
