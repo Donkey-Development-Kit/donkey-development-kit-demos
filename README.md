@@ -22,7 +22,7 @@ Presenting the narrative set? Read **[PRESENTING.md](PRESENTING.md)** — runboo
 talk tracks, failure playbook, and screen-recording rules.
 
 ```bash
-pip install -e ".[sdk]"     # or point at your own donkey-kit checkout
+python -m pip install -e ".[sdk]"   # inside a venv — see Setup
 make offline                # every claude-made demo that needs nothing
 ```
 
@@ -77,8 +77,10 @@ DEMO_PAUSE=1 make demo N=03 # pause between acts — use this when presenting
 
 Short, top-to-bottom Python under [`demos/human-made/`](demos/human-made/), one
 folder per framework. No `_harness`, no redaction, no `make` target. Run with
-the same environment you already use for the SDK. Filenames contain spaces;
-quote the path.
+the same environment you already use for the SDK. They do not read
+`.env.local`, so export it first (see
+[Filling the file](#filling-the-file-from-the-provisioned-proxies)). Filenames
+contain spaces; quote the path.
 
 ```bash
 python "demos/human-made/openai/02 - basic-responses-gw.py"
@@ -194,15 +196,40 @@ pre-built `client=donkey.openai()` instead, which Strands reuses and leaves open
 ## Setup
 
 ```bash
+# 0. A virtual environment (see below for why this is not optional)
+python3 -m venv .venv          # .venv/ is git-ignored
+source .venv/bin/activate      # once per terminal
+
 # 1. The demo harness (adds _harness to the path; no SDK pinned)
-pip install -e .
+python -m pip install -e .
 
 # 2. The SDK. Either your own checkout…
-pip install -e ../donkey-development-kit/python[llm,local,test,otel,langgraph]
+python -m pip install -e "../donkey-development-kit/python[llm,local,test,otel,langgraph,cli]"
 
 #    …or from git
-pip install -e ".[full]"
+python -m pip install -e ".[full]"
+
+#    …or a published dev build from TestPyPI (its deps come from PyPI)
+python -m pip install -i https://test.pypi.org/simple/ \
+  --extra-index-url https://pypi.org/simple/ "donkey-kit[llm,local,test,otel,langgraph,cli]"
 ```
+
+**Why a virtual environment.** Homebrew's `python3` (and most Linux distro
+Pythons) is marked *externally managed* (PEP 668),
+so a global `pip3 install …` stops with `error: externally-managed-environment`.
+Do not work around it with `--break-system-packages`; install into `.venv`
+instead. Without it, the demos fail with `ModuleNotFoundError: No module named
+'openai'` or `'donkey_kit'`, and `make doctor` reports every package as `FAIL`.
+Homebrew ships no bare `pip` or `python` command, only `pip3` and `python3`;
+both short names work once `.venv` is active.
+
+Quote the `[...]` extras: zsh, the macOS default shell, treats unquoted brackets
+as a glob and fails with `no matches found`. `uv` users can replace the first
+two lines with `uv venv` and `pip install` with `uv pip install`.
+
+To have Cursor / VS Code activate the environment in every new terminal, set
+`"python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"` in
+your local `.vscode/settings.json`, which you copy from `settings.shared.json`.
 
 Live demos additionally need three variables. Copy the template and fill it in:
 
@@ -212,6 +239,45 @@ cp .env.example .env.local     # .env.local is git-ignored
 
 A shell `export` always beats a file value, so you can skip the file entirely.
 `make doctor` will tell you what it found without printing any of it.
+
+### Filling the file from the provisioned proxies
+
+The proxies these demos talk to are the ones created by
+`donkey-development-kit-provisioning` and exercised by
+`donkey-development-kit-acceptance`. Take the values from those sibling
+checkouts instead of minting new ones:
+
+| Variable | Where it comes from |
+|----------|---------------------|
+| `DONKEY_LLM_PROXY_URL` | `base_url` of a `[[proxy]]` entry in `../donkey-development-kit-acceptance/acceptance/proxies.toml`, **plus a trailing `/`** |
+| `DONKEY_LLM_PROXY_CLIENT_ID` / `_SECRET` | The `client_id_env` / `client_secret_env` names on that same entry, looked up in `../donkey-development-kit-acceptance/.env` |
+| `OPENAI_API_KEY` (human-made 01 only) | `OPENAI_KEY` in `../donkey-development-kit-provisioning/.env` |
+| `DEMO_MODEL` | The `model` on that same entry, e.g. `openai/gpt-5-mini` |
+
+Start with `openai-model-routing`: it is the one tagged `responses`,
+`streaming` and `attribution`, which is what most demos exercise. Only one
+proxy can be active at a time, so keep the others as commented-out blocks and
+swap by uncommenting. `injection-guard` and `azure-content-safety` are the ones
+human-made 04 refuses against; `token-rate-limit` is the only proxy that emits
+the `x-llm-proxy-ratelimit` header human-made 05 reads.
+
+The provisioning `.env` is `Key: value`, the acceptance `.env` is `KEY=value`,
+and neither can be copied wholesale into this one. Do not print either file
+while screen-sharing: the provisioning one holds Anypoint, provider and
+Keycloak admin secrets.
+
+**The human-made scripts do not load `.env` / `.env.local`**. Only `_harness`
+does, and the SDK never reads dotenv files on its own. Export the file into
+your shell before running them:
+
+```bash
+set -a; source .env.local; set +a
+python "demos/human-made/openai/02 - basic-responses-gw.py"
+```
+
+The provisioned proxies route `gpt-5-mini` only, while the human-made scripts
+hardcode `model="gpt-4o"`. Expect a routing refusal or a `ModelSubstituted`
+until the script's model matches the proxy's.
 
 ## Credentials never leave your machine
 
