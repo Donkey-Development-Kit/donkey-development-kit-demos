@@ -50,7 +50,7 @@ ROSTER = [
     ("strands", "model", True, "connection_kwargs()"),
     ("agent_framework", "chat_client", True, "connection_kwargs() + policy_middleware(); model="),
     ("openai_agents", "model", True, "connection_kwargs() → {openai_client}"),
-    ("anthropic", "client", False, "connection_kwargs()"),
+    ("anthropic", "client", False, "connection_kwargs(); native route needs Format=Anthropic"),
     ("crewai", "llm", True, "connection_kwargs()"),
     ("llamaindex", "llm", True, "connection_kwargs()"),
 ]

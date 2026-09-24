@@ -8,9 +8,9 @@ are not interchangeable:
 | | [`demos/claude-made/`](demos/claude-made/) | [`demos/human-made/`](demos/human-made/) |
 |---|---|---|
 | **For** | A room, a recording, or CI that must stay offline | A terminal you type in, or paste from |
-| **Shape** | Numbered narrative demos (`01`–`14`), each with `demo.py` + README | Straight-line OpenAI scripts (`01`–`15`), one file each |
-| **Runner** | `make demo N=03`, `make offline`, `_harness` (redact, mock, pause) | `python "demos/human-made/openai/….py"` — not in `make` |
-| **Network** | Thirteen of the fourteen need nothing. Demo 09 is live-only | Most need `DONKEY_LLM_PROXY_*`. 09, 11 and 15 need no gateway; 14 needs a wallet JWT |
+| **Shape** | Numbered narrative demos (`01`–`15`), each with `demo.py` + README | Straight-line scripts, one folder per framework, one file each |
+| **Runner** | `make demo N=03`, `make offline`, `_harness` (redact, mock, pause) | `python "demos/human-made/<framework>/….py"` — not in `make` |
+| **Network** | Fourteen of the fifteen need nothing. Demo 09 is live-only | Most need `DONKEY_LLM_PROXY_*`. `start-gateway`, `gateway-unavailable` and `simulated` scripts need no gateway |
 
 For the per-framework *reference* snippets (one `main.py` per framework,
 CI-gated), see [`python/examples/`](https://github.com/Donkey-Development-Kit/donkey-development-kit/tree/main/python/examples)
@@ -32,7 +32,7 @@ Each demo is a story with acts, a projector-safe narrator, and output masking.
 `run.py` discovers `**/demo.py` under `demos/`, so **only this suite** is listed
 by `make list` / `make offline`.
 
-**Thirteen of the fourteen run with no credentials and no gateway**, against the SDK's
+**Fourteen of the fifteen run with no credentials and no gateway**, against the SDK's
 local simulator — the same captured responses the SDK's own tests are written
 against.
 
@@ -52,6 +52,7 @@ against.
 | 12 | [ToolSet.filter](demos/claude-made/12_toolset_filter/) | Independent filtered views of MCP tools; binding still blocked on verification | nothing |
 | 13 | [JWT / model-wallet](demos/claude-made/13_jwt_wallet/) | `llm_proxy_auth="jwt"`: `X-Client-Id` + rotating JWT, no `client_secret` | nothing (`[llm]`) |
 | 14 | [donkey doctor](demos/claude-made/14_cli_doctor/) | Wrong URL / wrong creds / model-not-allowed, against the local simulator | nothing (`[cli]` `[local]`) |
+| 15 | [provider passthrough](demos/claude-made/15_provider_passthrough/) | Per-provider request id, Azure vs Bedrock guardrails, OpenAI vs Gemini error envelopes, ingress Formats | nothing |
 
 Every claude-made demo takes `--target mock` (default) or `--target live`. Demo
 09 is live only: the simulator replays a captured `/responses` completion and
@@ -62,7 +63,7 @@ will not decide to call tools. The LangGraph adapter itself targets
 ```bash
 make list                   # claude-made table, from the filesystem
 make demo N=03              # one narrative demo
-make offline                # all thirteen offline claude-made demos
+make offline                # all fourteen offline claude-made demos
 make doctor                 # what is installed, what will therefore run
 make mock                   # simulator in the foreground, for a second pane
 
@@ -72,18 +73,40 @@ DEMO_PAUSE=1 make demo N=03 # pause between acts — use this when presenting
 `python run.py 03` works too, and each demo is a plain script
 (`python demos/claude-made/03_budget_and_pacing/demo.py`) once the repo is installed.
 
-## Human-made — the OpenAI scripts
+## Human-made — the straight-line scripts
 
-Short, top-to-bottom Python under [`demos/human-made/openai/`](demos/human-made/openai/).
-No `_harness`, no redaction, no `make` target. Run with the same environment
-you already use for the SDK:
+Short, top-to-bottom Python under [`demos/human-made/`](demos/human-made/), one
+folder per framework. No `_harness`, no redaction, no `make` target. Run with
+the same environment you already use for the SDK. Filenames contain spaces;
+quote the path.
 
 ```bash
 python "demos/human-made/openai/02 - basic-responses-gw.py"
-python "demos/human-made/openai/09 - governed-and-tool.py"   # no gateway
-python "demos/human-made/openai/11 - gateway-unavailable.py" # no gateway
 python "demos/human-made/openai/15 - start-gateway.py"       # local simulator
+python "demos/human-made/langgraph/09 - start-gateway.py"    # local simulator
 ```
+
+How each framework reaches the gateway differs, and the scripts print it
+rather than hide it:
+
+| Folder | Route | `X-Correlation-Id` per run | `donkey.last_call` | Typed refusal |
+|---|---|---|---|---|
+| `openai` | `/responses` | yes | observed | `classify(err.response)` |
+| `langgraph` | `/responses` | yes | unobserved (LangChain's task) | `donkey.langgraph.typed_refusals()` |
+| `openai-agents` | `/responses` | yes | unobserved (Runner's task) | `classify(err.response)` |
+| `agent-framework` | `/responses` | no | unavailable | `classify(err.__cause__.response)` |
+| `strands` | `/chat/completions` | yes | observed | `classify(err.response)` |
+| `crewai` | `/chat/completions` | no | unavailable | `classify(err.response)` |
+| `llamaindex` | `/chat/completions` | no | unavailable | `classify(err.response)` |
+| `adk` | `/chat/completions` (LiteLLM) | no | unavailable | none — LiteLLM drops the headers |
+| `anthropic` | `/v1/messages` (`Format=Anthropic`) | yes | observed | `classify(err.response)` |
+| `gemini` | `:generateContent` (`Format=Gemini`, plain `httpx`) | — | — | `classify(response)` |
+
+Only `/responses` is live-verified on the DDK proxies; the `/chat/completions`
+folders were checked against the installed framework versions and a local
+chat-completions stub, not a real gateway.
+
+### `openai/`
 
 | # | Script | Shows | Needs |
 |---|--------|-------|-------|
@@ -102,9 +125,71 @@ python "demos/human-made/openai/15 - start-gateway.py"       # local simulator
 | 13 | [regex-and-content-safety](demos/human-made/openai/13%20-%20regex-and-content-safety.py) | Live regex-prompt-guard and Azure content-safety | proxy + those policies |
 | 14 | [jwt-wallet](demos/human-made/openai/14%20-%20jwt-wallet.py) | `llm_proxy_auth="jwt"` + `StaticToken` (async-only) | wallet URL, `DONKEY_LLM_PROXY_WALLET_CLIENT_ID`, `DONKEY_LLM_JWT` |
 | 15 | [start-gateway](demos/human-made/openai/15%20-%20start-gateway.py) | `start_gateway()` + stock `httpx`; same fixtures as 03 | nothing (`[local]`) |
+| 16 | [bedrock-guardrails](demos/human-made/openai/16%20-%20bedrock-guardrails.py) | Live Bedrock Guardrails → `ContentSafetyBlocked`; `request_id` from `x-amzn-requestid` | proxy + Bedrock Guardrails |
 
-Filenames contain spaces; quote the path. This folder is OpenAI-only — other
-frameworks live in claude-made 08/09 and in the SDK's `python/examples/`.
+### `langgraph/`
+
+| # | Script | Shows | Needs |
+|---|--------|-------|-------|
+| 01 | [basic-no-gw](demos/human-made/langgraph/01%20-%20basic-no-gw.py) | Stock `ChatOpenAI`, no gateway | `OPENAI_API_KEY` |
+| 02 | [basic-gw](demos/human-made/langgraph/02%20-%20basic-gw.py) | `donkey.langgraph("gpt-4o")`; usage from `usage_metadata` | proxy creds |
+| 03 | [typed-refusals-simulated](demos/human-made/langgraph/03%20-%20typed-refusals-simulated.py) | `simulate()` through a `create_agent` graph + `typed_refusals()` | proxy creds (no network) |
+| 04 | [typed-refusals-live](demos/human-made/langgraph/04%20-%20typed-refusals-live.py) | PII / unknown model / bad creds out of a graph | proxy creds + policies |
+| 05 | [agent-and-tool](demos/human-made/langgraph/05%20-%20agent-and-tool.py) | Tool sees the `donkey.run()` id with nothing threaded through state | proxy creds (live) |
+| 06 | [otel exporter simple](demos/human-made/langgraph/06%20-%20otel%20exporter%20simple.py) | Host `TracerProvider`, two governed calls | proxy + OTLP |
+| 07 | [streaming](demos/human-made/langgraph/07%20-%20streaming.py) | `astream`; usage on the terminal chunk | proxy creds (live) |
+| 08 | [gateway-unavailable](demos/human-made/langgraph/08%20-%20gateway-unavailable.py) | `GatewayUnavailable` two causes down | nothing |
+| 09 | [start-gateway](demos/human-made/langgraph/09%20-%20start-gateway.py) | Graph against `start_gateway()`, every 2nd call PII | nothing (`[local]`) |
+
+### `openai-agents/`
+
+| # | Script | Shows | Needs |
+|---|--------|-------|-------|
+| 01 | [agent-and-tool](demos/human-made/openai-agents/01%20-%20agent-and-tool.py) | `OpenAIResponsesModel` + a tool; usage from `context_wrapper` | proxy creds |
+| 02 | [typed-refusals-simulated](demos/human-made/openai-agents/02%20-%20typed-refusals-simulated.py) | `simulate()` through `Runner.run` | proxy creds (no network) |
+| 03 | [start-gateway](demos/human-made/openai-agents/03%20-%20start-gateway.py) | Agent against `start_gateway()`, every 2nd call PII | nothing (`[local]`) |
+
+### `agent-framework/`
+
+| # | Script | Shows | Needs |
+|---|--------|-------|-------|
+| 01 | [basic-gw](demos/human-made/agent-framework/01%20-%20basic-gw.py) | `Agent(client=donkey.agent_framework.chat_client(...))` | proxy creds |
+| 02 | [typed-refusals-live](demos/human-made/agent-framework/02%20-%20typed-refusals-live.py) | `ChatClientException` → `classify(__cause__.response)` | proxy creds + policies |
+| 03 | [start-gateway](demos/human-made/agent-framework/03%20-%20start-gateway.py) | Agent against `start_gateway()`, every 2nd call PII | nothing (`[local]`) |
+
+### `strands/`
+
+| # | Script | Shows | Needs |
+|---|--------|-------|-------|
+| 01 | [basic-gw](demos/human-made/strands/01%20-%20basic-gw.py) | `OpenAIModel(client=donkey.openai())` — see the note below | `strands-agents[openai]` + proxy |
+| 02 | [agent-and-tool](demos/human-made/strands/02%20-%20agent-and-tool.py) | Tool loop; run id in the tool; `last_call` observed | proxy creds (live) |
+| 03 | [typed-refusals-simulated](demos/human-made/strands/03%20-%20typed-refusals-simulated.py) | `simulate()` through `invoke_async` (no 429: Strands retries it) | proxy creds (no network) |
+| 04 | [typed-refusals-live](demos/human-made/strands/04%20-%20typed-refusals-live.py) | PII / unknown model / bad creds | proxy creds + policies |
+
+### `crewai/`, `llamaindex/`, `adk/`
+
+| # | Script | Shows | Needs |
+|---|--------|-------|-------|
+| 01 | [basic-gw](demos/human-made/crewai/01%20-%20basic-gw.py) | `crewai.llm(...).call` and `Agent.kickoff` | proxy creds |
+| 02 | [typed-refusals-live](demos/human-made/crewai/02%20-%20typed-refusals-live.py) | PII / unknown model / bad creds | proxy creds + policies |
+| 01 | [basic-gw](demos/human-made/llamaindex/01%20-%20basic-gw.py) | `OpenAILike` `complete` and `chat` | proxy creds |
+| 02 | [typed-refusals-live](demos/human-made/llamaindex/02%20-%20typed-refusals-live.py) | PII / unknown model / bad creds | proxy creds + policies |
+| 01 | [basic-gw](demos/human-made/adk/01%20-%20basic-gw.py) | `LiteLlm` agent through `InMemoryRunner` | proxy creds |
+| 02 | [refusal-live](demos/human-made/adk/02%20-%20refusal-live.py) | PII 403 as a LiteLLM `APIError` — status only | proxy creds + PII policy |
+
+### `anthropic/`, `gemini/`
+
+| # | Script | Shows | Needs |
+|---|--------|-------|-------|
+| 01 | [native-messages](demos/human-made/anthropic/01%20-%20native-messages.py) | `donkey.anthropic.client()` on `/v1/messages`; `request-id` vs `request_id` | `Format=Anthropic` proxy |
+| 02 | [typed-refusals-simulated](demos/human-made/anthropic/02%20-%20typed-refusals-simulated.py) | `simulate()` through the native Anthropic client | proxy creds (no network) |
+| 01 | [native-generate-content](demos/human-made/gemini/01%20-%20native-generate-content.py) | `:generateContent` via `httpx` (no adapter ships) | `Format=Gemini` proxy |
+| 02 | [openai-shape-rejected](demos/human-made/gemini/02%20-%20openai-shape-rejected.py) | Gemini's list envelope → `UpstreamRequestError` | `Format=Gemini` proxy |
+
+**Strands note.** `donkey.strands.model()` hands Strands `client_args`, and
+Strands opens and closes an OpenAI client from them on every request — which
+closes the SDK's shared transport after the first call. The scripts pass a
+pre-built `client=donkey.openai()` instead, which Strands reuses and leaves open.
 
 ## Setup
 
@@ -160,8 +245,10 @@ make hooks      # then it runs on every commit
 
 The proxy contract these demos exercise is live-verified: the base URL shape
 (no `/v1`), the `client_id`/`client_secret` header pair, streaming, inbound
-`X-Correlation-Id` echo, and six of the rejection shapes (auth, PII, token
-rate limit, upstream, regex prompt guard, Azure content-safety). See
+`X-Correlation-Id` echo, the Anthropic- and Gemini-native ingress routes, and
+seven rejection shapes (auth, PII, token rate limit, upstream including
+Gemini's list envelope, regex prompt guard, Azure content-safety, Bedrock
+Guardrails). See
 [`docs/verified-apis.md`](https://github.com/Donkey-Development-Kit/donkey-development-kit/blob/main/docs/verified-apis.md).
 
 Three things the demos say out loud rather than gloss over:
@@ -170,10 +257,10 @@ Three things the demos say out loud rather than gloss over:
   (with the token-rate policy applied) carries the window as prose
   `x-llm-proxy-ratelimit` — that sentence is live-verified. The numeric
   `x-token-*` trio is verified on the 429. Claude-made 03 prints the distinction.
-- **Header-based injection-protection and Bedrock guardrails stay typed from
-  the documented wire shapes** — no proxy running those policies is deployed
-  to capture. Regex prompt guard and Azure content-safety **are** live
-  (2026-09-22). An undiscriminated `content-moderation` 4xx still falls through
+- **Header-based injection-protection is the one guardrail still typed from
+  the documented wire shape** — no proxy running that policy is deployed to
+  capture. Regex prompt guard and Azure content-safety are live (2026-09-22),
+  Bedrock Guardrails too (2026-09-24). An undiscriminated `content-moderation` 4xx still falls through
   to a generic `PolicyViolation`. `simulate(PromptInjectionBlocked)` injects
   the documented injection-protection representative, not the live regex
   capture — one fixture per exception type.

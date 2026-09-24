@@ -208,13 +208,14 @@ def act_3_how_you_write_it() -> None:
 def act_4_honesty() -> None:
     say.section("What is typed from docs, and what is still unnamed")
     say.note(
-        "Six of these shapes are live-verified against a real proxy: consumer "
-        "auth, PII, token rate limit, upstream passthrough, regex prompt guard, "
-        "and Azure content-safety. Header-based injection-protection and Bedrock "
-        "guardrails stay typed from the documented wire shapes — classify() still "
-        "produces PromptInjectionBlocked / ContentSafetyBlocked — because no "
-        "proxy running those policies is deployed to capture. Named because the "
-        "shape is specified, not because a capture has landed yet."
+        "Every named shape here but one is live-verified against a real proxy: "
+        "consumer auth, PII, token rate limit, upstream passthrough, regex prompt "
+        "guard, and Azure content-safety — plus Bedrock Guardrails, the sibling "
+        "vendor of the same reject-header family (demo 15). Header-based "
+        "injection-protection is the one still typed from the documented wire "
+        "shape: classify() produces PromptInjectionBlocked for it because the "
+        "shape is specified, but no proxy running that policy is deployed to "
+        "capture against."
     )
     print()
     moderation = classify(_rebuild("content-moderation"))

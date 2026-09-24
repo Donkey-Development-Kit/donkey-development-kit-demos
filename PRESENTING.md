@@ -18,7 +18,7 @@ Run this the morning of, not five minutes before:
 
 ```bash
 make doctor
-make offline        # proves all thirteen offline demos still pass
+make offline        # proves all fourteen offline demos still pass
 ```
 
 `make doctor` tells you what is installed and what will therefore run, without
@@ -136,9 +136,9 @@ status code you will treat a governance decision as a credentials problem."
 
 **Point at:** `content-safety` classifying as `ContentSafetyBlocked` (Azure,
 live), and `regex-prompt-guard` as `PromptInjectionBlocked` with its own
-policy name (also live). Header-based `injection-protection` and Bedrock
-guardrails stay typed from the documented wire format — pending a live
-capture of *those* policies. Then point at `content-moderation`
+policy name (also live). Bedrock Guardrails is live too — demo 15 shows it
+next to Azure. Header-based `injection-protection` is the one shape still
+typed from the documented wire format. Then point at `content-moderation`
 still classifying as a generic `PolicyViolation`. Someone will ask why that
 leftover 4xx is not its own class. The answer — *we have never captured that
 shape from a real gateway, so we will not name it* — does more for your
@@ -326,6 +326,19 @@ dead port as `GatewayUnavailable`.
 **Point at:** this is not `make doctor` in this repo. Pair with 07 and 11 if
 the room is ops-heavy.
 
+### 15 — provider passthrough
+
+**Say:** "The gateway does not rewrite what the provider says. So the same
+question has a different wire answer on OpenAI, Bedrock and Gemini."
+
+**Point at:** act 1's Bedrock row — `headers.get("x-request-id")` is `None`,
+`request_id` is not. That id is the provider's; the gateway join key is
+`correlation_id`. Act 2: Azure and Bedrock are two reject headers, one
+`ContentSafetyBlocked`. Act 3: Gemini's list-shaped 400 is an
+`UpstreamRequestError` — before dev9 it fell through as a policy refusal that
+never happened. Act 4: Format is fixed per proxy; `donkey.anthropic` needs a
+`Format=Anthropic` proxy, and Gemini-native has no adapter on purpose.
+
 ## Screen-recording safety
 
 Output masking is on by default and you should leave it on. It covers the three
@@ -370,7 +383,7 @@ DEMO_REDACT=0 python run.py 01     # never `export DEMO_REDACT=0`
 | Output wraps badly | Terminal under 100 columns | Widen, or reduce font one step |
 | A demo raises | Anything | The traceback is suppressed and masked by default; `DEMO_TRACEBACK=1` shows it, still masked |
 
-The general rule: **thirteen of the fourteen demos need nothing**. If live access is
+The general rule: **fourteen of the fifteen demos need nothing**. If live access is
 down, you have lost one demo, not the session. Say so plainly and move on —
 trying to fix a sandbox in front of a room costs more than the demo was worth.
 
@@ -385,14 +398,16 @@ that one attachment point is worth more than the sum of the things you would
 otherwise wire six times.
 
 **"How much of this is real versus mocked?"**
-Six rejection shapes, the base URL shape, the header pair, streaming, and
-inbound `X-Correlation-Id` echo are live-verified against a real gateway.
+Seven rejection shapes, the base URL shape, the header pair, streaming,
+inbound `X-Correlation-Id` echo, the per-provider request-id headers, and the
+Anthropic- and Gemini-native ingress routes are live-verified against a real
+gateway.
 The simulator replays *those captures*,
 byte for byte — it is not a hand-written fake, and the SDK's own `classify()`
 tests read the same files, so a drifted capture breaks both at once. What is not
 verified is stated in the demos as they run: the simulator's illustrative
-happy-path budget numbers, header-based injection-protection and Bedrock
-guardrails (typed from docs), the unnamed leftover content-moderation 4xx,
+happy-path budget numbers, header-based injection-protection (typed from
+docs), the unnamed leftover content-moderation 4xx,
 gateway cost-tag ingestion (verified-negative — tags live on spans), and
 framework constructor signatures other than Agent Framework's
 `OpenAIChatClient(model=…)`.

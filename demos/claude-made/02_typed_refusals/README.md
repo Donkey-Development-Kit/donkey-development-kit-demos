@@ -20,9 +20,10 @@ identifiers — out of this repository entirely.
 
 **Point at:** `content-safety` classifying as `ContentSafetyBlocked` (Azure,
 live-verified) and `regex-prompt-guard` as `PromptInjectionBlocked` with
-`policy="regex-prompt-guard"` (also live). Header-based `injection-protection`
-and Bedrock guardrails stay typed from the documented wire format — pending a
-live capture of those policies. Then point at
+`policy="regex-prompt-guard"` (also live). Bedrock Guardrails is live too — same
+reject-header family as Azure, walked in [demo 15](../15_provider_passthrough/).
+Header-based `injection-protection` is the one shape still typed from the
+documented wire format, pending a live capture. Then point at
 `content-moderation` still classifying as a generic `PolicyViolation`. That
 leftover 4xx has never been captured from a real gateway, so it is left unnamed
 rather than given a class that implies more certainty than exists.

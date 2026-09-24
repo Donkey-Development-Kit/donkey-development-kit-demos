@@ -26,6 +26,11 @@ invisible to your cost model and your eval. Then `cached_tokens` /
 `reasoning_tokens`: reading only `total_tokens` draws the wrong conclusion about
 both cost and latency. An absent count is `None`, never `0`.
 
+`request_id` is the upstream **provider's** id, passed through by the gateway —
+`x-request-id` on OpenAI, `x-amzn-requestid` on Bedrock. Quote it to the
+provider; the gateway-side join key is `correlation_id`. Demo 15 shows the
+per-provider header names.
+
 `ModelSubstituted` is deliberately not a `PolicyViolation`. The request
 succeeded, against a model you did not choose. Same shape as
 `BudgetReserveReached`: a client-side signal you opted into.

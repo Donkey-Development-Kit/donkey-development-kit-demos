@@ -100,9 +100,11 @@ async def act_2_one_call(donkey: Donkey) -> None:
     if record.status is LastCallStatus.OBSERVED:
         say.ok("OBSERVED — the SDK saw the response, even if some fields stayed None")
     say.note(
-        "request_id is the gateway's own id (x-request-id) — quote it in a ticket. "
-        "It is the same field classify() puts on a DonkeyError after a refusal, "
-        "now present on the 200 as well. api_instance_id and environment_id are "
+        "request_id is the upstream provider's own id, passed through — "
+        "x-request-id on OpenAI, x-amzn-requestid on Bedrock (demo 15). Quote it "
+        "to the provider. The gateway-side join key is the run correlation_id. "
+        "request_id is the same field classify() puts on a DonkeyError after a "
+        "refusal, resolved the same way. api_instance_id and environment_id are "
         "parsed from x-envoy-decorator-operation; they are masked in this output."
     )
 
