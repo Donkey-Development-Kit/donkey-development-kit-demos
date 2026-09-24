@@ -7,10 +7,11 @@ model still works, and nothing new appears in your stack traces.
 The roster is deliberately uneven, and it is worth saying why rather than
 implying eight equal integrations. One framework — LangGraph — is the deep,
 conformance-gated adapter. The other seven are supported at the
-`connection_kwargs()` level: the SDK gives you the base URL, headers and client
-configuration, and you pass them to the framework's own constructor. That makes
-`connection_kwargs()` the most load-bearing method here, not the least, because
-it is the entire supported surface for seven of the eight.
+`connection_kwargs()` level. Most get base URL, headers and client configuration
+to spread onto the framework's own constructor. The Agents SDK is the exception
+that proves the rule: it takes a pre-built `AsyncOpenAI`, so
+`connection_kwargs()` is one key — `openai_client` — carrying header *and*
+transport injection as a single object.
 
 No network calls are made — objects are only constructed.
 
@@ -18,6 +19,8 @@ No network calls are made — objects are only constructed.
 """
 
 from __future__ import annotations
+
+import asyncio
 
 from donkey_kit import ConfigError, Donkey, DonkeyConfig
 
@@ -38,15 +41,16 @@ DEMO_CONFIG = DonkeyConfig(
 # `openai_agents` is the OpenAI Agents SDK adapter. It is NOT `donkey.openai` —
 # that name belongs to the raw client factory (demo 01), and the Agents SDK
 # adapter was renamed out of the way so the headline two-line ergonomic could
-# have it. It is also the one adapter with no connection_kwargs(), because it
-# builds an AsyncOpenAI internally.
+# have it. Its connection_kwargs() is one key, `openai_client`, holding a
+# pre-built governed AsyncOpenAI — the Agents SDK takes a ready-made client,
+# not loose URL/header kwargs.
 ROSTER = [
     ("langgraph", "chat_model", True, "deep — the conformance-gated adapter"),
     ("adk", "model", True, "connection_kwargs()"),
     ("strands", "model", True, "connection_kwargs()"),
-    ("agent_framework", "chat_client", True, "connection_kwargs()"),
-    ("openai_agents", "model", True, "no connection_kwargs() — builds its own client"),
-    ("anthropic", "client", False, "connection_kwargs()"),
+    ("agent_framework", "chat_client", True, "connection_kwargs() + policy_middleware(); model="),
+    ("openai_agents", "model", True, "connection_kwargs() → {openai_client}"),
+    ("anthropic", "client", False, "connection_kwargs(); native route needs Format=Anthropic"),
     ("crewai", "llm", True, "connection_kwargs()"),
     ("llamaindex", "llm", True, "connection_kwargs()"),
 ]
@@ -107,6 +111,8 @@ def act_2_connection_kwargs(donkey: Donkey) -> None:
 
     shown = 0
     for attr, _, _, _ in ROSTER:
+        if attr == "openai_agents":
+            continue
         try:
             adapter = getattr(donkey, attr)
         except (ImportError, NotImplementedError):
@@ -128,10 +134,12 @@ def act_2_connection_kwargs(donkey: Donkey) -> None:
 
     print()
     say.note(
-        "Same base URL, same verified client_id / client_secret pair, handed to "
-        "the framework's own constructor. Bringing a framework up to the deep bar "
-        "is demand-driven and happens one at a time, so this is not a stepping "
-        "stone that everything is queued behind — it is the supported surface."
+        "Same base URL, same default client_id / client_secret pair "
+        "(llm_proxy_auth='client-id'), handed to the framework's own constructor. "
+        "The model-wallet JWT ingress is a different mode — demo 13. Bringing a "
+        "framework up to the deep bar is demand-driven and happens one at a time, "
+        "so this is not a stepping stone that everything is queued behind — it is "
+        "the supported surface."
     )
     say.note(
         "LangGraph is the only adapter held to the conformance bar, and it sets "
@@ -152,12 +160,91 @@ def _flatten(kwargs: dict[str, object]) -> dict[str, str]:
     return out
 
 
-def act_3_honesty() -> None:
+def act_3_openai_agents_kwargs(donkey: Donkey) -> None:
+    say.step(3, "Agents SDK: connection_kwargs() is one governed client object")
+    say.code(
+        """
+        kwargs = donkey.openai_agents.connection_kwargs()
+        OpenAIChatCompletionsModel(model="gpt-4o", **kwargs)
+        """
+    )
+    try:
+        kwargs = donkey.openai_agents.connection_kwargs()
+    except ImportError as exc:
+        install = next(
+            (line.strip() for line in str(exc).splitlines() if "pip install" in line),
+            str(exc),
+        )
+        say.note(f"openai-agents is not installed — {install}")
+        say.note(
+            "The shape is still the point: one key, openai_client, a real "
+            "AsyncOpenAI bound to the proxy. Not 'no connection_kwargs()'."
+        )
+        return
+
+    client = kwargs.get("openai_client")
+    say.field("keys", sorted(kwargs), raw=True)
+    if client is not None:
+        say.field("openai_client", f"{type(client).__module__}.{type(client).__name__}")
+        say.field("base_url", redact.url(str(getattr(client, "base_url", ""))))
+        if set(kwargs) == {"openai_client"}:
+            say.ok("one key — header and transport injection travel as one object")
+    print()
+    say.note(
+        "The Agents SDK does not take loose URL/header kwargs. It takes a client. "
+        "So connection_kwargs() returns that client, and model() is "
+        "OpenAIChatCompletionsModel(model=..., **those kwargs). donkey.openai() "
+        "is still the raw factory; donkey.openai_agents is this adapter."
+    )
+
+
+async def act_4_policy_middleware() -> None:
+    say.step(4, "Agent Framework: policy_middleware() does not retry a refusal")
+    say.code(
+        """
+        mw = donkey.agent_framework.policy_middleware()
+        # a PolicyViolation from next_ is re-raised — the loop does not retry
+        """
+    )
+    from donkey_kit import PIIDetected
+    from donkey_kit.core.transport import build_http_client
+    from donkey_kit.integrations.agent_framework import AgentFrameworkAdapter
+
+    # Constructed directly so this act runs without the [agent-framework] extra.
+    # donkey.agent_framework would ImportError until that extra is installed;
+    # policy_middleware() itself imports no framework classes.
+    http = build_http_client(DEMO_CONFIG, None)
+    adapter = AgentFrameworkAdapter(DEMO_CONFIG, http)
+    middleware = adapter.policy_middleware()
+
+    async def boom(_context: object) -> None:
+        raise PIIDetected("blocked")
+
+    try:
+        await middleware(None, boom)
+        say.fail("expected PIIDetected to be re-raised")
+    except PIIDetected:
+        say.ok("PIIDetected re-raised — terminal, not swallowed, not retried")
+    finally:
+        await http.aclose()
+    print()
+    say.note(
+        "The middleware signature Agent Framework actually expects is still "
+        "unverified — this is a plain async wrapper that re-raises. Once the "
+        "protocol is confirmed, the same function will set the framework's "
+        "explicit terminate-run signal instead of raising. The behaviour that "
+        "is shipped: a policy refusal is not a retryable error."
+    )
+
+
+def act_5_honesty() -> None:
     say.section("What is and is not verified here")
     say.note(
         "The proxy contract these objects are configured against is live-verified: "
-        "the base URL shape, the credential header pair, the rejection shapes. The "
-        "exact framework class names and constructor kwargs are not — they are "
+        "the base URL shape, the credential header pair, the rejection shapes. "
+        "Agent Framework's OpenAIChatClient(model=…, base_url, api_key, "
+        "default_headers) is verified against 1.19.0 — the kwarg is model=, not "
+        "model_id. The other framework class names and constructor kwargs are "
         "checked against installed packages by a nightly matrix rather than "
         "asserted from documentation."
     )
@@ -173,7 +260,11 @@ def main() -> None:
     act_1_the_roster(donkey)
     say.pause()
     act_2_connection_kwargs(donkey)
-    act_3_honesty()
+    say.pause()
+    act_3_openai_agents_kwargs(donkey)
+    say.pause()
+    asyncio.run(act_4_policy_middleware())
+    act_5_honesty()
     donkey.close()
 
 

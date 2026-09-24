@@ -80,9 +80,11 @@ async def act_1_the_governed_client(donkey: Donkey) -> None:
     print()
     say.note(
         "Note the base URL has no /v1 — the ingress is https://<host>/<instance>/ "
-        "and the OpenAI SDK appends /responses itself. Auth is the client_id / "
-        "client_secret header pair, not a bearer token. sync=True is the same "
-        "client without asyncio — useful for a straight-line script."
+        "and the OpenAI SDK appends /responses itself. Default auth "
+        "(llm_proxy_auth='client-id') is the client_id / client_secret header "
+        "pair, not a bearer token. The parallel model-wallet ingress "
+        "(llm_proxy_auth='jwt') is demo 13. sync=True is the same client "
+        "without asyncio — useful for a straight-line script."
     )
 
 
@@ -138,6 +140,20 @@ async def act_2_a_governed_call(donkey: Donkey) -> None:
         "Demo 10 walks the whole record — routing, fallback, cached/reasoning "
         "tokens, and the opt-in ModelSubstituted error."
     )
+
+    print()
+    say.section("The same call, without asyncio")
+    say.code(
+        """
+        blocking = donkey.openai(sync=True)
+        blocking.responses.create(model=..., input=...)
+        """
+    )
+    blocking = donkey.openai(sync=True)
+    sync_response = blocking.responses.create(model=MODEL, input=PROMPT)
+    say.field("sync reply", _text_of(sync_response))
+    say.field("last_call.status", donkey.last_call.status.value, raw=True)
+    say.ok("same governance — budget, last_call, typed refusals — on a blocking OpenAI")
 
 
 async def act_3_raw_vs_governed(donkey: Donkey) -> None:

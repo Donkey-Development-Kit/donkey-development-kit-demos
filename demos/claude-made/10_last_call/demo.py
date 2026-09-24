@@ -76,8 +76,9 @@ async def act_1_cold_start(donkey: Donkey) -> None:
         "sent no id' from 'we never saw a response'. Budget uses the same honesty "
         "rule for an unobserved window (demo 03). UNAVAILABLE is the third state, "
         "for adapters that never route through our transport — LiteLLM-backed ADK "
-        "and CrewAI, or default_headers-only LlamaIndex. Those surfaces report "
-        "UNAVAILABLE by name rather than looking like a cold read."
+        "and CrewAI, default_headers-only LlamaIndex, or Agent Framework "
+        "(observes_last_call = False). Those surfaces report UNAVAILABLE by name "
+        "rather than looking like a cold read."
     )
 
 
@@ -99,9 +100,11 @@ async def act_2_one_call(donkey: Donkey) -> None:
     if record.status is LastCallStatus.OBSERVED:
         say.ok("OBSERVED — the SDK saw the response, even if some fields stayed None")
     say.note(
-        "request_id is the gateway's own id (x-request-id) — quote it in a ticket. "
-        "It is the same field classify() puts on a DonkeyError after a refusal, "
-        "now present on the 200 as well. api_instance_id and environment_id are "
+        "request_id is the upstream provider's own id, passed through — "
+        "x-request-id on OpenAI, x-amzn-requestid on Bedrock (demo 15). Quote it "
+        "to the provider. The gateway-side join key is the run correlation_id. "
+        "request_id is the same field classify() puts on a DonkeyError after a "
+        "refusal, resolved the same way. api_instance_id and environment_id are "
         "parsed from x-envoy-decorator-operation; they are masked in this output."
     )
 

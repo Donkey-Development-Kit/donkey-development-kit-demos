@@ -252,7 +252,11 @@ def main() -> None:
     say.note(
         "This is the deliverable, not our internal adapter matrix. It ships as a "
         "pytest plugin so it runs in your CI, against your agent, in whatever "
-        "framework you chose — and it needs no gateway to do it."
+        "framework you chose — and it needs no gateway to do it. donkey test "
+        "--agent=my_app.agent:build is the same front-end: it execs pytest "
+        "--donkey-conformance and returns pytest's exit code. For an agent that "
+        "never imports donkey_kit, the gateway fixture in demo 04 is the other "
+        "entry point."
     )
 
 

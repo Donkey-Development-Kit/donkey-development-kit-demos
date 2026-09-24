@@ -30,6 +30,9 @@ because the plugin auto-discovers one next to the factory and it would have
 quietly excused a scenario the demo needs to fail.
 
 **This is the deliverable** — the internal adapter matrix is ours, this suite is
-theirs, and it runs in their CI.
+theirs, and it runs in their CI. `donkey test --agent=my_app.agent:build` is
+the same front-end: it execs `pytest --donkey-conformance` and returns pytest's
+exit code. For an agent that never imports `donkey_kit`, the `gateway` fixture
+in demo 04 is the other entry point.
 
 Build guide: `BG §1.5`. See [PRESENTING.md](../../../PRESENTING.md#05--conformance).

@@ -42,9 +42,9 @@ SHAPES: tuple[tuple[str, str], ...] = (
     ("client-id-missing", "consumer auth — a genuinely missing/wrong client id"),
     ("pii-detected", "PII policy — a 403 that is NOT an auth failure"),
     ("token-rate-limit", "token budget — a 429 with an EMPTY body; state is header-only"),
-    ("injection-protection", "prompt injection — identified by a header, not a status"),
+    ("injection-protection", "prompt injection — header discriminator; documented, not yet live-captured"),
     ("regex-prompt-guard", "regex prompt guard — 403 keyed on matched_patterns, not auth"),
-    ("content-safety", "content safety / guardrails — 403 keyed on a vendor reject header"),
+    ("content-safety", "Azure content safety — 403 keyed on a vendor reject header"),
     ("content-moderation", "undiscriminated moderation — no live capture, left unnamed"),
     ("model-not-found", "upstream passthrough — the provider's own error, not a policy"),
     ("upstream-5xx", "provider failure — retryable, unlike every refusal above"),
@@ -208,13 +208,14 @@ def act_3_how_you_write_it() -> None:
 def act_4_honesty() -> None:
     say.section("What is typed from docs, and what is still unnamed")
     say.note(
-        "Four of these shapes are live-verified against a real proxy: consumer "
-        "auth, PII, token rate limit, and upstream passthrough. Injection, regex "
-        "prompt guard, and content-safety are typed from the documented wire "
-        "shapes — classify() produces PromptInjectionBlocked / ContentSafetyBlocked "
-        "— and are pending a live sandbox capture. That is the same posture as "
-        "header-based injection: named because the shape is specified, not because "
-        "a capture has landed yet."
+        "Every named shape here but one is live-verified against a real proxy: "
+        "consumer auth, PII, token rate limit, upstream passthrough, regex prompt "
+        "guard, and Azure content-safety — plus Bedrock Guardrails, the sibling "
+        "vendor of the same reject-header family (demo 15). Header-based "
+        "injection-protection is the one still typed from the documented wire "
+        "shape: classify() produces PromptInjectionBlocked for it because the "
+        "shape is specified, but no proxy running that policy is deployed to "
+        "capture against."
     )
     print()
     moderation = classify(_rebuild("content-moderation"))
@@ -226,6 +227,20 @@ def act_4_honesty() -> None:
         "PolicyViolation. That leftover shape has never been captured from a live "
         "gateway, so it is left unnamed rather than given a class that would imply "
         "more certainty than exists."
+    )
+    print()
+    say.section("AuthError names two credential planes")
+    say.field("data-plane default", AuthError.remediation.split(".")[0] + ".")
+    say.field(
+        "connected_app_remediation",
+        AuthError.connected_app_remediation.split(".")[0] + ".",
+    )
+    say.note(
+        "classify() on a CIE 401 uses the data-plane default (DONKEY_LLM_PROXY_*). "
+        "A control-plane token fetch overrides it with connected_app_remediation "
+        "(ANYPOINT_CLIENT_*). Same class, two next steps — mixing those pairs is "
+        "the usual first-day failure. The model-wallet JWT ingress is demo 13; "
+        "classify() has no dedicated JWT types yet."
     )
     print()
     say.note(

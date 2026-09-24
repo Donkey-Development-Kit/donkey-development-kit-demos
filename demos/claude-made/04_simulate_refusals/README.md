@@ -10,15 +10,21 @@ make demo N=04
 **Needs:** nothing (`[llm]` + `[local]`). The LangGraph act runs only if
 `[langgraph]` is installed and is skipped silently otherwise.
 
-**Seven acts.** The happy path being all you normally exercise; one context
+**Eight acts.** The happy path being all you normally exercise; one context
 manager running the refusal branch; each refusal type in one line (PII, token
-budget, content-safety); `times=` counting calls and normal service resuming;
-the refusal it *refuses* to fake (`ToolInvocationError`); the same injection
-working through LangChain's own `ChatOpenAI`; and `donkey mock --scenario`
-scripting the running simulator so a stock client with no SDK sees the refusal.
+budget, prompt-injection, Azure content-safety); `times=` counting calls and
+normal service resuming; what `simulate()` actually injects versus what it
+refuses to fake (`ToolInvocationError`, `GatewayUnavailable`); the same
+injection working through LangChain's own `ChatOpenAI`; `donkey mock --scenario`
+scripting the running simulator; and `start_gateway()` — a real port, a stock
+httpx client, `requests_received`, and a spy that redacts `client_secret`.
 
-**Point at:** `donkey.simulate(ContentSafetyBlocked)` now injecting the
-documented content-safety fixture — the branch runs. Then act 5's second beat,
+**Point at:** `donkey.simulate(ContentSafetyBlocked)` injecting the
+live-captured Azure content-safety fixture — the branch runs, categories and
+all. Then `simulate(PromptInjectionBlocked)`: that maps to the documented
+`injection-protection` representative (`x-injection-protection: blocked`),
+**not** the live-verified regex-prompt-guard. Walk regex in demo 02;
+`simulate()` picks one fixture per exception type. Then act 5's last beats,
 where `ToolInvocationError` still raises `ValueError`: that is not a gateway
 refusal and has no captured wire shape, so injecting a plausible body would let
 you write a handler against a body that does not exist. `GatewayUnavailable` is
@@ -28,7 +34,9 @@ injection sits on the transport, which is why it reaches a framework object the
 SDK does not wrap. Act 7 is the other half: `donkey mock --scenario` scripts
 the running simulator (PII every Nth call, injection on a substring, a real
 wall-clock budget window) so a stock client with no SDK in the process sees
-the same fixtures.
+the same fixtures. Act 8 is that idea as a pytest-shaped object:
+`start_gateway()` binds an ephemeral port; `set_scenarios("pii_block:every=1")`
+arms it live; the spy records the request with `client_secret` already `***`.
 
 **Why it matters:** this needs no gateway, so it belongs in your unit tests
 rather than in a manual pre-release checklist.

@@ -100,7 +100,8 @@ def act_3_config_errors() -> None:
         "When the failure is live rather than a missing variable — wrong URL, "
         "wrong credentials, or a model the allow-list does not include — "
         "`donkey doctor` is the CLI that distinguishes those three. It reuses "
-        "the same remediation strings the typed errors carry (demo 02)."
+        "the same remediation strings the typed errors carry. Demo 14 runs it "
+        "against the local simulator; demo 02 is the taxonomy it reads."
     )
 
 

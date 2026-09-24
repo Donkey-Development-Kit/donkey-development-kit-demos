@@ -34,7 +34,9 @@ default drifts release to release, so what lands on a span changes only by a
 reviewable edit. `donkey.*` is the stable Donkey namespace, where renaming
 a key is a breaking change. Cost tags are the fixed four
 (`team` / `project` / `env` / `enduser.id`), set on `from_env()` and overridable
-per `run()`.
+per `run()`. They land on `donkey.cost.*` as the authoritative carrier — the
+gateway has no inbound cost-tag ingestion (verified-negative). `X-Correlation-Id`
+is the opposite: the gateway reads it and echoes it.
 
 Also point at act 1: `gen_ai.prompt` / `gen_ai.completion` stay off unless
 `telemetry_capture_content=True`. Spans are emitted upstream of the gateway's

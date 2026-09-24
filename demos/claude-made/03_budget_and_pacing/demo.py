@@ -118,11 +118,16 @@ async def act_3_pacing(donkey: Donkey) -> None:
 
     say.code(
         """
-        try:
-            async with donkey.budget.pace(reserve=0.05):
-                await enrich(batch)
-        except BudgetReserveReached:
-            await donkey.budget.wait_for_reset()   # one sleep, never a spin loop
+        while True:
+            try:
+                async with donkey.budget.pace(reserve=0.05):
+                    await enrich(batch)
+            except BudgetReserveReached as exc:
+                if exc.reset_at is None:
+                    raise   # waiting cannot make progress
+                await donkey.budget.wait_for_reset()
+                continue
+            break
         """
     )
     await donkey.budget.wait_for_reset()
@@ -136,8 +141,65 @@ async def act_3_pacing(donkey: Donkey) -> None:
     )
 
 
-async def act_4_the_refusal_itself(donkey: Donkey) -> None:
-    say.step(4, "And if you do cross it, the 429 is terminal")
+async def act_4_when_reset_is_unknown() -> None:
+    """A window with no reset time must not become a wait-and-retry spin loop."""
+    from datetime import datetime, timedelta, timezone
+
+    from donkey_kit.core.budget import Budget
+
+    say.step(4, "When reset_at is None, waiting cannot make progress")
+    bare = Budget()
+    bare.observe(
+        httpx.Response(
+            200,
+            headers={LIMIT_HEADER: "100000", REMAINING_HEADER: "4000"},
+        )
+    )
+    _show(bare, "no reset header")
+    say.field("reset_at", bare.reset_at, raw=True)
+
+    try:
+        async with bare.pace(reserve=0.05):
+            say.fail("the guarded block ran — it should not have")
+    except BudgetReserveReached as exc:
+        say.ok("BudgetReserveReached — same trip, but reset_at is None")
+        say.field("exc.reset_at", exc.reset_at, raw=True)
+
+    await bare.wait_for_reset()
+    say.ok("wait_for_reset() returned immediately — there is nothing to wait for")
+    print()
+    say.note(
+        "An unconditional wait-and-retry loop cannot make progress here. The "
+        "guard stays up until a later response carries a future reset_at. "
+        "Propagate the exception, or checkpoint and stop — do not spin."
+    )
+
+    print()
+    say.section("An elapsed reset_at is stale — pace lets the next call through")
+    stale = Budget()
+    past = datetime.now(timezone.utc) - timedelta(hours=1)
+    stale.observe(
+        httpx.Response(
+            200,
+            headers={
+                LIMIT_HEADER: "100000",
+                REMAINING_HEADER: "4000",
+                RESET_HEADER: "1000",
+            },
+        ),
+        now=past,
+    )
+    say.field("stale reset_at", stale.reset_at, raw=True)
+    async with stale.pace(reserve=0.05):
+        say.ok("pace let the block through — the observation's window has elapsed")
+    say.note(
+        "A later response with a future reset_at turns the reserve guard back on. "
+        "A response that still has no reset leaves the pass-through open."
+    )
+
+
+async def act_5_the_refusal_itself(donkey: Donkey) -> None:
+    say.step(5, "And if you do cross it, the 429 is terminal")
     client = donkey.openai()
     try:
         await client.responses.create(model=mock.sentinel("token-rate-limit"), input="x")
@@ -169,7 +231,9 @@ async def _main() -> None:
         say.pause()
         await act_3_pacing(donkey)
         say.pause()
-        await act_4_the_refusal_itself(donkey)
+        await act_4_when_reset_is_unknown()
+        say.pause()
+        await act_5_the_refusal_itself(donkey)
 
 
 def main() -> None:
