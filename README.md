@@ -80,7 +80,9 @@ folder per framework. No `_harness`, no redaction, no `make` target. Run with
 the same environment you already use for the SDK. They do not read
 `.env.local`, so export it first (see
 [Filling the file](#filling-the-file-from-the-provisioned-proxies)). Filenames
-contain spaces; quote the path.
+contain spaces; quote the path. Each folder has a README with its install
+line, required environment and what every script prints — start at
+[`demos/human-made/README.md`](demos/human-made/README.md).
 
 ```bash
 python "demos/human-made/openai/02 - basic-responses-gw.py"

@@ -46,4 +46,54 @@ tracks a run-level record of every call.
 instead. It constructs real framework objects and is not a simulator, which is
 what the room wants at that point in the session.
 
+## How to run
+
+**Live only.** There is no simulator equivalent. Without `DONKEY_LLM_PROXY_*` it prints setup guidance and exits 0 — nothing failed.
+
+**1. Set up once** (from the repo root):
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+python -m pip install -e .
+python -m pip install -e "../donkey-development-kit/python[llm,langgraph]"
+make doctor                    # what is installed; prints no secrets
+```
+
+Optional: Also `python -m pip install "langchain>=1.0"` for `create_agent` — no donkey-kit extra ships it.
+
+**2. Run it:**
+
+```bash
+make demo N=09                              # needs DONKEY_LLM_PROXY_*
+python run.py 09                           # same thing without make
+```
+
+Live runs read three variables from your shell or a git-ignored `.env.local`
+(see [Setup](../../../README.md#setup) for where the values come from):
+
+```bash
+cp .env.example .env.local     # then fill in:
+# DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/REPLACE-ME/   (trailing /, no /v1)
+# DONKEY_LLM_PROXY_CLIENT_ID=…
+# DONKEY_LLM_PROXY_CLIENT_SECRET=…
+```
+
+**Live note:** `DEMO_MODEL` overrides the model id and `DEMO_LANGGRAPH_API=chat` switches to chat completions — see the budget recipe above for `ddk-token-rate-limit`.
+
+**3. What you should see:**
+
+1. `Run context` — target `live`, your proxy URL masked.
+2. The model calling two tools and composing an answer, streamed through the deep adapter inside `donkey.run(id=…)`.
+3. If the proxy refuses, the 403 surfaces from `astream` as a typed error (e.g. `PIIDetected`) via `typed_refusals()`.
+4. Afterwards: the proxy's shared budget window (populated only on a proxy that sends it), and `last_call` reading `unobserved` — LangGraph calls the model on its own task.
+
+**4. If something goes wrong:**
+
+- Exits with setup guidance: credentials are not loaded. Expected, not a failure — run demo 08 instead.
+- Hangs: the sandbox is slow or down. Ctrl-C and run demo 08 instead.
+- A 429 on a second run within a minute on `ddk-token-rate-limit`: its 500-token window is spent. Wait a minute.
+- `Missing prerequisites` — the demo names the module and the `pip install` line; it exits 0 without running anything.
+- `The demo raised` — re-run with `DEMO_TRACEBACK=1` for the full, still-masked traceback.
+- Presenting? `DEMO_PAUSE=1` waits for Enter between acts. Leave `DEMO_REDACT` unset (masking on) when recording.
+
 Build guide: `BG §1.8`. See [PRESENTING.md](../../../PRESENTING.md#09--langgraph-agent-live).

@@ -37,4 +37,37 @@ the middleware *protocol* `policy_middleware()` wraps. The proxy contract is
 confirmed; remaining signatures are checked by a nightly matrix, and an adapter
 that cannot confirm one raises "blocked on verification".
 
+## How to run
+
+**Offline.** No gateway, no simulator, no credentials. `--target` is ignored.
+
+**1. Set up once** (from the repo root):
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+python -m pip install -e .
+python -m pip install -e "../donkey-development-kit/python[llm]"   # or: python -m pip install -e ".[sdk]"
+make doctor                    # what is installed; prints no secrets
+```
+
+Optional: Each framework row needs that framework installed (e.g. `[langgraph]`, `[openai-agents]`, `[anthropic]`); missing ones are reported, not failed.
+
+**2. Run it:**
+
+```bash
+make demo N=08
+python run.py 08                           # same thing without make
+```
+
+**3. What you should see:**
+
+1. One row per framework: the native object the adapter builds and the governed kwargs it received.
+2. `What is and is not verified here` — Agent Framework `model=` verified against 1.19.0, the rest matrix-checked.
+
+**4. If something goes wrong:**
+
+- `Missing prerequisites` — the demo names the module and the `pip install` line; it exits 0 without running anything.
+- `The demo raised` — re-run with `DEMO_TRACEBACK=1` for the full, still-masked traceback.
+- Presenting? `DEMO_PAUSE=1` waits for Enter between acts. Leave `DEMO_REDACT` unset (masking on) when recording.
+
 Build guide: `BG §1.8`. See [PRESENTING.md](../../../PRESENTING.md#08--framework-objects).

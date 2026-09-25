@@ -35,4 +35,38 @@ the same front-end: it execs `pytest --donkey-conformance` and returns pytest's
 exit code. For an agent that never imports `donkey_kit`, the `gateway` fixture
 in demo 04 is the other entry point.
 
+## How to run
+
+**Offline.** No gateway, no simulator, no credentials. `--target` is ignored.
+
+**1. Set up once** (from the repo root):
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+python -m pip install -e .
+python -m pip install -e "../donkey-development-kit/python[llm,test]"   # or: python -m pip install -e ".[sdk]"
+make doctor                    # what is installed; prints no secrets
+```
+
+**2. Run it:**
+
+```bash
+make demo N=05
+python run.py 05                           # same thing without make
+```
+
+**3. What you should see:**
+
+1. Three conformance failures against `NaiveAgent` (budget retry, swallowed refusal, lost correlation id).
+2. `What each failure actually means`.
+3. Four passes against `GovernedAgent`.
+4. Exemptions: one asserted correctly, then a typo'd scenario and an empty reason both failing at collection.
+
+**4. If something goes wrong:**
+
+- A warning about the `pytest11` entry point is harmless: the demo loads the plugin by module. Reinstall the SDK editable to clear it.
+- `Missing prerequisites` — the demo names the module and the `pip install` line; it exits 0 without running anything.
+- `The demo raised` — re-run with `DEMO_TRACEBACK=1` for the full, still-masked traceback.
+- Presenting? `DEMO_PAUSE=1` waits for Enter between acts. Leave `DEMO_REDACT` unset (masking on) when recording.
+
 Build guide: `BG §1.5`. See [PRESENTING.md](../../../PRESENTING.md#05--conformance).
