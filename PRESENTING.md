@@ -272,8 +272,14 @@ around the loop, `typed_refusals()` so a gateway 403 is `PIIDetected`, and
 `@donkey.tool` on the two functions — a marker, not a wrapper."
 
 **Point at:** the budget after the run — several model calls in one agent loop,
-one transport, so the number is the run's real consumption. And `last_call` on
-the most recent model call: who served it, what they served, what it cost.
+one transport, all feeding the proxy's token window for this client ID. It is
+shared, not a per-run total, and only fills in on a proxy that sends the header
+(`ddk-token-rate-limit`, with `DEMO_LANGGRAPH_API=chat`).
+
+**If asked why `last_call` is `unobserved`:** that is the point. It is scoped per
+asyncio task so parallel calls never overwrite each other's record, and
+LangGraph makes each model call on its own task. Demo 10 shows it populated on a
+direct call. A run-level record of every call is DDK #613.
 
 ### 10 — last_call
 

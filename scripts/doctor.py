@@ -29,6 +29,11 @@ CHECKS = [
     ("langgraph", "the LangGraph agent demo", "langgraph"),
 ]
 
+# Required, but not shipped in any donkey-kit extra: (module, why, pip spec).
+PACKAGES = [
+    ("langchain", "the LangGraph agent demo", "langchain>=1.0"),
+]
+
 OPTIONAL = [
     ("anthropic", "anthropic"),
     ("crewai", "crewai"),
@@ -57,6 +62,12 @@ def main() -> int:
         (say.ok if present else say.fail)(f"{module:<20} {why}")
         if not present:
             missing_required.append(extra)
+    missing_packages = []
+    for module, why, spec in PACKAGES:
+        present = _installed(module)
+        (say.ok if present else say.fail)(f"{module:<20} {why}")
+        if not present:
+            missing_packages.append(spec)
 
     say.section("Optional frameworks (demo 08 reports these as 'not installed')")
     for module, extra in OPTIONAL:
@@ -85,8 +96,13 @@ def main() -> int:
         say.ok("every offline demo (make offline)")
     else:
         say.warn(f'missing extras: pip install "donkey-kit[{",".join(sorted(set(missing_required)))}]"')
-    if env.proxy_configured():
+    if missing_packages:
+        specs = " ".join(f'"{s}"' for s in missing_packages)
+        say.warn(f"missing packages: pip install {specs}")
+    if env.proxy_configured() and not missing_packages:
         say.ok("the live demos (make demo N=09)")
+    elif env.proxy_configured():
+        say.warn("credentials set, but the live demos need the missing packages above")
     else:
         print("  live demos need the three DONKEY_LLM_PROXY_* variables")
 

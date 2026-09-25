@@ -205,6 +205,7 @@ python -m pip install -e .
 
 # 2. The SDK. Either your own checkout…
 python -m pip install -e "../donkey-development-kit/python[llm,local,test,otel,langgraph,cli]"
+python -m pip install "langchain>=1.0"   # demo 09 only; no donkey-kit extra ships it
 
 #    …or from git
 python -m pip install -e ".[full]"
