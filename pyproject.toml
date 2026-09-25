@@ -23,8 +23,10 @@ sdk = [
   "donkey-kit[llm,local,test] @ git+https://github.com/Donkey-Development-Kit/donkey-development-kit.git#subdirectory=python",
 ]
 # Everything the full walkthrough can exercise, including the deep adapter.
+# `langchain` is for demo 09's `create_agent`; no donkey-kit extra ships it.
 full = [
   "donkey-kit[llm,local,test,otel,langgraph] @ git+https://github.com/Donkey-Development-Kit/donkey-development-kit.git#subdirectory=python",
+  "langchain>=1.0",
 ]
 dev = ["ruff>=0.6"]
 

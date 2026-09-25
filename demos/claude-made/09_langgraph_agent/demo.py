@@ -16,7 +16,14 @@ target `/responses` (`use_responses_api=True`) — the same live-verified route
 as `donkey.openai()`. The refusal path can be exercised offline: see act 6 of
 demo 04, which drives this same `ChatOpenAI` through `donkey.simulate()`.
 
+**What step 3 can and cannot show.** `donkey.budget` is the proxy's shared
+token window for this client id, populated only on proxies that send the
+header. `donkey.last_call` stays `unobserved` after the loop: it is per asyncio
+task, and LangGraph makes each model call on its own task (DDK #613 tracks a
+run-level record).
+
     python demos/claude-made/09_langgraph_agent/demo.py        # needs real credentials
+    DEMO_LANGGRAPH_API=chat python demos/.../demo.py           # proxy without /responses
 """
 
 from __future__ import annotations
@@ -25,13 +32,14 @@ import asyncio
 import os
 
 from donkey_kit import Donkey, registered_tools
-from langchain.agents import create_agent
 from langchain_core.tools import tool
 
 from _harness import narrate as say
 from _harness import preflight, redact
 
 MODEL = os.environ.get("DEMO_MODEL", "gpt-4o-mini")
+# `chat` for a proxy whose upstream has no `/responses` route (e.g. ddk-token-rate-limit).
+API = os.environ.get("DEMO_LANGGRAPH_API", "responses")
 QUESTION = "Can I ship SKU AF-1001 today, and what does it cost?"
 
 INVENTORY = {"AF-1001": "42 units in Amsterdam", "AF-2002": "0 units"}
@@ -52,18 +60,41 @@ def get_price(sku: str) -> str:
     return PRICES.get(sku, "unknown SKU")
 
 
+def _text(message: object) -> str:
+    """The visible text of a message; `/responses` content is a list of typed blocks."""
+    content = getattr(message, "content", "")
+    if isinstance(content, str):
+        return content
+    return "".join(
+        b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"
+    )
+
+
 async def _main() -> None:
+    # Deferred so a missing `langchain` reaches preflight's install hint, not a traceback.
+    from langchain.agents import create_agent
+
     async with Donkey.from_env() as donkey:
         say.step(1, "One call gets LangChain's own model object")
         say.code(
             """
-            model = donkey.langgraph.chat_model("gpt-4o-mini", temperature=0)
+            model = donkey.langgraph.chat_model("gpt-4o-mini")
             agent = create_agent(model, tools=[check_inventory, get_price])
             """
         )
 
-        model = donkey.langgraph.chat_model(MODEL, temperature=0)
+        # No `temperature`: reasoning models (gpt-5, o-series) reject it with a 400.
+        if API == "chat":
+            from langchain_openai import ChatOpenAI
+
+            # chat_model() cannot take `use_responses_api=False`: it collides with the
+            # adapter's own kwarg (TypeError), so build from connection_kwargs().
+            kwargs = {**donkey.langgraph.connection_kwargs(), "use_responses_api": False}
+            model = ChatOpenAI(model=MODEL, **kwargs)
+        else:
+            model = donkey.langgraph.chat_model(MODEL)
         say.field("type", f"{type(model).__module__}.{type(model).__name__}")
+        say.field("route", "/chat/completions" if API == "chat" else "/responses")
         say.field(
             "governed via",
             ", ".join(sorted(donkey.langgraph.connection_kwargs())),
@@ -102,9 +133,9 @@ async def _main() -> None:
                                     print(f"    tool call    {call['name']}({call['args']})")
                             elif node == "tools":
                                 print(f"    tool result  {redact.text(message.content)}")
-                            elif message.content:
+                            elif _text(message):
                                 print()
-                                say.field("answer", redact.text(message.content))
+                                say.field("answer", redact.text(_text(message)))
 
         say.pause()
         say.step(3, "What the governance layer saw")
@@ -126,11 +157,31 @@ async def _main() -> None:
             spec = marked.get(name)
             if spec is not None:
                 say.field(f"@donkey.tool {name}", spec.docstring)
+        if budget.fraction_used is not None:
+            budget_note = (
+                "budget is the proxy's token window for this client id, read in-band "
+                "from every response in the loop. It is shared, not per run: it "
+                "includes anything else this client spent in the window."
+            )
+        else:
+            budget_note = (
+                "budget is unobserved: this proxy sends no token-window header. Only "
+                "proxies with a token rate-limit policy do (e.g. ddk-token-rate-limit)."
+            )
         say.note(
-            "Several model calls in one agent run, all through one transport — so "
-            "the budget is the run's real consumption, and donkey.run(id=…) ties "
-            "the whole loop together. last_call is the most recent model call in "
-            "this context: who served it, what they served, what it cost. "
+            "Several model calls in one agent run, all through one transport, and "
+            f"donkey.run(id=…) ties the whole loop together with one run id. {budget_note}"
+        )
+        if last.status.value == "unobserved":
+            say.note(
+                "last_call reads 'unobserved' here, and that is by design. LangGraph "
+                "made each model call on its own asyncio task, and last_call is "
+                "scoped per task so parallel siblings never overwrite each other's "
+                "record — so it never reaches this outer scope. On a direct call it "
+                "is populated (demo 10). A run-level record of every call is tracked "
+                "in DDK #613."
+            )
+        say.note(
             "typed_refusals() is the node-level bridge: a proxy 403 surfaces out "
             "of astream as PIIDetected, not a framework-wrapped generic error. "
             "@donkey.tool marked the same functions the agent just called — it "
@@ -158,5 +209,5 @@ if __name__ == "__main__":
         title="Demo 09 — a governed LangGraph agent",
         subtitle="A real tool-calling loop through the deep adapter. Needs live credentials.",
         target="live",
-        extras=("langchain_openai", "langgraph"),
+        extras=("langchain_openai", "langgraph", "langchain"),
     )

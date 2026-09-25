@@ -54,6 +54,11 @@ _EXTRA_FOR_MODULE = {
     "typer": "cli",
 }
 
+# Needed by a demo but not shipped in any donkey-kit extra.
+_PACKAGE_FOR_MODULE = {
+    "langchain": "langchain>=1.0",
+}
+
 
 def _installed(module: str) -> bool:
     try:
@@ -62,10 +67,14 @@ def _installed(module: str) -> bool:
         return False
 
 
+def _install_hint(module: str) -> str:
+    if module in _PACKAGE_FOR_MODULE:
+        return f'pip install "{_PACKAGE_FOR_MODULE[module]}"'
+    return f'pip install "donkey-kit[{_EXTRA_FOR_MODULE.get(module, module)}]"'
+
+
 def _missing_extras(modules: Sequence[str]) -> list[tuple[str, str]]:
-    return [
-        (m, _EXTRA_FOR_MODULE.get(m, m)) for m in modules if not _installed(m)
-    ]
+    return [(m, _install_hint(m)) for m in modules if not _installed(m)]
 
 
 def _parse_args(default_target: Target, argv: Sequence[str] | None) -> argparse.Namespace:
@@ -143,8 +152,8 @@ def run(
     missing = _missing_extras(extras)
     if missing:
         narrate.section("Missing prerequisites")
-        for module, extra in missing:
-            narrate.bullet(f'{module} — pip install "donkey-kit[{extra}]"')
+        for module, hint in missing:
+            narrate.bullet(f"{module} — {hint}")
         return 0
 
     if target == "offline":
