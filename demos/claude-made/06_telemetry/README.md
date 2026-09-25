@@ -54,4 +54,52 @@ Donkey rides it. Cost tags, routing (`donkey.routing.*`) and cached/reasoning
 usage (`donkey.usage.*`) land on the same span. The same routing/usage facts
 live on `donkey.last_call` without a span backend (demo 10).
 
+## How to run
+
+**Local simulator by default.** The harness starts `donkey mock` on `127.0.0.1:8080`, points the SDK at it with fake credentials, and stops it afterwards. `--target live` runs the same acts against your proxy.
+
+**1. Set up once** (from the repo root):
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+python -m pip install -e .
+python -m pip install -e "../donkey-development-kit/python[llm,local,otel]"   # or: python -m pip install -e ".[full]"
+make doctor                    # what is installed; prints no secrets
+```
+
+**2. Run it:**
+
+```bash
+make demo N=06                              # local simulator, auto-started
+make demo N=06 ARGS="--target live"         # your proxy
+python run.py 06                           # same thing without make
+```
+
+Live runs read three variables from your shell or a git-ignored `.env.local`
+(see [Setup](../../../README.md#setup) for where the values come from):
+
+```bash
+cp .env.example .env.local     # then fill in:
+# DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/REPLACE-ME/   (trailing /, no /v1)
+# DONKEY_LLM_PROXY_CLIENT_ID=…
+# DONKEY_LLM_PROXY_CLIENT_SECRET=…
+```
+
+**Live note:** To ship spans to a collector, export `OTEL_EXPORTER_OTLP_ENDPOINT` (and `OTEL_EXPORTER_OTLP_HEADERS` if it needs auth) before running.
+
+**3. What you should see:**
+
+1. Act 1: one span per call with `gen_ai.*` and `donkey.*` attributes; prompt and completion absent; `Routing and usage, on the same span`.
+2. Act 2: `donkey.run(id="ticket-4417", team=…, project=…)` — three calls, one correlation id, one set of `donkey.cost.*` tags; `Two ids, two questions`.
+3. Act 3: a refused call as an `ERROR` span naming the policy; `The same two ids, on the exception`.
+4. Act 4: zero-config OTLP — silent without `OTEL_EXPORTER_OTLP_ENDPOINT`, exporting with it.
+
+**4. If something goes wrong:**
+
+- `No simulator at http://127.0.0.1:8080` — the port is taken or `[local]` is missing. Use another port: `DEMO_MOCK_URL=http://127.0.0.1:8099 make demo N=06`.
+- Want the simulator in its own pane? Run `make mock` there, then `make demo N=06 ARGS="--no-autostart"`. `DEMO_QUIET_MOCK=0` shows its log.
+- `Missing prerequisites` — the demo names the module and the `pip install` line; it exits 0 without running anything.
+- `The demo raised` — re-run with `DEMO_TRACEBACK=1` for the full, still-masked traceback.
+- Presenting? `DEMO_PAUSE=1` waits for Enter between acts. Leave `DEMO_REDACT` unset (masking on) when recording.
+
 Build guide: `BG §1.6`, `BG §1.7`. See [PRESENTING.md](../../../PRESENTING.md#06--telemetry).

@@ -41,4 +41,53 @@ arms it live; the spy records the request with `client_secret` already `***`.
 **Why it matters:** this needs no gateway, so it belongs in your unit tests
 rather than in a manual pre-release checklist.
 
+## How to run
+
+**Local simulator by default.** The harness starts `donkey mock` on `127.0.0.1:8080`, points the SDK at it with fake credentials, and stops it afterwards. `--target live` runs the same acts against your proxy.
+
+**1. Set up once** (from the repo root):
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+python -m pip install -e .
+python -m pip install -e "../donkey-development-kit/python[llm,local]"   # or: python -m pip install -e ".[sdk]"
+make doctor                    # what is installed; prints no secrets
+```
+
+Optional: `[langgraph]` adds act 6; it is skipped silently otherwise.
+
+**2. Run it:**
+
+```bash
+make demo N=04                              # local simulator, auto-started
+make demo N=04 ARGS="--target live"         # your proxy
+python run.py 04                           # same thing without make
+```
+
+Live runs read three variables from your shell or a git-ignored `.env.local`
+(see [Setup](../../../README.md#setup) for where the values come from):
+
+```bash
+cp .env.example .env.local     # then fill in:
+# DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/REPLACE-ME/   (trailing /, no /v1)
+# DONKEY_LLM_PROXY_CLIENT_ID=…
+# DONKEY_LLM_PROXY_CLIENT_SECRET=…
+```
+
+**3. What you should see:**
+
+1. Acts 1–4: the happy path, then `donkey.simulate(PIIDetected)` running the `except` branch, each refusal type, and `times=`.
+2. Act 5: `ToolInvocationError` and `GatewayUnavailable` refused with `ValueError` — no captured wire shape to replay.
+3. Act 6: the same injection reaching LangChain's `ChatOpenAI` (only with `[langgraph]`).
+4. Act 7: `donkey mock --scenario` specs parsed and explained (the command is printed, not run).
+5. Act 8: `start_gateway()` on an ephemeral port, `requests_received`, and a spy with `client_secret` already `***`.
+
+**4. If something goes wrong:**
+
+- `No simulator at http://127.0.0.1:8080` — the port is taken or `[local]` is missing. Use another port: `DEMO_MOCK_URL=http://127.0.0.1:8099 make demo N=04`.
+- Want the simulator in its own pane? Run `make mock` there, then `make demo N=04 ARGS="--no-autostart"`. `DEMO_QUIET_MOCK=0` shows its log.
+- `Missing prerequisites` — the demo names the module and the `pip install` line; it exits 0 without running anything.
+- `The demo raised` — re-run with `DEMO_TRACEBACK=1` for the full, still-masked traceback.
+- Presenting? `DEMO_PAUSE=1` waits for Enter between acts. Leave `DEMO_REDACT` unset (masking on) when recording.
+
 Build guide: `BG §1.5`. See [PRESENTING.md](../../../PRESENTING.md#04--simulate).

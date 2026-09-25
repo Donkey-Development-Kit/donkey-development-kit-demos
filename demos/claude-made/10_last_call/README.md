@@ -41,4 +41,50 @@ That is the fixture, not a live failover — and it is exactly the mismatch
 `last_call` exists to surface. The SDK also never double-retries a `503` the
 gateway already marked as a failover.
 
+## How to run
+
+**Local simulator by default.** The harness starts `donkey mock` on `127.0.0.1:8080`, points the SDK at it with fake credentials, and stops it afterwards. `--target live` runs the same acts against your proxy.
+
+**1. Set up once** (from the repo root):
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+python -m pip install -e .
+python -m pip install -e "../donkey-development-kit/python[llm,local]"   # or: python -m pip install -e ".[sdk]"
+make doctor                    # what is installed; prints no secrets
+```
+
+**2. Run it:**
+
+```bash
+make demo N=10                              # local simulator, auto-started
+make demo N=10 ARGS="--target live"         # your proxy
+python run.py 10                           # same thing without make
+```
+
+Live runs read three variables from your shell or a git-ignored `.env.local`
+(see [Setup](../../../README.md#setup) for where the values come from):
+
+```bash
+cp .env.example .env.local     # then fill in:
+# DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/REPLACE-ME/   (trailing /, no /v1)
+# DONKEY_LLM_PROXY_CLIENT_ID=…
+# DONKEY_LLM_PROXY_CLIENT_SECRET=…
+```
+
+**3. What you should see:**
+
+1. A cold `last_call` reading `UNOBSERVED`.
+2. `What the gateway did with the request` — provider, served model, routing type, fallback.
+3. `What this call cost` — input, output, cached and reasoning tokens (`None` when absent, never `0`).
+4. `substituted: True` (the fixture was served by `gpt-5.1`), then `on_model_substitution="raise"` raising `ModelSubstituted`.
+
+**4. If something goes wrong:**
+
+- `No simulator at http://127.0.0.1:8080` — the port is taken or `[local]` is missing. Use another port: `DEMO_MOCK_URL=http://127.0.0.1:8099 make demo N=10`.
+- Want the simulator in its own pane? Run `make mock` there, then `make demo N=10 ARGS="--no-autostart"`. `DEMO_QUIET_MOCK=0` shows its log.
+- `Missing prerequisites` — the demo names the module and the `pip install` line; it exits 0 without running anything.
+- `The demo raised` — re-run with `DEMO_TRACEBACK=1` for the full, still-masked traceback.
+- Presenting? `DEMO_PAUSE=1` waits for Enter between acts. Leave `DEMO_REDACT` unset (masking on) when recording.
+
 Build guide: `BG §1.1`. See [PRESENTING.md](../../../PRESENTING.md#10--last_call).
