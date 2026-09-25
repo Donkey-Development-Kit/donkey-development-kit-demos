@@ -312,6 +312,14 @@ make hooks      # then it runs on every commit
 
 ## Honest status
 
+**The DDK is evolving fast, and these demos change with it.** Scripts, extras
+and expected output can shift between SDK releases, sometimes within days. When
+something here disagrees with the SDK, the SDK wins: check the
+[DDK main repository](https://github.com/Donkey-Development-Kit/donkey-development-kit)
+— its commit history, [`docs/verified-apis.md`](https://github.com/Donkey-Development-Kit/donkey-development-kit/blob/main/docs/verified-apis.md)
+and [`python/examples/`](https://github.com/Donkey-Development-Kit/donkey-development-kit/tree/main/python/examples)
+— before assuming a demo is right.
+
 The proxy contract these demos exercise is live-verified: the base URL shape
 (no `/v1`), the `client_id`/`client_secret` header pair, streaming, inbound
 `X-Correlation-Id` echo, the Anthropic- and Gemini-native ingress routes, and
