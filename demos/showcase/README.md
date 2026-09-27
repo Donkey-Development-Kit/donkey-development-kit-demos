@@ -44,6 +44,25 @@ It deploys from `main` via
 [`.github/workflows/pages.yml`](../../.github/workflows/pages.yml) whenever
 anything under `demos/showcase/frontend/` changes.
 
+### Usage stats
+
+Click the **DDK logo** (top left) for site stats:
+
+- visits for all time, the last 30 days and the last 7 days;
+- the number of free-form prompts;
+- the favourite demos, ranked by how often each card was opened, run and compared.
+
+Counts come from [GoatCounter](https://www.goatcounter.com) (site `ddk`). It is
+cookie-less and collects no personal data. It counts once per visitor session,
+so the numbers are visits, not raw hits. The public counter caches for up to
+four hours. Tracking is only compiled in when the build sets `VITE_GOATCOUNTER`
+(the Pages workflow does), so local runs send nothing. The events are
+`open-<feature id>`, `run-<feature id>`, `compare-<feature id>` and
+`chat-freeform`. The panel reads them through the public counter, which needs
+**"Allow adding visitor counts on your website"** switched on in the
+GoatCounter site settings. Maintainers get the full dashboard at
+<https://ddk.goatcounter.com>.
+
 ## Run it locally (live)
 
 From this folder, inside the repo's virtual environment (see the top-level

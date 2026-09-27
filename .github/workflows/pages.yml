@@ -38,6 +38,7 @@ jobs:
         env:
           VITE_STATIC: "1"
           VITE_BASE: /donkey-development-kit-demos/
+          VITE_GOATCOUNTER: ddk
       - uses: actions/upload-pages-artifact@v3
         with:
           path: demos/showcase/frontend/dist

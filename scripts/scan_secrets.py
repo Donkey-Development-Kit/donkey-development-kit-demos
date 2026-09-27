@@ -70,6 +70,8 @@ HOST_ALLOWLIST = (
     "example.invalid",
     "example.com",
     "schemas.mulesoft.com",
+    "goatcounter.com",
+    "gc.zgo.at",
 )
 
 
