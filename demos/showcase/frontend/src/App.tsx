@@ -2,6 +2,7 @@
 // the right. App owns the message timeline, the live budget, and the run
 // orchestration; the panes are presentational.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { track } from "./analytics";
 import { api, STATIC, type SSEEvent } from "./api";
 import type {
   Budget,
@@ -17,6 +18,7 @@ import type { PaceCallRow, ReserveReached } from "./components/results";
 import { Chat } from "./components/Chat";
 import { FeatureCatalog } from "./components/FeatureCatalog";
 import { CollapsedRail } from "./components/bits";
+import { StatsPanel } from "./components/StatsPanel";
 
 type Theme = "light" | "dark";
 type Collapsed = "left" | "right" | null;
@@ -36,6 +38,7 @@ export default function App() {
     () => (localStorage.getItem("ddk-theme") as Theme) || "light",
   );
   const [collapsed, setCollapsed] = useState<Collapsed>(null);
+  const [statsOpen, setStatsOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -242,6 +245,7 @@ export default function App() {
     (f: Feature) => {
       setSelectedId(f.id);
       if (busy) return;
+      track(`run-${f.id}`, f.title);
       switch (f.action) {
         case "chat":
           runChat(f.prompt, f.model);
@@ -278,6 +282,7 @@ export default function App() {
         activeFeature && activeFeature.action === "chat"
           ? activeFeature.model
           : "gpt-5.1";
+      track("chat-freeform");
       runChat(text, model);
     },
     [activeFeature, runChat],
@@ -296,7 +301,14 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <div className="brand">
-          <img src={logoSrc} alt="DDK logo" />
+          <button
+            className="logo-btn"
+            aria-label="Show showcase stats"
+            title="Showcase stats"
+            onClick={() => setStatsOpen(true)}
+          >
+            <img src={logoSrc} alt="" />
+          </button>
           <div className="titles">
             <span className="title">Donkey Development Kit</span>
             <span className="subtitle">
@@ -387,12 +399,18 @@ export default function App() {
             features={features}
             selectedId={selectedId}
             busy={busy}
-            onSelect={(id) => setSelectedId((cur) => (cur === id ? null : id))}
+            onSelect={(id) => {
+              if (selectedId !== id) track(`open-${id}`);
+              setSelectedId((cur) => (cur === id ? null : id));
+            }}
             onRun={onRun}
             onCollapse={() => setCollapsed("right")}
           />
         )}
       </div>
+      {statsOpen && (
+        <StatsPanel features={features} onClose={() => setStatsOpen(false)} />
+      )}
     </div>
   );
 }

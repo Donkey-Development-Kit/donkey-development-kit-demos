@@ -4,6 +4,7 @@
 // contrast that makes the value concrete.
 import { useState } from "react";
 import type { CompareResult, Feature } from "../features";
+import { track } from "../analytics";
 import { api } from "../api";
 import { Badge, Spinner } from "./bits";
 import { ComparePanel } from "./ComparePanel";
@@ -36,6 +37,7 @@ export function FeatureCard({
   const runLabel = ACTION_LABEL[feature.action];
 
   async function runCompare() {
+    track(`compare-${feature.id}`, feature.title);
     setComparing(true);
     try {
       setCompare(await api.compare({ prompt: feature.prompt, model: feature.model }));
