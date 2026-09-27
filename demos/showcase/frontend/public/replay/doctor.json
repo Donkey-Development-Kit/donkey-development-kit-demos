@@ -1,0 +1,4 @@
+{
+ "ok": true,
+ "output": "[ok] config       env (3 fields)\n[ok] gateway      reachable, responded\n[ok] credentials  client_id accepted\n[ok] model        accepted by the proxy\n[i]  budget       18,708 / 20,000 remaining, resets in 48s, observed 0s ago\n"
+}

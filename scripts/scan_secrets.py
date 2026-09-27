@@ -158,6 +158,8 @@ EXEMPT: dict[str, tuple[str, ...]] = {
     "_harness/redact.py": ("envoy-decorator", "openai-org-project", "anypoint-instance-id"),
     # Apache-2.0 text links to apache.org.
     "LICENSE": ("external-https-host",),
+    # npm lockfile: public registry tarball URLs and package funding links.
+    "demos/showcase/frontend/package-lock.json": ("external-https-host",),
 }
 
 SKIP_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".mp4", ".mov", ".webm", ".cast", ".pdf")

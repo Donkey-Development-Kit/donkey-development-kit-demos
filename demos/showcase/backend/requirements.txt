@@ -1,0 +1,6 @@
+# DDK demo backend. `donkey-kit` extras pull in the OpenAI client, the local
+# gateway simulator, the OTel SDK, the LangGraph adapter, the CLI, and the
+# conformance suite. Starlette + Uvicorn serve the API.
+donkey-kit[llm,local,otel,langgraph,cli,test]
+starlette>=0.37
+uvicorn>=0.30

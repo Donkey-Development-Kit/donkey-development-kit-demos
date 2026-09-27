@@ -1,0 +1,11 @@
+# Auto-provision Tempo as the default datasource so Explore works with no setup.
+apiVersion: 1
+datasources:
+  - name: Tempo
+    type: tempo
+    access: proxy
+    uid: tempo
+    url: http://tempo:3200
+    isDefault: true
+    jsonData:
+      httpMethod: GET
