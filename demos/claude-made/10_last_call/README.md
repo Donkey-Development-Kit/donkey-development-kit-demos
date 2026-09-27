@@ -19,8 +19,9 @@ served by a different model than the one we asked for; and
 **Point at:** three honest states, never a bare `None`. `UNOBSERVED` is a cold
 read; `OBSERVED` means the SDK saw a response (fields may still be `None` if the
 gateway said nothing); `UNAVAILABLE` names the adapter surfaces that never route
-through our transport (LiteLLM-backed ADK and CrewAI, default_headers-only
-LlamaIndex, Agent Framework — `observes_last_call = False`). Then `substituted`
+through our transport (ADK via LiteLLM, CrewAI via its native OpenAI provider,
+default_headers-only LlamaIndex, Agent Framework — `observes_last_call = False`).
+Then `substituted`
 — a silent model swap is otherwise
 invisible to your cost model and your eval. Then `cached_tokens` /
 `reasoning_tokens`: reading only `total_tokens` draws the wrong conclusion about
