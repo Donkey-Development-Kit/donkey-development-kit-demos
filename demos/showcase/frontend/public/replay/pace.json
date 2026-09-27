@@ -1,0 +1,125 @@
+[
+ {
+  "event": "start",
+  "data": {
+   "calls": 6,
+   "reserve": 0.05
+  }
+ },
+ {
+  "event": "budget",
+  "data": {
+   "limit": 20000,
+   "remaining": 19184,
+   "fraction_used": 0.0408,
+   "reset_at": "2026-09-27T17:04:53.967066+00:00",
+   "observed_at": "2026-09-27T17:04:03.149066+00:00"
+  }
+ },
+ {
+  "event": "call",
+  "data": {
+   "n": 1,
+   "status": "ok"
+  }
+ },
+ {
+  "event": "budget",
+  "data": {
+   "limit": 20000,
+   "remaining": 19116,
+   "fraction_used": 0.0442,
+   "reset_at": "2026-09-27T17:04:53.967113+00:00",
+   "observed_at": "2026-09-27T17:04:03.157113+00:00"
+  }
+ },
+ {
+  "event": "call",
+  "data": {
+   "n": 2,
+   "status": "ok"
+  }
+ },
+ {
+  "event": "budget",
+  "data": {
+   "limit": 20000,
+   "remaining": 19048,
+   "fraction_used": 0.0476,
+   "reset_at": "2026-09-27T17:04:53.970005+00:00",
+   "observed_at": "2026-09-27T17:04:03.318005+00:00"
+  }
+ },
+ {
+  "event": "call",
+  "data": {
+   "n": 3,
+   "status": "ok"
+  }
+ },
+ {
+  "event": "budget",
+  "data": {
+   "limit": 20000,
+   "remaining": 18980,
+   "fraction_used": 0.051,
+   "reset_at": "2026-09-27T17:04:53.967157+00:00",
+   "observed_at": "2026-09-27T17:04:03.478157+00:00"
+  }
+ },
+ {
+  "event": "call",
+  "data": {
+   "n": 4,
+   "status": "ok"
+  }
+ },
+ {
+  "event": "budget",
+  "data": {
+   "limit": 20000,
+   "remaining": 18912,
+   "fraction_used": 0.0544,
+   "reset_at": "2026-09-27T17:04:53.967423+00:00",
+   "observed_at": "2026-09-27T17:04:03.639423+00:00"
+  }
+ },
+ {
+  "event": "call",
+  "data": {
+   "n": 5,
+   "status": "ok"
+  }
+ },
+ {
+  "event": "budget",
+  "data": {
+   "limit": 20000,
+   "remaining": 18844,
+   "fraction_used": 0.0578,
+   "reset_at": "2026-09-27T17:04:53.967378+00:00",
+   "observed_at": "2026-09-27T17:04:03.795378+00:00"
+  }
+ },
+ {
+  "event": "call",
+  "data": {
+   "n": 6,
+   "status": "ok"
+  }
+ },
+ {
+  "event": "budget",
+  "data": {
+   "limit": 20000,
+   "remaining": 18776,
+   "fraction_used": 0.0612,
+   "reset_at": "2026-09-27T17:04:53.968336+00:00",
+   "observed_at": "2026-09-27T17:04:03.955336+00:00"
+  }
+ },
+ {
+  "event": "done",
+  "data": {}
+ }
+]

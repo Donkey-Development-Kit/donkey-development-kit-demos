@@ -12,6 +12,12 @@ are not interchangeable:
 | **Runner** | `make demo N=03`, `make offline`, `_harness` (redact, mock, pause) | `python "demos/human-made/<framework>/….py"` — not in `make` |
 | **Network** | Fourteen of the fifteen need nothing. Demo 09 is live-only | Most need `DONKEY_LLM_PROXY_*`. `start-gateway`, `gateway-unavailable` and `simulated` scripts need no gateway |
 
+There is also a browser demo, the **[feature showcase](demos/showcase/)**: a
+LangGraph chat on one side and a clickable catalog of DDK features on the other,
+running against `donkey mock`. Try the static replay on
+**[GitHub Pages](https://donkey-development-kit.github.io/donkey-development-kit-demos/)**,
+or run it live locally with `demos/showcase/run.sh`.
+
 For the per-framework *reference* snippets (one `main.py` per framework,
 CI-gated), see [`python/examples/`](https://github.com/Donkey-Development-Kit/donkey-development-kit/tree/main/python/examples)
 in the SDK repo. Those are not these demos.

@@ -1,0 +1,34 @@
+{
+ "rows": [
+  {
+   "name": "retries_token_budget",
+   "title": "Retries a budget refusal",
+   "status": "pass",
+   "detail": "issued one call and did not retry the budget refusal"
+  },
+  {
+   "name": "swallows_pii_as_generic",
+   "title": "Swallows PII as a generic error",
+   "status": "pass",
+   "detail": "surfaced the refusal as a typed PIIDetected"
+  },
+  {
+   "name": "correlation_id_propagated",
+   "title": "Propagates the correlation id",
+   "status": "pass",
+   "detail": "emitted the run's correlation id in its own logs"
+  },
+  {
+   "name": "works_without_budget_headers",
+   "title": "Works without budget headers",
+   "status": "pass",
+   "detail": "completed a run when the gateway returned no budget headers"
+  }
+ ],
+ "summary": {
+  "pass": 4,
+  "fail": 0,
+  "exempt": 0,
+  "total": 4
+ }
+}

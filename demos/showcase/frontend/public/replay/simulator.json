@@ -1,0 +1,9 @@
+{
+ "base_url": "http://127.0.0.1:8080",
+ "scenarios": [
+  "budget:limit=20000,window=60s",
+  "injection:on-pattern=ignore previous"
+ ],
+ "healthy": true,
+ "managed": true
+}

@@ -1,0 +1,53 @@
+# Publishes the DDK feature showcase (demos/showcase) to GitHub Pages on every
+# push to main. The Pages build is the static replay: no backend, no gateway —
+# it replays responses recorded from the real backend against `donkey mock`.
+name: Deploy showcase to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "demos/showcase/frontend/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: demos/showcase/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: demos/showcase/frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_STATIC: "1"
+          VITE_BASE: /donkey-development-kit-demos/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: demos/showcase/frontend/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

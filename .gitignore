@@ -65,6 +65,8 @@ assets/**
 *.jpg
 *.jpeg
 !docs/**/*.png
+# The showcase's brand logos — static assets, not captures.
+!demos/showcase/frontend/public/img/*.png
 
 # Raw demo output, which by definition contains whatever the demo printed.
 *.log
@@ -88,6 +90,10 @@ env/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Node (demos/showcase/frontend)
+node_modules/
+*.tsbuildinfo
 
 # ---------------------------------------------------------------------------
 # Editors / OS
