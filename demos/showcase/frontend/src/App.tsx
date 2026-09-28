@@ -1,4 +1,4 @@
-// Two-pane shell: governed-agent chat on the left, clickable feature catalog on
+// Two-pane shell: clickable feature catalog on the left, governed-agent chat on
 // the right. App owns the message timeline, the live budget, and the run
 // orchestration; the panes are presentational.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -367,30 +367,12 @@ export default function App() {
               ? "48px 1fr"
               : collapsed === "right"
                 ? "1fr 48px"
-                : "1.15fr 1fr",
+                : "1fr 1.15fr",
         }}
       >
         {collapsed === "left" ? (
           <CollapsedRail
             side="left"
-            label="Governed agent"
-            onExpand={() => setCollapsed(null)}
-          />
-        ) : (
-          <Chat
-            messages={messages}
-            activeFeature={activeFeature}
-            onClearFeature={() => setSelectedId(null)}
-            busy={busy}
-            onSend={onSend}
-            onCancel={onCancel}
-            onCollapse={() => setCollapsed("left")}
-            logoSrc={logoSrc}
-          />
-        )}
-        {collapsed === "right" ? (
-          <CollapsedRail
-            side="right"
             label="Features"
             onExpand={() => setCollapsed(null)}
           />
@@ -404,7 +386,25 @@ export default function App() {
               setSelectedId((cur) => (cur === id ? null : id));
             }}
             onRun={onRun}
+            onCollapse={() => setCollapsed("left")}
+          />
+        )}
+        {collapsed === "right" ? (
+          <CollapsedRail
+            side="right"
+            label="Governed agent"
+            onExpand={() => setCollapsed(null)}
+          />
+        ) : (
+          <Chat
+            messages={messages}
+            activeFeature={activeFeature}
+            onClearFeature={() => setSelectedId(null)}
+            busy={busy}
+            onSend={onSend}
+            onCancel={onCancel}
             onCollapse={() => setCollapsed("right")}
+            logoSrc={logoSrc}
           />
         )}
       </div>

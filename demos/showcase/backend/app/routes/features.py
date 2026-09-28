@@ -1,4 +1,4 @@
-"""GET /api/features — the catalog rendered in the right-hand pane."""
+"""GET /api/features — the catalog rendered in the left-hand pane."""
 
 from __future__ import annotations
 
