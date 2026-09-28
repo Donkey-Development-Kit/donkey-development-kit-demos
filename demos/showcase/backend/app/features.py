@@ -1,4 +1,4 @@
-"""The feature catalog rendered in the right-hand pane.
+"""The feature catalog rendered in the left-hand pane.
 
 Single source of truth for: what each card says, the prepared prompt, which
 backend action it triggers, and the *Without DDK* vs *With DDK* code the

@@ -1,4 +1,4 @@
-// The left pane: the governed-agent chat timeline + the composer. Purely
+// The right pane: the governed-agent chat timeline + the composer. Purely
 // presentational — App owns the message list and the run orchestration and
 // passes send/cancel handlers down.
 import { useEffect, useRef, useState } from "react";
@@ -152,7 +152,7 @@ function Composer({
         <textarea
           ref={taRef}
           value={text}
-          placeholder="Ask the governed agent… or click a feature on the right."
+          placeholder="Ask the governed agent… or click a feature on the left."
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -209,17 +209,16 @@ export function Chat({
   }, [messages]);
 
   return (
-    <div className="pane left">
+    <div className="pane right">
       <div className="pane-head">
-        <span className="eyebrow">Governed agent · LangGraph</span>
-        <span className="spacer" />
         <button
           className="icon-btn collapse-btn"
           title="Collapse chat"
           onClick={onCollapse}
         >
-          «
+          »
         </button>
+        <span className="eyebrow">Governed agent · LangGraph</span>
       </div>
       <div className="chat-scroll scroll-fade" ref={scrollRef}>
         {messages.length === 0 ? (

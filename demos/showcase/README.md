@@ -4,11 +4,11 @@ An interactive, developer-facing demo of the **Donkey Development Kit** — the 
 that makes MuleSoft Agent Fabric / Omni Gateway governance **legible and
 actionable inside agent code**.
 
-- **Left pane** — a live chat backed by a real **LangGraph** agent.
-- **Right pane** — a clickable catalog of DDK's milestone-11 features. Each card
+- **Left pane** — a clickable catalog of DDK's milestone-11 features. Each card
   carries a prepared prompt and a side-by-side **Without DDK vs With DDK** code
   comparison. Click one, run it, and watch the typed refusal, budget, and OTel
   span appear in the chat.
+- **Right pane** — a live chat backed by a real **LangGraph** agent.
 
 Everything runs against **`donkey mock`**, DDK's local gateway simulator, which
 replays the *same captured gateway fixtures* DDK's error classifier is tested
@@ -16,17 +16,17 @@ against. So the refusals, budget windows, and spans are **real** — with **no
 Anypoint account, no credentials, and no OpenAI key**.
 
 ```
-┌───────────────────────────┬────────────────────────────┐
-│  Governed agent (chat)     │  Features · milestone 11    │
-│                            │  ▸ Governed LLM client       │
-│  You: …                    │  ▸ Typed refusals (PII, …)   │
-│  Agent: …                  │  ▸ Budget & pacing           │
-│   └ budget bar             │  ▸ OTel spans + cost tags    │
-│   └ last_call identity     │  ▸ Local simulator           │
-│   └ donkey.llm.chat span   │  ▸ Testing & conformance     │
-│                            │  ▸ CLI & decorators          │
-│  [ Send ]                  │  Roadmap (documented)…       │
-└───────────────────────────┴────────────────────────────┘
+┌────────────────────────────┬───────────────────────────┐
+│  Features · milestone 11    │  Governed agent (chat)     │
+│  ▸ Governed LLM client       │                            │
+│  ▸ Typed refusals (PII, …)   │  You: …                    │
+│  ▸ Budget & pacing           │  Agent: …                  │
+│  ▸ OTel spans + cost tags    │   └ budget bar             │
+│  ▸ Local simulator           │   └ last_call identity     │
+│  ▸ Testing & conformance     │   └ donkey.llm.chat span   │
+│  ▸ CLI & decorators          │                            │
+│  Roadmap (documented)…       │  [ Send ]                  │
+└────────────────────────────┴───────────────────────────┘
 ```
 
 ## Try it on GitHub Pages
