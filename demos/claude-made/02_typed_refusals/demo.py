@@ -18,19 +18,30 @@ together.
 
 from __future__ import annotations
 
+import inspect
+from typing import Any
+
 import httpx
+import openai
 from donkey_kit import (
     AuthError,
     ContentSafetyBlocked,
     Donkey,
     DonkeyConfig,
+    DonkeyError,
     GatewayUnavailable,
+    ModelSubstituted,
     PIIDetected,
     PolicyViolation,
     PromptInjectionBlocked,
     TokenBudgetExceeded,
 )
-from donkey_kit.core.errors import UpstreamRequestError, classify, gateway_unavailable
+from donkey_kit.core.errors import (
+    UpstreamModelError,
+    UpstreamRequestError,
+    classify,
+    gateway_unavailable,
+)
 from donkey_kit.simulator.fixtures import load
 
 from _harness import narrate as say
@@ -176,33 +187,108 @@ def act_2_what_the_hierarchy_buys() -> None:
         (say.ok if passed else say.fail)(description)
 
 
+def ask(client: Any, prompt: str) -> str:
+    try:
+        try:
+            response = client.responses.create(model="gpt-4o", input=prompt)
+        except openai.APIStatusError as exc:      # the gateway answered: type it
+            raise classify(exc.response) from exc
+        except openai.APIConnectionError as exc:  # raised on the transport, wrapped
+            cause = exc.__cause__                 # GatewayUnavailable, ModelSubstituted
+            if isinstance(cause, DonkeyError):
+                raise cause from cause.__cause__  # keep its own cause chain
+            raise
+        return response.output_text
+    except PIIDetected as e:           # 403, and e.entities says what tripped
+        return f"redact {e.entities} and retry"
+    except ContentSafetyBlocked as e:  # 403, e.categories is the moderation analog
+        return f"revise for {e.categories}"
+    except TokenBudgetExceeded as e:   # 429, terminal — never retry it
+        return f"wait {e.retry_after}s for the budget to reset"
+    except PolicyViolation as e:       # any other gateway refusal
+        return f"escalate the {e.policy} refusal"
+    except GatewayUnavailable as e:    # NO response — not a refusal
+        return f"checkpoint and shed: {e.base_url} is unreachable"
+    except ModelSubstituted as e:      # NOT classify() — you opted in (demo 10)
+        return f"pin or accept {e.served_model}"
+    except UpstreamRequestError as e:  # your request was wrong (e.code)
+        return f"fix the request: {e.code}"
+    except UpstreamModelError:         # provider 5xx — this one IS retryable
+        return "retry with backoff"
+
+
+def _flat_ask(client: Any, prompt: str) -> str:
+    """The shape act 3 must NOT teach: the typed handlers are siblings of the
+    clause that raises the typed error, so Python never runs them."""
+    try:
+        return client.responses.create(model="gpt-4o", input=prompt).output_text
+    except openai.APIStatusError as exc:
+        raise classify(exc.response) from exc
+    except PIIDetected as e:
+        return f"redact {e.entities} and retry"
+
+
+# Simulated refusal -> the handler in ask() that must run for it. Each is the
+# captured fixture served in-process by donkey.simulate(); no gateway involved.
+HANDLED: tuple[tuple[type[DonkeyError], str], ...] = (
+    (PIIDetected, "redact"),
+    (ContentSafetyBlocked, "revise"),
+    (TokenBudgetExceeded, "wait"),
+    (PromptInjectionBlocked, "escalate"),
+    (UpstreamRequestError, "fix"),
+    (UpstreamModelError, "retry"),
+)
+
+
+def _dead_origin() -> DonkeyConfig:
+    """A governed client pointed at a closed local port. Anything simulate()
+    does not intercept surfaces as GatewayUnavailable — nothing is listening."""
+    return DonkeyConfig(
+        llm_proxy_url="http://127.0.0.1:9/",
+        llm_proxy_client_id="demo-client-id-not-a-real-credential",
+        llm_proxy_client_secret="demo-client-secret-not-a-real-credential",
+        timeout_s=2.0,
+        max_retries=0,
+    )
+
+
 def act_3_how_you_write_it() -> None:
     say.section("What that looks like in your agent")
-    say.code(
-        """
-        try:
-            response = await client.responses.create(model=..., input=...)
-        except openai.APIStatusError as exc:
-            raise classify(exc.response) from exc
-
-        except PIIDetected as e:          # 403, and e.entities says what tripped
-            redact_and_retry(e.entities)
-        except ContentSafetyBlocked as e: # 403, e.categories is the moderation analog
-            revise(e.categories)
-        except TokenBudgetExceeded as e:  # 429, terminal — never retry it
-            await donkey.budget.wait_for_reset()
-        except PolicyViolation as e:      # any other gateway refusal
-            escalate(e.remediation)
-        except GatewayUnavailable as e:   # NO response — not a refusal
-            diagnose(e.base_url, e.cause) # checkpoint / shed / donkey doctor
-        except ModelSubstituted as e:     # NOT classify() — you opted in (demo 10)
-            pin_or_accept(e.served_model)
-        except UpstreamRequestError as e: # your request was wrong (e.code)
-            fix(e.code)
-        except UpstreamModelError:        # provider 5xx — this one IS retryable
-            retry_with_backoff()
-        """
+    say.code(inspect.getsource(ask))
+    say.note(
+        "The bridge is an INNER try. An exception raised inside one except clause "
+        "is never handed to a sibling clause of the same try, so the typed handlers "
+        "have to sit one level out. The bridge has two arms because the OpenAI "
+        "client reports two ways: a refusal is an APIStatusError carrying the "
+        "gateway's response, and an error the transport raises itself is an "
+        "APIConnectionError with the typed DonkeyError on __cause__."
     )
+    print()
+
+    with Donkey(_dead_origin()) as donkey:
+        client = donkey.openai(sync=True)
+        for refusal, action in HANDLED:
+            with donkey.simulate(refusal):
+                outcome = ask(client, "hello")
+            say.field(refusal.__name__, outcome)
+            if not outcome.startswith(action):
+                say.fail(f"expected the {action!r} handler to run")
+        outcome = ask(client, "hello")  # nothing simulated: the dead port answers
+        say.field("GatewayUnavailable", outcome)
+        if not outcome.startswith("checkpoint"):
+            say.fail("expected the GatewayUnavailable handler to run")
+
+        print()
+        with donkey.simulate(PIIDetected):
+            try:
+                _flat_ask(client, "hello")
+                escaped = False
+            except PIIDetected:
+                escaped = True
+        (say.ok if escaped else say.fail)(
+            "the flat version — typed handlers as siblings of the classify() clause "
+            "— lets PIIDetected escape: its handler never runs"
+        )
 
 
 def act_4_honesty() -> None:
@@ -280,13 +366,7 @@ def act_5_when_the_gateway_is_gone() -> None:
         # -> GatewayUnavailable, not ConnectError
         """
     )
-    cfg = DonkeyConfig(
-        llm_proxy_url="http://127.0.0.1:9/",
-        llm_proxy_client_id="demo-client-id-not-a-real-credential",
-        llm_proxy_client_secret="demo-client-secret-not-a-real-credential",
-        timeout_s=2.0,
-        max_retries=0,
-    )
+    cfg = _dead_origin()
     raised: BaseException | None = None
     error: GatewayUnavailable | None = None
     with Donkey(cfg) as donkey:

@@ -60,7 +60,7 @@ python run.py 02                           # same thing without make
 **3. What you should see:**
 
 1. `Nine captured responses through classify()` — one row per fixture: status, discriminator, exception type, key fields.
-2. `Why the hierarchy is shaped this way` and `What that looks like in your agent` — the `except` ladder.
+2. `Why the hierarchy is shaped this way` and `What that looks like in your agent` — the `except` ladder, run for real: an inner `try` bridges `openai.*` errors to typed ones, each simulated refusal lands in its own handler, and a final `PASS` shows the flat sibling-`except` version lets `PIIDetected` escape.
 3. `What is typed from docs, and what is still unnamed` — header injection-protection and the unnamed `content-moderation` 4xx.
 4. `AuthError names two credential planes` — data-plane vs control-plane remediation.
 5. A governed client aimed at a closed port raising `GatewayUnavailable`, not `httpx.ConnectError`.
