@@ -1,10 +1,9 @@
 # Human-made — `crewai/`
 
 CrewAI 1.x with `donkey.crewai.llm("…")`. `openai/` models
-go through CrewAI's native OpenAI provider to **`/chat/completions`, which is
-not live-verified on the DDK proxies** (`/responses` is). CrewAI owns the
-transport: the credentials go on the wire, but **no run id and no
-`last_call`**.
+go through CrewAI's native OpenAI provider to the proxy's
+**`/chat/completions`** route. CrewAI owns the transport: the credentials go
+on the wire, but **no run id and no `last_call`**.
 
 ## Install
 
