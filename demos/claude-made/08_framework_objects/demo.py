@@ -249,8 +249,8 @@ def act_5_honesty() -> None:
     say.bullet(
         "Signature-confirmed offline: every other adapter, ADK's model() included. "
         "The SDK's scripts/verify_frameworks.py builds each native object against "
-        "the installed framework; Agent Framework's model= kwarg (not model_id) and "
-        "its chat middleware are confirmed that way against 1.19.0."
+        "the installed framework; Agent Framework's model= kwarg (not model_id) is "
+        "confirmed that way against 1.19.0."
     )
     say.bullet("Live-verified: ADK's gemini(), through a Format=Gemini proxy.")
     print()

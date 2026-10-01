@@ -21,21 +21,23 @@ as a decision than to explain as a gap.
 **Point at:** `connection_kwargs()` is the *entire supported surface* for seven
 of the eight, which makes it the most load-bearing method here, not the least.
 LangGraph is the only adapter held to the conformance bar, and it sets
-`use_responses_api=True` so `ChatOpenAI` hits the live-verified `/responses`
-route. The Agents SDK is the exception that proves the rule: it takes a
+`use_responses_api=True` so `ChatOpenAI` calls `/responses`, the raw client's
+route and the only one the local simulator serves. The Agents SDK is the exception that proves the rule: it takes a
 pre-built `AsyncOpenAI`, so `donkey.openai_agents.connection_kwargs()` is one
 key — `openai_client` — not "no connection_kwargs()". Agent Framework's
-`OpenAIChatClient` takes `model=` (verified against 1.19.0) and adds
+`OpenAIChatClient` takes `model=` (confirmed offline against 1.19.0) and adds
 `policy_middleware()`: a `PolicyViolation` is re-raised, not retried. And
 `donkey.openai()` is still the raw client factory; `donkey.openai_agents` is
 this adapter.
 
-**Verified for Agent Framework:** `OpenAIChatClient(model=…, base_url, api_key,
-default_headers)` against 1.19.0 — the kwarg is `model=`, not `model_id`.
-**Not verified:** the other framework class names and constructor kwargs, and
-the middleware *protocol* `policy_middleware()` wraps. The proxy contract is
-confirmed; remaining signatures are checked by a nightly matrix, and an adapter
-that cannot confirm one raises "blocked on verification".
+**What is verified, and how** (the SDK's `docs/verified-apis.md` §8): the raw
+client and LangGraph are conformance-tested against the simulator. Every other
+adapter, ADK's `model()` included, is signature-confirmed offline by the SDK's
+`python scripts/verify_frameworks.py`, which is how Agent Framework's `model=`
+kwarg is confirmed against 1.19.0. ADK's `gemini()` is live-verified through a
+`Format=Gemini` proxy. The proxy contract itself is live-verified. An adapter
+raises "blocked on verification" only when the installed framework version
+lacks the class or field it depends on.
 
 ## How to run
 
@@ -62,7 +64,7 @@ python run.py 08                           # same thing without make
 **3. What you should see:**
 
 1. One row per framework: the native object the adapter builds and the governed kwargs it received.
-2. `What is and is not verified here` — Agent Framework `model=` verified against 1.19.0, the rest matrix-checked.
+2. `What is and is not verified here` — conformance-tested (raw client, LangGraph), signature-confirmed offline (the rest, ADK `model()` included), live-verified (ADK `gemini()`).
 
 **4. If something goes wrong:**
 
