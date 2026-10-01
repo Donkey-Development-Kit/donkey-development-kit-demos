@@ -259,8 +259,8 @@ not the least. LangGraph is the only adapter held to the conformance bar, and
 it targets `/responses`. And at `donkey.openai_agents`, which is the Agents SDK
 adapter; `donkey.openai()` is the raw client and got the good name. Then point
 at `connection_kwargs()` for the Agents SDK: one key, `openai_client`, a real
-`AsyncOpenAI`. Agent Framework's `OpenAIChatClient(model=…)` is verified
-against 1.19.0 — the kwarg is `model=`, not `model_id`. Then
+`AsyncOpenAI`. Agent Framework's `OpenAIChatClient(model=…)` is confirmed
+offline against 1.19.0 — the kwarg is `model=`, not `model_id`. Then
 `policy_middleware()`: a `PIIDetected` is re-raised, not
 swallowed, not retried. The middleware *protocol* is still unverified; the
 behaviour that is shipped is "a policy refusal is not a retryable error".
@@ -414,9 +414,11 @@ tests read the same files, so a drifted capture breaks both at once. What is not
 verified is stated in the demos as they run: the simulator's illustrative
 happy-path budget numbers, header-based injection-protection (typed from
 docs), the unnamed leftover content-moderation 4xx,
-gateway cost-tag ingestion (verified-negative — tags live on spans), and
-framework constructor signatures other than Agent Framework's
-`OpenAIChatClient(model=…)`.
+gateway cost-tag ingestion (verified-negative — tags live on spans), and the
+framework adapters themselves: the raw client and LangGraph are
+conformance-tested against the simulator, the other constructors are
+signature-confirmed offline, and only ADK's `gemini()` has had a live
+round-trip.
 
 **"What about tool discovery / provisioning?"**
 Not built, and deliberately not demoed. Those code paths raise

@@ -1,9 +1,9 @@
 # Human-made — `adk/`
 
 Google ADK with `donkey.adk.model("…")`, a `LiteLlm` model. LiteLLM calls
-**`/chat/completions`, which is not live-verified on the DDK proxies**, and
-owns the transport: the credentials go on the wire, but **no run id, no
-`last_call`, and no typed refusals**.
+the proxy's **`/chat/completions`** route and owns the transport: the
+credentials go on the wire, but **no run id, no `last_call`, and no typed
+refusals**.
 
 ## Install
 
