@@ -112,9 +112,9 @@ rather than hide it:
 | `anthropic` | `/v1/messages` (`Format=Anthropic`) | yes | observed | `classify(err.response)` |
 | `gemini` | `:generateContent` (`Format=Gemini`, plain `httpx`) | — | — | `classify(response)` |
 
-Only `/responses` is live-verified on the DDK proxies; the `/chat/completions`
-folders were checked against the installed framework versions and a local
-chat-completions stub, not a real gateway.
+The local simulator serves only `/responses`, so the `/chat/completions`
+folders have no simulator script; `strands/03` uses in-process `simulate()`
+instead.
 
 ### `openai/`
 

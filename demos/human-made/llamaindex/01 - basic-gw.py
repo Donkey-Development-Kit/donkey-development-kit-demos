@@ -1,8 +1,7 @@
 from donkey_kit import Donkey
 from llama_index.core.llms import ChatMessage
 
-# Needs donkey-kit[llamaindex] and DONKEY_LLM_PROXY_*. Calls /chat/completions,
-# which is not live-verified on DDK proxies (/responses is).
+# Needs donkey-kit[llamaindex] and DONKEY_LLM_PROXY_*. Calls the proxy's /chat/completions route.
 # The adapter sets is_chat_model=True; OpenAILike's default False hits /completions.
 # Only default_headers are handed over: no run id and no last_call.
 #

@@ -4,8 +4,7 @@ from donkey_kit import Donkey
 from strands import Agent
 from strands.models.openai import OpenAIModel
 
-# Needs strands-agents[openai] and DONKEY_LLM_PROXY_*. Calls /chat/completions,
-# which is not live-verified on DDK proxies (/responses is).
+# Needs strands-agents[openai] and DONKEY_LLM_PROXY_*. Calls the proxy's /chat/completions route.
 # Not donkey.strands.model(): Strands opens and closes an OpenAI client per request
 # from client_args, which closes the shared transport after the first call.
 # A pre-built client= is reused and left open.
