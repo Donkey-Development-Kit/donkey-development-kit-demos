@@ -5,8 +5,7 @@ os.environ.setdefault("CREWAI_TRACING_ENABLED", "false")   # otherwise CrewAI pr
 from crewai import Agent  # noqa: E402
 from donkey_kit import Donkey  # noqa: E402
 
-# Needs donkey-kit[crewai] and DONKEY_LLM_PROXY_*. Calls /chat/completions,
-# which is not live-verified on DDK proxies (/responses is).
+# Needs donkey-kit[crewai] and DONKEY_LLM_PROXY_*. Calls the proxy's /chat/completions route.
 # CrewAI owns the transport: headers go on the wire, but no run id and no last_call.
 #
 # python "demos/human-made/crewai/01 - basic-gw.py"

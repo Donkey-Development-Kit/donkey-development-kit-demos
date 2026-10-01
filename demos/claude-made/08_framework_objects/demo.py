@@ -142,9 +142,10 @@ def act_2_connection_kwargs(donkey: Donkey) -> None:
         "the supported surface."
     )
     say.note(
-        "LangGraph is the only adapter held to the conformance bar, and it sets "
-        "use_responses_api=True so ChatOpenAI calls the live-verified /responses "
-        "route rather than the unverified /chat/completions default."
+        "LangGraph is the only adapter held to the conformance bar. It sets "
+        "use_responses_api=True so ChatOpenAI calls /responses rather than its "
+        "/chat/completions default: /responses is the raw client's route and the "
+        "only one the local simulator serves."
     )
 
 
@@ -241,17 +242,23 @@ def act_5_honesty() -> None:
     say.section("What is and is not verified here")
     say.note(
         "The proxy contract these objects are configured against is live-verified: "
-        "the base URL shape, the credential header pair, the rejection shapes. "
-        "Agent Framework's OpenAIChatClient(model=…, base_url, api_key, "
-        "default_headers) is verified against 1.19.0 — the kwarg is model=, not "
-        "model_id. The other framework class names and constructor kwargs are "
-        "checked against installed packages by a nightly matrix rather than "
-        "asserted from documentation."
+        "the base URL shape, the credential header pair, the rejection shapes. The "
+        "adapters themselves are held to three bars (docs/verified-apis.md §8):"
     )
+    say.bullet("Conformance-tested against the simulator: the raw client and LangGraph.")
+    say.bullet(
+        "Signature-confirmed offline: every other adapter, ADK's model() included. "
+        "The SDK's scripts/verify_frameworks.py builds each native object against "
+        "the installed framework; Agent Framework's model= kwarg (not model_id) is "
+        "confirmed that way against 1.19.0."
+    )
+    say.bullet("Live-verified: ADK's gemini(), through a Format=Gemini proxy.")
+    print()
     say.note(
-        "Where a class name cannot be confirmed, the adapter raises 'blocked on "
-        "verification' rather than guessing. A guessed class name that fails on a "
-        "developer's first import costs more than the missing adapter."
+        "The adapters build the framework's native object directly. They refuse "
+        "with 'blocked on verification' only when the installed framework version "
+        "lacks the class or field the adapter depends on: an Agent Framework class "
+        "rename, or ADK's gemini() before google-adk 2.4."
     )
 
 

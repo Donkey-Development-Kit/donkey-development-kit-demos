@@ -112,9 +112,9 @@ rather than hide it:
 | `anthropic` | `/v1/messages` (`Format=Anthropic`) | yes | observed | `classify(err.response)` |
 | `gemini` | `:generateContent` (`Format=Gemini`, plain `httpx`) | — | — | `classify(response)` |
 
-Only `/responses` is live-verified on the DDK proxies; the `/chat/completions`
-folders were checked against the installed framework versions and a local
-chat-completions stub, not a real gateway.
+The local simulator serves only `/responses`, so the `/chat/completions`
+folders have no simulator script; `strands/03` uses in-process `simulate()`
+instead.
 
 ### `openai/`
 
@@ -347,11 +347,13 @@ Three things the demos say out loud rather than gloss over:
   to a generic `PolicyViolation`. `simulate(PromptInjectionBlocked)` injects
   the documented injection-protection representative, not the live regex
   capture — one fixture per exception type.
-- **Most framework class names are unverified.** Agent Framework's
-  `OpenAIChatClient(model=…, base_url, api_key, default_headers)` is verified
-  against 1.19.0. The rest are checked by a nightly matrix, and an adapter
-  that cannot confirm a signature raises "blocked on verification" rather than
-  guessing. Cost tags live on `donkey.cost.*` spans; the gateway has no inbound
+- **Only one framework adapter has reached live-verified status; the rest have not.** The
+  raw client and LangGraph are conformance-tested against the simulator; every
+  other adapter constructor, ADK's `model()` included, is signature-confirmed
+  offline by the SDK's `scripts/verify_frameworks.py`; ADK's `gemini()` is
+  live-verified through a `Format=Gemini` proxy. An adapter raises "blocked on
+  verification" only when the installed framework version lacks the class or
+  field it depends on. Cost tags live on `donkey.cost.*` spans; the gateway has no inbound
   cost-tag ingestion (verified-negative).
 
 Not demoed at all, because the SDK raises `NotImplementedError("blocked on

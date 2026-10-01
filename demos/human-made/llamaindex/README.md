@@ -2,9 +2,8 @@
 
 LlamaIndex `donkey.llamaindex.llm("…")` (an `OpenAILike`). The
 adapter sets `is_chat_model=True` (the default `False` hits `/completions`), so
-calls go to **`/chat/completions`, which is not live-verified on the DDK
-proxies**. Only `default_headers` are handed over: **no run id and no
-`last_call`**.
+calls go to the proxy's **`/chat/completions`** route. Only
+`default_headers` are handed over: **no run id and no `last_call`**.
 
 ## Install
 
