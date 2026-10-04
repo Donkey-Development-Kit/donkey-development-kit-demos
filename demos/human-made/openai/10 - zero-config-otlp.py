@@ -5,6 +5,10 @@ from donkey_kit import Donkey
 # Needs DONKEY_LLM_PROXY_URL, DONKEY_LLM_PROXY_CLIENT_ID, DONKEY_LLM_PROXY_CLIENT_SECRET
 # Set OTEL_EXPORTER_OTLP_ENDPOINT to export; with no endpoint this is inert and silent.
 # DONKEY_TELEMETRY=false opts out even if an endpoint is set.
+# Donkey exports its own spans through a provider of its own and leaves the
+# process-global TracerProvider alone; set DONKEY_TELEMETRY_INSTALL_GLOBAL=true
+# to make it the global one (older SDKs ignore the variable). Its pending spans
+# are flushed when the interpreter exits.
 #
 # python "demos/human-made/openai/10 - zero-config-otlp.py"
 
@@ -12,7 +16,7 @@ print(
     "OTEL_EXPORTER_OTLP_ENDPOINT",
     os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")
     or os.environ.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
-    or "(unset — Donkey.from_env() will not install an exporter)",
+    or "(unset — Donkey.from_env() will not build an exporter)",
 )
 
 donkey = Donkey.from_env()

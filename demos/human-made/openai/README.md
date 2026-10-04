@@ -173,8 +173,9 @@ with the cost tags, `run id after None`, the `lookup_sku('AF-1001')` result,
 
 ### 10 — zero-config-otlp
 
-`Donkey.from_env()` installs an OTLP exporter itself when
-`OTEL_EXPORTER_OTLP_ENDPOINT` is set and no provider exists.
+`Donkey.from_env()` builds an OTLP exporter for its own spans when
+`OTEL_EXPORTER_OTLP_ENDPOINT` is set. It leaves the global `TracerProvider` alone
+unless `DONKEY_TELEMETRY_INSTALL_GLOBAL=true`; spans flush at interpreter exit.
 
 ```bash
 python "demos/human-made/openai/10 - zero-config-otlp.py"                       # inert

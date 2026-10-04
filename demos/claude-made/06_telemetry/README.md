@@ -45,12 +45,15 @@ just masked. And act 3: a span that ends OK on a refused request makes a
 dashboard say everything is fine, so refusals set `ERROR` and record
 `donkey.policy.decision=refuse` with the specific `donkey.policy.type`.
 
-Zero-config OTLP **is** shipped: `Donkey.from_env()` installs an OTLP
-`BatchSpanProcessor` when `OTEL_EXPORTER_OTLP_ENDPOINT` (or
-`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) is set. No endpoint → inert and silent.
-`DONKEY_TELEMETRY=false` opts out. A host `TracerProvider` is never clobbered
-— this demo installs an in-memory one first so the spans can be a table, and
-Donkey rides it. Cost tags, routing (`donkey.routing.*`) and cached/reasoning
+Zero-config OTLP **is** shipped: `Donkey.from_env()` builds an OTLP
+`BatchSpanProcessor` for Donkey's own spans when `OTEL_EXPORTER_OTLP_ENDPOINT`
+(or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) is set. No endpoint → inert and silent.
+`DONKEY_TELEMETRY=false` opts out. The process-global `TracerProvider` is left
+alone unless you opt in with `DONKEY_TELEMETRY_INSTALL_GLOBAL=true`, and a host
+provider always wins, even one set after `Donkey()`. This demo is the host: it
+sets an in-memory provider so the spans can be a table, and Donkey rides it.
+(SDKs before the opt-in change installed the global provider themselves when none
+existed; they also defer to a host provider, so this demo behaves the same on both.) Cost tags, routing (`donkey.routing.*`) and cached/reasoning
 usage (`donkey.usage.*`) land on the same span. The same routing/usage facts
 live on `donkey.last_call` without a span backend (demo 10).
 

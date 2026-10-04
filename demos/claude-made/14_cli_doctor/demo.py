@@ -46,7 +46,10 @@ def _base_env() -> dict[str, str | None]:
 
 
 def _invoke_doctor(env: dict[str, str | None], *args: str) -> tuple[int, str]:
-    from donkey_kit.provisioning.cli import app
+    try:  # the CLI moved to donkey_kit.cli in #730; older SDKs keep it under provisioning
+        from donkey_kit.cli import app
+    except ImportError:
+        from donkey_kit.provisioning.cli import app
     from typer.testing import CliRunner
 
     tmp = Path(tempfile.mkdtemp(prefix="donkey-doctor-"))
