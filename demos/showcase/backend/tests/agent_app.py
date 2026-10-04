@@ -2,7 +2,7 @@
 
 This is the contract from DDK's testing docs::
 
-    pytest --donkey-conformance --agent=tests.agent_app:build
+    pytest --donkey-conformance --donkey-agent=tests.agent_app:build
 
 ``build(donkey)`` receives a fresh Donkey per scenario (its transport swapped to
 replay one captured refusal) and returns an object with a callable ``run(input)``

@@ -28,7 +28,7 @@ from donkey_kit.simulator.fixtures import load
 from _harness import narrate as say
 from _harness import preflight, redact
 
-# Shapes from the live captures (SDK tests/fixtures), reduced to the headers
+# Shapes from the live captures (SDK donkey_kit/simulator/_fixtures, tests/fixtures), reduced to the headers
 # classify() and LastCall actually read. Ids are demo placeholders.
 BEDROCK_REJECT = httpx.Response(
     403,
