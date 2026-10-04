@@ -38,6 +38,11 @@ REPO = next(p for p in HERE.parents if (p / "_harness").is_dir())
 
 PLUGIN = "donkey_kit.conformance.plugin"
 
+# Runs whose outcome did not match what the narration says. A run that crashes
+# (a plugin that fails to load, a flag this SDK does not know) still prints, so
+# without this the demo would read as a success against an SDK it cannot drive.
+_UNEXPECTED: list[str] = []
+
 
 def _pytest(args: list[str], *, load_plugin: bool) -> subprocess.CompletedProcess[str]:
     command = [
@@ -80,6 +85,11 @@ def _run_suite(factory: str, *, known: str | None = None) -> tuple[int, str]:
         # registered, so load it by module instead — same plugin, same run.
         result = _pytest(args, load_plugin=True)
     return result.returncode, result.stdout + result.stderr
+
+
+def _expect(run: str, code: int, output: str, *, status: int, shows: str) -> None:
+    if code != status or shows not in output:
+        _UNEXPECTED.append(f"{run}: expected exit {status} and {shows!r}, got exit {code}")
 
 
 def _entry_point_registered() -> bool:
@@ -137,6 +147,7 @@ def act_1_the_naive_agent() -> None:
     _echo(output)
     print()
     say.field("exit status", code, raw=True)
+    _expect("naive agent", code, output, status=1, shows="1 passed, 3 failed")
 
 
 def act_2_the_findings() -> None:
@@ -177,6 +188,7 @@ def act_3_the_governed_agent() -> None:
     _echo(output)
     print()
     say.field("exit status", code, raw=True)
+    _expect("governed agent", code, output, status=0, shows="4 passed, 0 failed")
 
 
 def act_4_exemptions() -> None:
@@ -204,6 +216,7 @@ def act_4_exemptions() -> None:
     _echo(output)
     print()
     say.field("exit status", code, raw=True)
+    _expect("exemption", code, output, status=1, shows="1 passed, 2 failed, 1 exempt")
     say.note(
         "One row moved to EXEMPT with its reason attached. The other two findings "
         "are untouched — an exemption excuses exactly what it names."
@@ -229,6 +242,7 @@ def act_5_bad_exemptions() -> None:
             if "ERROR" in line or "KNOWN_LIMITATIONS" in line:
                 print(f"    {line.strip()}")
         say.field("exit status", code, raw=True)
+        _expect(description, code, output, status=4, shows="KNOWN_LIMITATIONS")
 
 
 def main() -> None:
@@ -246,6 +260,10 @@ def main() -> None:
     say.pause()
     act_4_exemptions()
     act_5_bad_exemptions()
+    if _UNEXPECTED:
+        raise RuntimeError(
+            "the suite did not behave as narrated: " + "; ".join(_UNEXPECTED)
+        )
 
     print()
     say.section("The point")
