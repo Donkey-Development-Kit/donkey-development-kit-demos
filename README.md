@@ -223,6 +223,10 @@ python -m pip install "langchain>=1.0"   # demo 09 only; no donkey-kit extra shi
 (`main`, on PyPI), so there `[sdk]` and `[full]` pin it exactly. `develop` (this
 branch) tracks the SDK's `develop`, so here they pin the git ref `@develop`. Don't
 mix the two: module paths and CLI flags change between releases.
+CI enforces this: the `SDK alignment` workflow checks the pin
+(`make check-sdk`) and runs `make offline` against it on every PR, and nightly
+on both branches, so an SDK release or a breaking SDK `develop` change shows up
+the next morning.
 
 **Why a virtual environment.** Homebrew's `python3` (and most Linux distro
 Pythons) is marked *externally managed* (PEP 668),

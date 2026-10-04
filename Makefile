@@ -2,7 +2,7 @@
 PY ?= python3
 export PYTHONPATH := $(CURDIR)
 
-.PHONY: help list offline demo mock scan hooks doctor lint clean
+.PHONY: help list offline demo mock scan hooks doctor check-sdk lint clean
 
 help: ## Show this help
 	@echo
@@ -43,6 +43,9 @@ hooks: ## Install the secret scan as a pre-commit hook
 
 doctor: ## Report what is installed and what each demo can therefore run
 	@$(PY) scripts/doctor.py
+
+check-sdk: ## Fail if [sdk]/[full] pin the wrong SDK for this branch
+	@$(PY) scripts/check_sdk_alignment.py
 
 lint: ## Ruff, if it is installed
 	@ruff check . || true
