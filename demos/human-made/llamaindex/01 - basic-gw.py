@@ -3,7 +3,7 @@ from llama_index.core.llms import ChatMessage
 
 # Needs donkey-kit[llamaindex] and DONKEY_LLM_PROXY_*. Calls the proxy's /chat/completions route.
 # The adapter sets is_chat_model=True; OpenAILike's default False hits /completions.
-# Only default_headers are handed over: no run id and no last_call.
+# The SDK owns the transport: the run id goes on the wire and last_call is observed.
 #
 # python "demos/human-made/llamaindex/01 - basic-gw.py"
 

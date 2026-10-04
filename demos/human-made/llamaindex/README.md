@@ -2,8 +2,8 @@
 
 LlamaIndex `donkey.llamaindex.llm("…")` (an `OpenAILike`). The
 adapter sets `is_chat_model=True` (the default `False` hits `/completions`), so
-calls go to the proxy's **`/chat/completions`** route. Only
-`default_headers` are handed over: **no run id and no `last_call`**.
+calls go to the proxy's **`/chat/completions`** route through the SDK's own
+transport: **the run id goes on the wire and `last_call` is observed**.
 
 ## Install
 
@@ -34,7 +34,7 @@ python "demos/human-made/llamaindex/01 - basic-gw.py"
 ```
 
 `complete(...)` then `chat(...)`. **You should see:** two greetings, `total
-tokens`, and `last_call unavailable …`.
+tokens`, and `last_call observed …`.
 
 ### 02 — typed-refusals-live
 

@@ -1,9 +1,9 @@
 # Human-made — `adk/`
 
 Google ADK with `donkey.adk.model("…")`, a `LiteLlm` model. LiteLLM calls
-the proxy's **`/chat/completions`** route and owns the transport: the
-credentials go on the wire, but **no run id, no `last_call`, and no typed
-refusals**.
+the proxy's **`/chat/completions`** route through the SDK's shared client, so
+the run id goes on the wire and **`last_call` is observed**. A refusal is typed
+in `on_model_error_callback` (see 02).
 
 ## Install
 
@@ -34,7 +34,7 @@ python "demos/human-made/adk/01 - basic-gw.py"
 ```
 
 One ADK `Agent` run through an `InMemoryRunner`. **You should see:** a
-one-sentence answer, `total tokens`, and `last_call unavailable …`.
+one-sentence answer, `total tokens`, and `last_call observed …`.
 
 ### 02 — refusal-live
 
@@ -42,12 +42,14 @@ one-sentence answer, `total tokens`, and `last_call unavailable …`.
 python "demos/human-made/adk/02 - refusal-live.py"
 ```
 
-A PII prompt. LiteLLM keeps the status and message but drops the response
-headers, so `classify()` has nothing to read. **You should see:** `APIError
-403` and the first line of the proxy's message — **not** `PIIDetected`. That
-gap is the point of the script. Without the policy it prints `NO REFUSAL`.
+A PII prompt. LiteLLM re-raises the 403 as its own `APIError`, with the openai
+error and its full response on the cause chain. ADK's `Runner` drops that chain,
+so an `on_model_error_callback` finds the openai error and raises
+`classify(err.response)` where the model call failed. **You should see:**
+`PIIDetected ['Email']`. Without the policy it prints `NO REFUSAL`.
 
 ## If something goes wrong
 
 - LiteLLM logs a provider-list banner — harmless.
+- ADK logs the refusal's traceback before 02 prints the typed error — harmless.
 - `404` — the proxy's upstream has no `/chat/completions` route.
