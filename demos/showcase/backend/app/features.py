@@ -308,7 +308,7 @@ HTTP/1.1 403 Forbidden      # x-donkey-simulator: true""",
         "action": "conformance",
         "prompt": "",
         "model": "gpt-5.1",
-        "watch": "Runs `pytest --donkey-conformance --agent=...` against this "
+        "watch": "Runs `pytest --donkey-conformance --donkey-agent=...` against this "
         "demo's own agent and streams the scenario → pass / fail / exempt table.",
         "without": """# Without DDK — you cannot answer 'does my agent retry a
 # budget refusal 3 times?' until it happens in production.""",
@@ -318,7 +318,7 @@ with donkey.simulate(PIIDetected):
 assert "****" in result.draft_reply
 
 # grade the whole agent:
-$ pytest --donkey-conformance --agent=my_app.agent:build""",
+$ pytest --donkey-conformance --donkey-agent=my_app.agent:build""",
     },
     {
         "id": "cli-doctor",

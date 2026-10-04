@@ -11,7 +11,7 @@ underneath, calls `agent.run(...)`, and watches the wire and the logs. So it
 grades any agent in any framework, including ones it has never heard of.
 
     pip install "donkey-kit[test]"
-    pytest --donkey-conformance --agent=my_app.agent:build
+    pytest --donkey-conformance --donkey-agent=my_app.agent:build
 
 This demo runs it twice — against an agent written the usual way, then against
 the same agent after the findings.
@@ -69,7 +69,7 @@ def _pytest(args: list[str], *, load_plugin: bool) -> subprocess.CompletedProces
 
 
 def _run_suite(factory: str, *, known: str | None = None) -> tuple[int, str]:
-    args = ["--donkey-conformance", f"--agent=shipping_agent:{factory}"]
+    args = ["--donkey-conformance", f"--donkey-agent=shipping_agent:{factory}"]
     if known:
         args.append(f"--donkey-known-limitations={known}")
 
@@ -130,7 +130,7 @@ def act_1_the_naive_agent() -> None:
         "errors keeps stack traces out of the caller's face, and it logs what it "
         "is doing. Run the suite against it."
     )
-    say.code("pytest --donkey-conformance --agent=…:build_naive")
+    say.code("pytest --donkey-conformance --donkey-agent=…:build_naive")
 
     code, output = _run_suite("build_naive")
     print()
@@ -195,7 +195,7 @@ def act_4_exemptions() -> None:
             "correlation_id_propagated": "This agent's framework owns the HTTP …",
         }
 
-        pytest --donkey-conformance --agent=shipping_agent:build_naive \\
+        pytest --donkey-conformance --donkey-agent=shipping_agent:build_naive \\
                --donkey-known-limitations=exemptions:FRAMEWORK_LIMITS
         """
     )

@@ -135,9 +135,9 @@
   "action": "conformance",
   "prompt": "",
   "model": "gpt-5.1",
-  "watch": "Runs `pytest --donkey-conformance --agent=...` against this demo's own agent and streams the scenario \u2192 pass / fail / exempt table.",
+  "watch": "Runs `pytest --donkey-conformance --donkey-agent=...` against this demo's own agent and streams the scenario \u2192 pass / fail / exempt table.",
   "without": "# Without DDK \u2014 you cannot answer 'does my agent retry a\n# budget refusal 3 times?' until it happens in production.",
-  "with": "# In a unit test \u2014 no server, no network:\nwith donkey.simulate(PIIDetected):\n    result = await agent.ainvoke(ticket_with_card_number)\nassert \"****\" in result.draft_reply\n\n# grade the whole agent:\n$ pytest --donkey-conformance --agent=my_app.agent:build"
+  "with": "# In a unit test \u2014 no server, no network:\nwith donkey.simulate(PIIDetected):\n    result = await agent.ainvoke(ticket_with_card_number)\nassert \"****\" in result.draft_reply\n\n# grade the whole agent:\n$ pytest --donkey-conformance --donkey-agent=my_app.agent:build"
  },
  {
   "id": "cli-doctor",
