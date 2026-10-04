@@ -13,7 +13,8 @@ that proves the rule: it takes a pre-built `AsyncOpenAI`, so
 `connection_kwargs()` is one key — `openai_client` — carrying header *and*
 transport injection as a single object.
 
-No network calls are made — objects are only constructed.
+No network calls are made. Objects are constructed, and act 4 runs one
+Agent Framework turn against a simulated refusal that never leaves the process.
 
     python demos/claude-made/08_framework_objects/demo.py
 """
@@ -199,54 +200,69 @@ def act_3_openai_agents_kwargs(donkey: Donkey) -> None:
     )
 
 
-async def act_4_policy_middleware() -> None:
-    say.step(4, "Agent Framework: policy_middleware() does not retry a refusal")
+async def act_4_policy_middleware(donkey: Donkey) -> None:
+    say.step(4, "Agent Framework: policy_middleware() ends the run on a refusal")
     say.code(
         """
-        mw = donkey.agent_framework.policy_middleware()
-        # a PolicyViolation from next_ is re-raised — the loop does not retry
+        agent = Agent(
+            client=donkey.agent_framework.chat_client("gpt-4o"),
+            middleware=[donkey.agent_framework.policy_middleware()],
+        )
+        with donkey.simulate(PIIDetected):
+            await agent.run("my email is jane@example.com")   # → PIIDetected
         """
     )
     from donkey_kit import PIIDetected
-    from donkey_kit.core.transport import build_http_client
-    from donkey_kit.integrations.agent_framework import AgentFrameworkAdapter
 
-    # Constructed directly so the adapter itself needs no [agent-framework]
-    # extra. policy_middleware() does need it: it wraps the function in
-    # agent_framework's chat_middleware decorator, and without the package it
-    # raises NotImplementedError naming the missing import.
-    http = build_http_client(DEMO_CONFIG, None)
-    adapter = AgentFrameworkAdapter(DEMO_CONFIG, http)
+    # policy_middleware() wraps the function in agent_framework's
+    # chat_middleware decorator, so without the package it raises
+    # NotImplementedError naming the missing import.
     try:
-        middleware = adapter.policy_middleware()
+        from agent_framework import Agent
+
+        middleware = donkey.agent_framework.policy_middleware()
     except (ImportError, NotImplementedError):
-        await http.aclose()
         say.note(
             'agent-framework is not installed — pip install "donkey-kit[agent_framework]"'
         )
         say.note(
-            "The behaviour is still the point: a PolicyViolation from next_ is "
-            "re-raised, so the agent loop does not retry a refusal."
+            "The behaviour is still the point: with the middleware, a policy "
+            "refusal ends agent.run() as the typed PIIDetected, not as the "
+            "framework's generic client error, and the loop does not retry it."
         )
         return
 
-    async def boom(_context: object) -> None:
-        raise PIIDetected("blocked")
-
+    agent = Agent(
+        client=donkey.agent_framework.chat_client(MODEL), middleware=[middleware]
+    )
+    # simulate() injects the proxy's PII refusal at the transport, so the agent
+    # loop runs for real and no request leaves the process.
+    error: BaseException | None = None
     try:
-        await middleware(None, boom)
-        say.fail("expected PIIDetected to be re-raised")
-    except PIIDetected:
-        say.ok("PIIDetected re-raised — terminal, not swallowed, not retried")
-    finally:
-        await http.aclose()
+        with donkey.run(id="demo-08-run"), donkey.simulate(PIIDetected):
+            await agent.run("my email is jane@example.com")
+    except Exception as exc:  # noqa: BLE001 — the exception is what is shown
+        error = exc
+
+    if not isinstance(error, PIIDetected):
+        got = type(error).__name__ if error else "no error"
+        say.fail(f"expected PIIDetected, got {got}")
+        # The other acts report what is installed; this one asserts SDK
+        # behaviour, so a regression must fail the run rather than read as a pass.
+        raise RuntimeError(f"demo 08 act 4: expected PIIDetected, got {got}")
+    say.ok("agent.run() raised PIIDetected — terminal, typed, not retried")
+    say.field("correlation_id", error.correlation_id, raw=True)
+    say.field("entities", getattr(error, "entities", None), raw=True)
+    framework_error = getattr(error, "framework_error", None)
+    if framework_error is not None:
+        say.field("framework_error", type(framework_error).__name__, raw=True)
     print()
     say.note(
-        "The middleware signature Agent Framework actually expects is still "
-        "unverified — this is a plain async wrapper that re-raises. Once the "
-        "protocol is confirmed, the same function will set the framework's "
-        "explicit terminate-run signal instead of raising. The behaviour that "
-        "is shipped: a policy refusal is not a retryable error."
+        "The middleware protocol is confirmed offline against agent-framework "
+        "1.19.0: policy_middleware() is a chat_middleware, streaming included. "
+        "Agent Framework wraps every openai error in its own ChatClientException; "
+        "the middleware raises the typed DDK refusal instead, with the run's "
+        "correlation id, and keeps the framework's exception on .framework_error."
     )
 
 
@@ -282,7 +298,7 @@ def main() -> None:
     say.pause()
     act_3_openai_agents_kwargs(donkey)
     say.pause()
-    asyncio.run(act_4_policy_middleware())
+    asyncio.run(act_4_policy_middleware(donkey))
     act_5_honesty()
     donkey.close()
 
