@@ -211,12 +211,24 @@ async def act_4_policy_middleware() -> None:
     from donkey_kit.core.transport import build_http_client
     from donkey_kit.integrations.agent_framework import AgentFrameworkAdapter
 
-    # Constructed directly so this act runs without the [agent-framework] extra.
-    # donkey.agent_framework would ImportError until that extra is installed;
-    # policy_middleware() itself imports no framework classes.
+    # Constructed directly so the adapter itself needs no [agent-framework]
+    # extra. policy_middleware() does need it: it wraps the function in
+    # agent_framework's chat_middleware decorator, and without the package it
+    # raises NotImplementedError naming the missing import.
     http = build_http_client(DEMO_CONFIG, None)
     adapter = AgentFrameworkAdapter(DEMO_CONFIG, http)
-    middleware = adapter.policy_middleware()
+    try:
+        middleware = adapter.policy_middleware()
+    except (ImportError, NotImplementedError):
+        await http.aclose()
+        say.note(
+            'agent-framework is not installed — pip install "donkey-kit[agent_framework]"'
+        )
+        say.note(
+            "The behaviour is still the point: a PolicyViolation from next_ is "
+            "re-raised, so the agent loop does not retry a refusal."
+        )
+        return
 
     async def boom(_context: object) -> None:
         raise PIIDetected("blocked")

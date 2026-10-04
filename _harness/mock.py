@@ -73,11 +73,15 @@ def is_up(url: str | None = None, *, timeout: float = 0.75) -> bool:
     return SIMULATOR_HEADER in {k.lower() for k in response.headers}
 
 
-def _wait_until_up(url: str, *, deadline_s: float = 15.0) -> bool:
+def _wait_until_up(
+    url: str, *, deadline_s: float = 15.0, proc: subprocess.Popen[bytes] | None = None
+) -> bool:
     end = time.monotonic() + deadline_s
     while time.monotonic() < end:
         if is_up(url, timeout=0.5):
             return True
+        if proc is not None and proc.poll() is not None:
+            return False
         time.sleep(0.25)
     return False
 
@@ -102,10 +106,11 @@ def running(*, url: str | None = None, autostart: bool = True) -> Iterator[str]:
             f"    donkey mock --port {urlparse(target).port or 8080}"
         )
 
+    install_hint = 'pip install "donkey-kit[llm,local,cli]"'
     if shutil.which("donkey") is None:
         raise RuntimeError(
             "The `donkey` CLI is not on PATH. Install the SDK with the "
-            'local extra:\n    pip install "donkey-kit[llm,local]"'
+            f"local and cli extras:\n    {install_hint}"
         )
 
     parsed = urlparse(target)
@@ -122,8 +127,18 @@ def running(*, url: str | None = None, autostart: bool = True) -> Iterator[str]:
         stderr=subprocess.STDOUT,
     )
     try:
-        if not _wait_until_up(target):
+        if not _wait_until_up(target, proc=proc):
+            exit_code = proc.poll()
             proc.terminate()
+            if exit_code is not None:
+                # It died rather than hung: the usual cause is a missing
+                # `[cli]` extra, whose import error went to DEVNULL above.
+                raise RuntimeError(
+                    f"`donkey mock` exited with code {exit_code} before it "
+                    f"answered. Run `donkey mock` directly to see why. Usually "
+                    f"the port is taken (try DEMO_MOCK_URL=http://127.0.0.1:8099) "
+                    f"or an extra is missing:\n    {install_hint}"
+                )
             raise RuntimeError(
                 f"Started `donkey mock` but nothing answered at {target} "
                 f"within 15s. Is the port in use? Try DEMO_MOCK_URL=http://127.0.0.1:8099"

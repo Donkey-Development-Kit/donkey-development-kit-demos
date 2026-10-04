@@ -40,7 +40,7 @@ answer the prompt. The demo prints a warning saying so; read it aloud.
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 python -m pip install -e .
-python -m pip install -e "../donkey-development-kit/python[llm,local]"   # or: python -m pip install -e ".[sdk]"
+python -m pip install -e "../donkey-development-kit/python[llm,local,cli]"   # or: python -m pip install -e ".[sdk]"
 make doctor                    # what is installed; prints no secrets
 ```
 
