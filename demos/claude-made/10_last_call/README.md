@@ -10,11 +10,12 @@ make demo N=10
 
 **Needs:** nothing (`[llm]` + `[local]`).
 
-**Four acts.** A cold process reporting `UNOBSERVED` rather than `None`; one
+**Five acts.** A cold process reporting `UNOBSERVED` rather than `None`; one
 governed call populating `donkey.last_call` with the gateway's identity, routing
 and usage; the substitution flag lighting up because the captured fixture was
-served by a different model than the one we asked for; and
-`on_model_substitution="raise"` turning that flag into `ModelSubstituted`.
+served by a different model than the one we asked for; the same record on a
+**semantic-routing** proxy, where `matched_topic` and `routing_score` fill in;
+and `on_model_substitution="raise"` turning that flag into `ModelSubstituted`.
 
 **Point at:** three honest states, never a bare `None`. `UNOBSERVED` is a cold
 read; `OBSERVED` means the SDK saw a response (fields may still be `None` if the
@@ -31,6 +32,17 @@ both cost and latency. An absent count is `None`, never `0`.
 `x-request-id` on OpenAI, `x-amzn-requestid` on Bedrock. Quote it to the
 provider; the gateway-side join key is `correlation_id`. Demo 15 shows the
 per-provider header names.
+
+**Semantic routing.** Act 4 requests the simulator sentinel
+`donkey-sim/success-semantic`, which replays the live-captured semantic-routing
+`200` (the `Finance` topic). `routing_type` reads `Semantic` instead of
+`ModelBased`, and two fields the model-based call left `None` fill in:
+`matched_topic == "Finance"` and `routing_score == 0.62`. Both come from the
+semantic-only `x-llm-proxy-semantic-routing-success` header. `substituted` is
+`True` there too, and on a semantic proxy that is expected: the gateway picks
+the model from the prompt's meaning, so the request's `model` is a placeholder.
+With `--target live` the sentinel is skipped and act 4 reads act 2's record
+against your proxy.
 
 `ModelSubstituted` is deliberately not a `PolicyViolation`. The request
 succeeded, against a model you did not choose. Same shape as
@@ -78,7 +90,8 @@ cp .env.example .env.local     # then fill in:
 1. A cold `last_call` reading `UNOBSERVED`.
 2. `What the gateway did with the request` — provider, served model, routing type, fallback.
 3. `What this call cost` — input, output, cached and reasoning tokens (`None` when absent, never `0`).
-4. `substituted: True` (the fixture was served by `gpt-5.1`), then `on_model_substitution="raise"` raising `ModelSubstituted`.
+4. `Model-based (act 2) vs this call` — `routing_type` `ModelBased → Semantic`, `matched_topic` `None → Finance`, `routing_score` `None → 0.62`.
+5. `substituted: True` (the fixture was served by `gpt-5.1`), then `on_model_substitution="raise"` raising `ModelSubstituted`.
 
 **4. If something goes wrong:**
 

@@ -291,7 +291,10 @@ facts used to vanish. `donkey.last_call` is that record."
 **Point at:** three honest states, never a bare `None`. Then `substituted` —
 against the simulator this lights up because the captured fixture was served
 by a different model than the one we asked for; that is the fixture talking,
-and it is exactly the mismatch the record exists to surface. Then
+and it is exactly the mismatch the record exists to surface. Then act 4, the
+same record on a semantic-routing proxy: `routing_type` flips to `Semantic` and
+`matched_topic` / `routing_score` (`Finance`, `0.62`) fill in where the
+model-based call had `None`. Then
 `on_model_substitution="raise"` turning the flag into `ModelSubstituted`,
 which is not a `PolicyViolation`. Pair this with demo 06 if the room is
 platform-heavy: the same facts land on the span.

@@ -53,7 +53,7 @@ against.
 | 07 | [model handles](demos/claude-made/07_model_handles/) | Honest gaps: no `/models` catalog; points at `donkey doctor` (demo 14) | nothing |
 | 08 | [framework objects](demos/claude-made/08_framework_objects/) | One deep adapter, seven at `connection_kwargs()` (Agents SDK: `{openai_client}`), `policy_middleware()` | nothing |
 | 09 | [LangGraph agent](demos/claude-made/09_langgraph_agent/) | A real tool-calling loop, governed end to end | **credentials** |
-| 10 | [last_call](demos/claude-made/10_last_call/) | Gateway identity, routing/usage on a 200; `ModelSubstituted` when you opt in | nothing |
+| 10 | [last_call](demos/claude-made/10_last_call/) | Gateway identity, routing/usage on a 200 (model-based and semantic); `ModelSubstituted` when you opt in | nothing |
 | 11 | [donkey init](demos/claude-made/11_cli_init/) | Commented `.donkey-kit.toml`, every gap named at once, no secrets on disk | nothing (`[cli]`) |
 | 12 | [ToolSet.filter](demos/claude-made/12_toolset_filter/) | Independent filtered views of MCP tools; binding still blocked on verification | nothing |
 | 13 | [JWT / model-wallet](demos/claude-made/13_jwt_wallet/) | `llm_proxy_auth="jwt"`: `X-Client-Id` + rotating JWT, no `client_secret` | nothing (`[llm]`) |
