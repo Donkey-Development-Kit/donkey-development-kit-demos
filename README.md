@@ -49,7 +49,7 @@ against.
 | 03 | [budget and pacing](demos/claude-made/03_budget_and_pacing/) | The token window as an object; `pace(reserve=)` and `wait_for_reset()` (only when `reset_at` is known) | nothing |
 | 04 | [simulating refusals](demos/claude-made/04_simulate_refusals/) | `donkey.simulate()`, `donkey mock --scenario`, and `start_gateway()` | nothing |
 | 05 | [conformance suite](demos/claude-made/05_conformance/) | `pytest --donkey-conformance` (and `donkey test`) grading a naive agent, then the fixed one | nothing |
-| 06 | [telemetry](demos/claude-made/06_telemetry/) | GenAI spans (`gen_ai.*` + `donkey.*`), `donkey.run(id=…)`, zero-config OTLP | nothing |
+| 06 | [telemetry](demos/claude-made/06_telemetry/) | GenAI spans (`gen_ai.*` + `donkey.*`), `donkey.run(id=…)`, zero-config OTLP (no implicit global provider) | nothing |
 | 07 | [model handles](demos/claude-made/07_model_handles/) | Honest gaps: no `/models` catalog; points at `donkey doctor` (demo 14) | nothing |
 | 08 | [framework objects](demos/claude-made/08_framework_objects/) | One deep adapter, seven at `connection_kwargs()` (Agents SDK: `{openai_client}`), `policy_middleware()` | nothing |
 | 09 | [LangGraph agent](demos/claude-made/09_langgraph_agent/) | A real tool-calling loop, governed end to end | **credentials** |
@@ -129,7 +129,7 @@ instead.
 | 07 | [otel exporter advanced](demos/human-made/openai/07%20-%20otel%20exporter%20advanced.py) | Several `donkey.run(team=…, project=…)` + a refusal span | proxy + OTLP |
 | 08 | [last-call](demos/human-made/openai/08%20-%20last-call.py) | Full `last_call` record; `on_model_substitution="raise"` | proxy creds |
 | 09 | [governed-and-tool](demos/human-made/openai/09%20-%20governed-and-tool.py) | `@donkey.governed` and `@donkey.tool` | nothing |
-| 10 | [zero-config-otlp](demos/human-made/openai/10%20-%20zero-config-otlp.py) | `Donkey.from_env()` installs OTLP when the env var is set | proxy creds |
+| 10 | [zero-config-otlp](demos/human-made/openai/10%20-%20zero-config-otlp.py) | `Donkey.from_env()` exports Donkey's own spans over OTLP when the env var is set | proxy creds |
 | 11 | [gateway-unavailable](demos/human-made/openai/11%20-%20gateway-unavailable.py) | Dead origin → `GatewayUnavailable` as `__cause__` | nothing |
 | 12 | [streaming](demos/human-made/openai/12%20-%20streaming.py) | `responses` SSE; `last_call` usage after the terminal event | proxy creds (live) |
 | 13 | [regex-and-content-safety](demos/human-made/openai/13%20-%20regex-and-content-safety.py) | Live regex-prompt-guard and Azure content-safety | proxy + those policies |

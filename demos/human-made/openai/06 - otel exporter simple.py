@@ -9,8 +9,10 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 # Needs OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS
 #
 # This process already owns a TracerProvider, so Donkey.from_env() rides it
-# rather than installing OTLP itself. The zero-config path (no provider here)
-# is 10 - zero-config-otlp.py.
+# rather than exporting through its own. Donkey never sets the global provider
+# itself unless DONKEY_TELEMETRY_INSTALL_GLOBAL=true, and a provider you set wins
+# whether you set it before or after Donkey(). The zero-config path (no provider
+# here) is 10 - zero-config-otlp.py.
 
 provider = TracerProvider(resource=Resource.create({"service.name": "donkey-dev-kit"}))
 provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter()))

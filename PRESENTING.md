@@ -220,9 +220,11 @@ a refused request produces an `ERROR` span, because a span that ends OK on a
 refusal makes a dashboard say everything is fine. Act 1 also now shows
 `gen_ai.response.model` vs `gen_ai.request.model` and `donkey.routing.*` —
 when those differ, a failover happened. Act 4 is zero-config OTLP: set
-`OTEL_EXPORTER_OTLP_ENDPOINT` and `Donkey.from_env()` installs it; no endpoint
-is inert and silent; `DONKEY_TELEMETRY=false` opts out. This demo's in-memory
-`TracerProvider` is left alone — Donkey will not clobber a host provider.
+`OTEL_EXPORTER_OTLP_ENDPOINT` and `Donkey.from_env()` exports its own spans; no
+endpoint is inert and silent; `DONKEY_TELEMETRY=false` opts out. Donkey does not
+take the process-global `TracerProvider` unless you set
+`DONKEY_TELEMETRY_INSTALL_GLOBAL=true`, and a host provider always wins, even
+one set after `Donkey()`. This demo's in-memory `TracerProvider` is the host's.
 
 **The line that lands with platform teams** is act 2. `donkey.run(id="ticket-4417")`
 binds *your* identifier — not a uuid — and every call inside the block carries

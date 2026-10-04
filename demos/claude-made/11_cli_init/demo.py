@@ -47,7 +47,10 @@ def _isolated_env() -> dict[str, str]:
 
 
 def _invoke_init(target: Path, *, force: bool = False) -> tuple[int, str]:
-    from donkey_kit.provisioning.cli import app
+    try:  # the CLI moved to donkey_kit.cli in #730; older SDKs keep it under provisioning
+        from donkey_kit.cli import app
+    except ImportError:
+        from donkey_kit.provisioning.cli import app
     from typer.testing import CliRunner
 
     args = ["--json", "--config", str(target), "init"]

@@ -237,7 +237,9 @@ async def act_3_raw_vs_governed(donkey: Donkey) -> None:
             )
         say.note(
             "classify() is the bridge, because the raw client raises openai.* errors "
-            "and the SDK does not silently re-map them. Demo 02 walks the full taxonomy."
+            "and the SDK does not silently re-map them. Inside donkey.run() or "
+            "@donkey.governed, newer SDKs do the bridging for you and the typed "
+            "class reaches your except branch directly. Demo 02 walks the full taxonomy."
         )
     else:
         say.warn("the governed client was not refused either")

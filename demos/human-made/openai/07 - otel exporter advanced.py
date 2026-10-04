@@ -11,7 +11,8 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 # Needs OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS
 #
 # Host TracerProvider is already installed, so Donkey rides it (does not clobber).
-# Zero-config (Donkey installs OTLP when the env var is set): 10 - zero-config-otlp.py.
+# Zero-config (Donkey exports its own spans when the env var is set):
+# 10 - zero-config-otlp.py.
 
 MODEL = "gpt-4o"
 PII_PROMPT = (
