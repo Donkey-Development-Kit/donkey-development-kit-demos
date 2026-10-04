@@ -21,9 +21,11 @@ the same agent after the findings.
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import subprocess
 import sys
+from functools import cache
 from pathlib import Path
 
 from _harness import narrate as say
@@ -73,8 +75,19 @@ def _pytest(args: list[str], *, load_plugin: bool) -> subprocess.CompletedProces
     )
 
 
+@cache
+def _agent_flag() -> str:
+    """`--donkey-agent` on SDKs that have it (0.1.2+, donkey-development-kit#746).
+    0.1.1 only knows `--agent`, which later SDKs keep as a deprecated alias.
+    Read off the installed plugin rather than its version, so an SDK checkout
+    on either side of the rename works too."""
+    spec = importlib.util.find_spec(PLUGIN)
+    source = Path(spec.origin).read_text(encoding="utf-8") if spec and spec.origin else ""
+    return "--donkey-agent" if '"--donkey-agent"' in source else "--agent"
+
+
 def _run_suite(factory: str, *, known: str | None = None) -> tuple[int, str]:
-    args = ["--donkey-conformance", f"--donkey-agent=shipping_agent:{factory}"]
+    args = ["--donkey-conformance", f"{_agent_flag()}=shipping_agent:{factory}"]
     if known:
         args.append(f"--donkey-known-limitations={known}")
 
@@ -140,7 +153,7 @@ def act_1_the_naive_agent() -> None:
         "errors keeps stack traces out of the caller's face, and it logs what it "
         "is doing. Run the suite against it."
     )
-    say.code("pytest --donkey-conformance --donkey-agent=…:build_naive")
+    say.code(f"pytest --donkey-conformance {_agent_flag()}=…:build_naive")
 
     code, output = _run_suite("build_naive")
     print()
@@ -209,7 +222,7 @@ def act_4_exemptions() -> None:
 
         pytest --donkey-conformance --donkey-agent=shipping_agent:build_naive \\
                --donkey-known-limitations=exemptions:FRAMEWORK_LIMITS
-        """
+        """.replace("--donkey-agent", _agent_flag())
     )
     code, output = _run_suite("build_naive", known="exemptions:FRAMEWORK_LIMITS")
     print()
