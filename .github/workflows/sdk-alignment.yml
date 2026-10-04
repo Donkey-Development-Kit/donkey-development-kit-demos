@@ -1,0 +1,59 @@
+# Enforces the branch rule: demos `main` runs against SDK `main` (the latest
+# release) and demos `develop` against SDK `develop`.
+#
+# - `pin`: the [sdk]/[full] extras pin the right SDK for the branch
+#   (scripts/check_sdk_alignment.py).
+# - `offline`: install `.[full]` exactly as the README says and run every
+#   credential-free demo against it.
+#
+# PRs and pushes check the branch they target. The nightly run checks both
+# branches, because the SDK moves without touching this repo: a new SDK release
+# fails `main` until its pin is bumped, and a breaking change on SDK `develop`
+# fails `develop` the next morning.
+name: SDK alignment
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-alignment-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  align:
+    name: ${{ matrix.branch }} ↔ SDK ${{ matrix.branch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: >-
+          ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+              && fromJSON('["main", "develop"]')
+              || fromJSON(format('["{0}"]', github.base_ref || github.ref_name)) }}
+    env:
+      DEMOS_BRANCH: ${{ matrix.branch }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Scheduled runs check out each branch; PRs and pushes keep the
+          # default ref (the PR merge commit, or the pushed commit).
+          ref: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && matrix.branch || '' }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: pin
+        run: python scripts/check_sdk_alignment.py --branch "$DEMOS_BRANCH"
+      - name: install .[full]
+        run: python -m pip install -e ".[full]"
+      - name: offline
+        run: make offline
