@@ -5,7 +5,7 @@ from google.adk.agents import Agent
 from google.adk.runners import InMemoryRunner
 
 # Needs donkey-kit[adk] and DONKEY_LLM_PROXY_*. LiteLLM calls the proxy's /chat/completions route.
-# LiteLLM owns the transport: headers go on the wire, but no run id and no last_call.
+# LiteLLM sends through the SDK's shared client: the run id goes on the wire and last_call is observed.
 #
 # python "demos/human-made/adk/01 - basic-gw.py"
 

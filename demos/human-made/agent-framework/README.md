@@ -1,9 +1,9 @@
 # Human-made — `agent-framework/`
 
 Microsoft Agent Framework. `donkey.agent_framework.chat_client("…")` builds an `OpenAIChatClient`
-(verified against 1.19.0 — the kwarg is `model=`) calls `/responses`. Only
-`default_headers` are handed over, so the proxy sees your credentials but the
-SDK does not own the transport: **no run id and no `last_call`**.
+(verified against 1.19.0 — the kwarg is `model=`) calls `/responses` through
+the SDK's own transport: **the run id goes on the wire and `last_call` is
+observed** in the context that made the call.
 
 ## Install
 
@@ -36,8 +36,9 @@ python "demos/human-made/agent-framework/01 - basic-gw.py"
 ```
 
 **You should see:** the reply, `total tokens` from Agent Framework's
-`usage_details`, and `last_call unavailable …` — the honest answer when the SDK
-only supplied headers.
+`usage_details`, and `last_call observed …`. The script reads it inside its
+`async def main()`: `asyncio.run()` gives the call its own context, so a read
+after it returns would see `unobserved`.
 
 ### 02 — typed-refusals-live
 
@@ -65,4 +66,4 @@ No gateway: `start_gateway()` with `pii_block:every=2` over two tickets.
 
 - `TypeError … model_id` — an older Agent Framework; the scripts target the
   1.19.0 `model=` kwarg.
-- `last_call unavailable` — expected; see 01.
+- `last_call unobserved` — read in a different context from the call; see 01.

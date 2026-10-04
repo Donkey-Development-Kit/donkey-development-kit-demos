@@ -104,11 +104,11 @@ rather than hide it:
 | `openai` | `/responses` | yes | observed | `classify(err.response)` |
 | `langgraph` | `/responses` | yes | unobserved (LangChain's task) | `donkey.langgraph.typed_refusals()` |
 | `openai-agents` | `/responses` | yes | unobserved (Runner's task) | `classify(err.response)` |
-| `agent-framework` | `/responses` | no | unavailable | `classify(err.__cause__.response)` |
+| `agent-framework` | `/responses` | yes | observed | `classify(err.__cause__.response)` |
 | `strands` | `/chat/completions` | yes | observed | `classify(err.response)` |
 | `crewai` | `/chat/completions` | no | unavailable | `classify(err.response)` |
-| `llamaindex` | `/chat/completions` | no | unavailable | `classify(err.response)` |
-| `adk` | `/chat/completions` (LiteLLM) | no | unavailable | none — LiteLLM drops the headers |
+| `llamaindex` | `/chat/completions` | yes | observed | `classify(err.response)` |
+| `adk` | `/chat/completions` (LiteLLM) | yes | observed | `classify()` in `on_model_error_callback` |
 | `anthropic` | `/v1/messages` (`Format=Anthropic`) | yes | observed | `classify(err.response)` |
 | `gemini` | `:generateContent` (`Format=Gemini`, plain `httpx`) | — | — | `classify(response)` |
 
@@ -185,7 +185,7 @@ instead.
 | 01 | [basic-gw](demos/human-made/llamaindex/01%20-%20basic-gw.py) | `OpenAILike` `complete` and `chat` | proxy creds |
 | 02 | [typed-refusals-live](demos/human-made/llamaindex/02%20-%20typed-refusals-live.py) | PII / unknown model / bad creds | proxy creds + policies |
 | 01 | [basic-gw](demos/human-made/adk/01%20-%20basic-gw.py) | `LiteLlm` agent through `InMemoryRunner` | proxy creds |
-| 02 | [refusal-live](demos/human-made/adk/02%20-%20refusal-live.py) | PII 403 as a LiteLLM `APIError` — status only | proxy creds + PII policy |
+| 02 | [refusal-live](demos/human-made/adk/02%20-%20refusal-live.py) | PII 403 typed as `PIIDetected` in `on_model_error_callback` | proxy creds + PII policy |
 
 ### `anthropic/`, `gemini/`
 
