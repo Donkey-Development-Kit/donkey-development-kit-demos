@@ -211,17 +211,18 @@ source .venv/bin/activate      # once per terminal
 # 1. The demo harness (adds _harness to the path; no SDK pinned)
 python -m pip install -e .
 
-# 2. The SDK. Either your own checkout…
+# 2. The SDK. Either the branch this one tracks, from git…
+python -m pip install -e ".[full]"      # donkey-kit @ develop + langchain
+
+#    …or your own checkout, on the matching SDK branch (develop here)
 python -m pip install -e "../donkey-development-kit/python[llm,local,test,otel,langgraph,cli]"
 python -m pip install "langchain>=1.0"   # demo 09 only; no donkey-kit extra ships it
-
-#    …or from git
-python -m pip install -e ".[full]"
-
-#    …or a published dev build from TestPyPI (its deps come from PyPI)
-python -m pip install -i https://test.pypi.org/simple/ \
-  --extra-index-url https://pypi.org/simple/ "donkey-kit[llm,local,test,otel,langgraph,cli]"
 ```
+
+**Which SDK each branch tracks.** `main` runs against the SDK's latest release
+(`main`, on PyPI), so there `[sdk]` and `[full]` pin it exactly. `develop` (this
+branch) tracks the SDK's `develop`, so here they pin the git ref `@develop`. Don't
+mix the two: module paths and CLI flags change between releases.
 
 **Why a virtual environment.** Homebrew's `python3` (and most Linux distro
 Pythons) is marked *externally managed* (PEP 668),

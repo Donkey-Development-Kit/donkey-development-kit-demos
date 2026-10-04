@@ -66,7 +66,7 @@ live on `donkey.last_call` without a span backend (demo 10).
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 python -m pip install -e .
-python -m pip install -e "../donkey-development-kit/python[llm,local,otel]"   # or: python -m pip install -e ".[full]"
+python -m pip install -e "../donkey-development-kit/python[llm,local,cli,otel]"   # or: python -m pip install -e ".[full]"
 make doctor                    # what is installed; prints no secrets
 ```
 
