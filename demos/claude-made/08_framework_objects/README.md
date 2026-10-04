@@ -25,8 +25,12 @@ LangGraph is the only adapter held to the conformance bar, and it sets
 route and the only one the local simulator serves. The Agents SDK is the exception that proves the rule: it takes a
 pre-built `AsyncOpenAI`, so `donkey.openai_agents.connection_kwargs()` is one
 key — `openai_client` — not "no connection_kwargs()". Agent Framework's
-`OpenAIChatClient` takes `model=` (confirmed offline against 1.19.0) and adds
-`policy_middleware()`: a `PolicyViolation` is re-raised, not retried. And
+`OpenAIChatClient` takes `model=` (confirmed offline against 1.19.0). Act 4
+builds a real `Agent(client=…, middleware=[donkey.agent_framework.policy_middleware()])`
+and runs it under `donkey.simulate(PIIDetected)`: `agent.run()` ends as the typed
+`PIIDetected`, with the framework's `ChatClientException` on `.framework_error`.
+The middleware protocol is confirmed offline against 1.19.0. Act 4 needs
+`pip install "donkey-kit[agent_framework]"` and says so when it is missing. And
 `donkey.openai()` is still the raw client factory; `donkey.openai_agents` is
 this adapter.
 

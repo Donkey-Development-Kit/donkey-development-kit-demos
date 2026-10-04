@@ -260,10 +260,14 @@ it targets `/responses`. And at `donkey.openai_agents`, which is the Agents SDK
 adapter; `donkey.openai()` is the raw client and got the good name. Then point
 at `connection_kwargs()` for the Agents SDK: one key, `openai_client`, a real
 `AsyncOpenAI`. Agent Framework's `OpenAIChatClient(model=…)` is confirmed
-offline against 1.19.0 — the kwarg is `model=`, not `model_id`. Then
-`policy_middleware()`: a `PIIDetected` is re-raised, not
-swallowed, not retried. The middleware *protocol* is still unverified; the
-behaviour that is shipped is "a policy refusal is not a retryable error".
+offline against 1.19.0 — the kwarg is `model=`, not `model_id`. Then act 4:
+a real `Agent` with `middleware=[donkey.agent_framework.policy_middleware()]`,
+run under `donkey.simulate(PIIDetected)`. `agent.run()` ends as `PIIDetected`,
+with the run's correlation id, not as Agent Framework's generic
+`ChatClientException` (that is kept on `.framework_error`). The middleware
+protocol is confirmed offline against agent-framework 1.19.0. Act 4 needs the
+`[agent_framework]` extra; without it the demo prints the install line and
+moves on.
 
 ### 09 — LangGraph agent (live)
 
