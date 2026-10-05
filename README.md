@@ -108,9 +108,16 @@ rather than hide it:
 | `strands` | `/chat/completions` | yes | observed | `classify(err.response)` |
 | `crewai` | `/chat/completions` | no | unavailable | `classify(err.response)` |
 | `llamaindex` | `/chat/completions` | yes | observed | `classify(err.response)` |
-| `adk` | `/chat/completions` (LiteLLM) | yes | observed | `classify()` in `on_model_error_callback` |
+| `adk` | `/chat/completions` (LiteLLM) | yes | in `after_model_callback` (Runner's task) | `classify()` in `on_model_error_callback` |
 | `anthropic` | `/v1/messages` (`Format=Anthropic`) | yes | observed | `classify(err.response)` |
 | `gemini` | `:generateContent` (`Format=Gemini`, plain `httpx`) | — | — | `classify(response)` |
+
+The typed-refusal column is the explicit pattern each script uses; it works on
+the released SDK and on `develop`. On SDK `develop` (0.1.2), an error leaving
+`donkey.run()` or `@donkey.governed` is already typed (`PIIDetected` and the
+rest, with the framework's own error on `exc.framework_error`), and
+`donkey_kit.typed_refusals()` does the same around any block. ADK's `model()`
+is the exception: LiteLLM rebuilds the response, so 02 keeps its callback.
 
 The local simulator serves only `/responses`, so the `/chat/completions`
 folders have no simulator script; `strands/03` uses in-process `simulate()`
