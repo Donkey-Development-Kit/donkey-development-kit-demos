@@ -165,10 +165,13 @@ async def act_3_routing_and_usage(donkey: Donkey) -> None:
         "These are per-call; donkey.budget is the shared window (demo 03)."
     )
     say.note(
-        "The SDK never double-retries a fallback. It retries 502/503/504 with "
-        "backoff, but a 503 the gateway already marked as a failover is left "
-        "alone — a second recovery layer stacked on a working first one just "
-        "multiplies latency against an outage the gateway already handled."
+        "The SDK never double-retries a fallback. It retries a 503 with backoff, "
+        "but a 503 the gateway already marked as a failover is left alone — a "
+        "second recovery layer stacked on a working first one just multiplies "
+        "latency against an outage the gateway already handled. A 502 or 504 on "
+        "a model call is not re-sent at all unless you opt in "
+        "(retry_model_calls_on_gateway_errors): the upstream may already have "
+        "completed, and billed, the call."
     )
 
 

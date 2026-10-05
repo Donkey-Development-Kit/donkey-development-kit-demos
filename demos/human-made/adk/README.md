@@ -2,8 +2,10 @@
 
 Google ADK with `donkey.adk.model("…")`, a `LiteLlm` model. LiteLLM calls
 the proxy's **`/chat/completions`** route through the SDK's shared client, so
-the run id goes on the wire and **`last_call` is observed**. A refusal is typed
-in `on_model_error_callback` (see 02).
+the run id goes on the wire. ADK's `Runner` runs the agent in a task of its
+own, so **`last_call` is observed in `after_model_callback`** and reads
+`unobserved` once the run returns (see 01). A refusal is typed in
+`on_model_error_callback` (see 02).
 
 ## Install
 
@@ -34,7 +36,8 @@ python "demos/human-made/adk/01 - basic-gw.py"
 ```
 
 One ADK `Agent` run through an `InMemoryRunner`. **You should see:** a
-one-sentence answer, `total tokens`, and `last_call observed …`.
+one-sentence answer, `total tokens`, `last_call observed <model> (in
+after_model_callback)` and `after run unobserved (Runner's task)`.
 
 ### 02 — refusal-live
 

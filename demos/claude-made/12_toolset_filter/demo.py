@@ -15,8 +15,8 @@ work.
 
 from __future__ import annotations
 
-from donkey_kit.registry.models import AssetRef, McpServerHandle
-from donkey_kit.tools.session import ToolSet
+from donkey_kit.registry import AssetRef, McpServerHandle
+from donkey_kit.tools import ToolSet
 
 from _harness import narrate as say
 from _harness import preflight
