@@ -1,7 +1,7 @@
 # Publishes the DDK feature showcase (demos/showcase) to GitHub Pages on every
 # push to main. The Pages build is the static replay: no backend, no gateway —
 # it replays responses recorded from the real backend against `donkey mock`.
-name: Deploy showcase to GitHub Pages
+name: Deploy showcase
 
 on:
   push:
