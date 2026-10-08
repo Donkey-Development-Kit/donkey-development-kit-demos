@@ -1,8 +1,8 @@
 # Human-made — `langgraph/`
 
 `donkey.langgraph("…")` returns a real `langchain_openai.ChatOpenAI`
-with `use_responses_api=True`, so calls go to the live-verified `/responses`
-route. This is the one deep, conformance-gated adapter.
+with `use_responses_api=False`, so calls go to `/chat/completions`, the one
+route every upstream behind an OpenAI-format proxy serves. This is the one deep, conformance-gated adapter.
 
 ## Install
 

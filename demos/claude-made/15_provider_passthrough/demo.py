@@ -168,7 +168,7 @@ def act_4_ingress_formats() -> None:
     say.step(4, "Ingress Format is chosen per proxy, and it decides the adapter")
     say.table(
         {
-            "Format=OpenAI": "POST /<base>/responses — donkey.openai(), every OpenAI-compatible adapter",
+            "Format=OpenAI": "POST /<base>/responses or /chat/completions — donkey.openai(), the OpenAI-compatible adapters",
             "Format=Anthropic": "POST /<base>/v1/messages — donkey.anthropic.client()",
             "Format=Gemini": "POST /<base>/models/<m>:generateContent — no SDK adapter ships",
         },

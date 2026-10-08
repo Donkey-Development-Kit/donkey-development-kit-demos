@@ -10,7 +10,7 @@ from donkey_kit import Donkey
 
 async def main() -> None:
     async with Donkey.from_env() as donkey:
-        model = donkey.langgraph("gpt-4o")   # native ChatOpenAI on /responses
+        model = donkey.langgraph("gpt-4o")   # native ChatOpenAI on /chat/completions
 
         reply = await model.ainvoke("Say hello in exactly three words.")
 
