@@ -2,7 +2,7 @@
 
 This is the **demos** backlog, not the SDK's. The SDK roadmap (phases, HITL,
 A2A, tool access) lives in the
-[DDK docs](https://donkey-development-kit.github.io/donkey-development-kit/roadmap).
+[DDK docs](https://docs.donkey-kit.dev/roadmap).
 This page answers: *which shipped SDK surfaces already have a demo, in which
 suite, and what still needs writing.*
 
@@ -20,10 +20,7 @@ room must see it.
 
 ---
 
-## Shipped in this branch (vs `develop`)
-
-`develop` still has the pre-split deliverables layout. This branch rebuilds
-the repo around the two suites and tracks the current SDK.
+## Shipped
 
 ### Claude-made (`01`–`15`)
 
@@ -76,7 +73,7 @@ is blocked on verification.
 | **Streaming** | mentioned as live-verified, no act | **12** | `responses` stream through `donkey.openai()`, and `last_call` usage lands on the terminal SSE event. Mock streaming is truncated SSE — do not claim terminal usage against the simulator. |
 | **`donkey mock --scenario` as a long-running CLI** | 04 *parses* specs and boots `start_gateway()` | **15** is the Python twin | Remaining gap is a second-pane `donkey mock --scenario pii_block:every=2` that a stock OpenAI client hits. |
 | **Header injection-protection live** | 02/04 type it from docs; regex, Azure and Bedrock (15) **are** live | **13** regex + Azure, **16** Bedrock | Header-based Injection Protection is the last guardrail with no deployed proxy to capture. `simulate(PromptInjectionBlocked)` keeps the documented representative. |
-| **Anthropic-native live call** | 15 constructs `donkey.anthropic.client()`; no live `/v1/messages` call | **`anthropic/01`** | Route is live-verified but needs a `Format=Anthropic` proxy — the DDK default proxies are `Format=OpenAI`. `last_call.request_id` is `None` there: Anthropic's `request-id` is not in `REQUEST_ID_HEADERS`. |
+| **Anthropic-native live call** | 15 constructs `donkey.anthropic.client()`; no live `/v1/messages` call | **`anthropic/01`** | Route is live-verified but needs a `Format=Anthropic` proxy — the DDK default proxies are `Format=OpenAI`. On SDK `develop`, `last_call.request_id` reads Anthropic's `request-id`. |
 | **`last_call` under task-spawning frameworks** | 08 builds the objects only | `langgraph/02`, `openai-agents/01` show `unobserved` | LangChain and the Agents SDK call the model in their own task, so the caller's context never gets the record. Use `usage_metadata` / `context_wrapper.usage`. |
 | **Live JWT / model-wallet end-to-end** | 13 is config + headers + guards | **14** is the live async call | Needs an org IdP and a wallet-backed proxy. Do not pretend the mock is that. |
 
@@ -101,8 +98,6 @@ is blocked on verification.
 | Issue | Evidence | Workaround in the scripts |
 |---|---|---|
 | `donkey.strands.model()` / `connection_kwargs()` break on the 2nd model call | Strands (1.57) does `async with openai.AsyncOpenAI(**client_args)` per request; closing it closes the shared `http_client` → `RuntimeError: client has been closed` | `OpenAIModel(client=donkey.openai(), model_id=…)` — Strands leaves an injected client open |
-| CrewAI adapter docstring says LiteLLM | CrewAI 1.15 routes `openai/…` to its native `OpenAICompletion` provider; the refusal keeps its response and `classify()` works | none needed — the docs are stale, not the behaviour |
-| `request-id` (Anthropic) not in `REQUEST_ID_HEADERS` | `last_call.request_id` is `None` on the Anthropic-native capture | `anthropic/01` prints the raw header next to it |
 
 ---
 

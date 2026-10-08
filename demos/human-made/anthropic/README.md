@@ -37,8 +37,8 @@ python "demos/human-made/anthropic/01 - native-messages.py"
 
 **You should see:** the reply; `served_provider`, `served_model`, input and
 output tokens from `last_call`; then Anthropic's `request-id` header next to
-`last_call.request_id`. `request-id` is not one of the headers the SDK reads
-for `request_id` yet, so the two can differ (or the field be `None`).
+`last_call.request_id`. On SDK `develop` the SDK reads `request-id`, so the two
+match. On the released SDK the field may be `None`.
 
 ### 02 — typed-refusals-simulated
 

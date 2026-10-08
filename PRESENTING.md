@@ -390,7 +390,7 @@ DEMO_REDACT=0 python run.py 01     # never `export DEMO_REDACT=0`
 
 | Symptom | Cause | Do this |
 |---|---|---|
-| `No simulator at http://127.0.0.1:8080` | Port taken, or `[local]` not installed | `DEMO_MOCK_URL=http://127.0.0.1:8099 make demo N=03` |
+| `Could not start the local simulator` | Port taken, or `[local]` / `[cli]` not installed | `DEMO_MOCK_URL=http://127.0.0.1:8099 make demo N=03` |
 | `donkey: command not found` | CLI extra missing | `pip install "donkey-kit[cli,local]"` — or run demos 02, 07, 08, which need no simulator |
 | Demo 05 warns about the pytest11 entry point | Editable install predates the plugin | Harmless; it loads the plugin by module instead. `pip install -e python` in the SDK checkout to clear it |
 | Demo 09 exits with setup guidance | Credentials not loaded | Expected, not a failure. Switch to demo 08 |

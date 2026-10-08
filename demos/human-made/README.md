@@ -65,8 +65,8 @@ python "demos/human-made/openai/11 - gateway-unavailable.py"
 python "demos/human-made/openai/15 - start-gateway.py"            # needs [local]
 python "demos/human-made/langgraph/08 - gateway-unavailable.py"
 python "demos/human-made/langgraph/09 - start-gateway.py"         # needs [local]
-python "demos/human-made/openai-agents/03 - start-gateway.py"     # needs [local]
-python "demos/human-made/agent-framework/03 - start-gateway.py"   # needs [local]
+python "demos/human-made/openai-agents/03 - start-gateway.py"     # needs [local,openai-agents]
+python "demos/human-made/agent-framework/03 - start-gateway.py"   # needs [local,agent_framework]
 ```
 
 The `*-simulated.py` scripts also make no network call, but read
