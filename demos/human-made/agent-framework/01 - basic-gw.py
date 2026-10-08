@@ -4,8 +4,8 @@ from agent_framework import Agent
 from donkey_kit import Donkey
 
 # Needs donkey-kit[agent_framework] and DONKEY_LLM_PROXY_*.
-# OpenAIChatClient (verified against 1.19.0) calls /responses through the SDK's own
-# transport, so the run id goes on the wire and last_call is observed. Read it inside
+# chat_client() builds an OpenAIChatCompletionClient that calls /chat/completions
+# through the SDK's own transport (api="responses" opts into /responses), so the run id goes on the wire and last_call is observed. Read it inside
 # the coroutine: asyncio.run() gives the call its own context.
 #
 # python "demos/human-made/agent-framework/01 - basic-gw.py"

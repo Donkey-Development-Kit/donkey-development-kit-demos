@@ -11,10 +11,10 @@ supported at `connection_kwargs()` (demo 08).
 
 **Live only.** This is a real multi-step tool-calling loop, so it needs a model
 that can actually decide to call tools. The local simulator replays a captured
-`/responses` completion and will not drive that loop. The adapter itself *does*
-target `/responses` (`use_responses_api=True`) — the same live-verified route
-as `donkey.openai()`. The refusal path can be exercised offline: see act 6 of
-demo 04, which drives this same `ChatOpenAI` through `donkey.simulate()`.
+completion and will not drive that loop. The adapter calls `/chat/completions`
+(`use_responses_api=False`), the one route every upstream behind an
+OpenAI-format proxy serves. The refusal path can be exercised offline: see act
+6 of demo 04, which drives this same `ChatOpenAI` through `donkey.simulate()`.
 
 **What step 3 can and cannot show.** `donkey.budget` is the proxy's shared
 token window for this client id, populated only on proxies that send the
@@ -23,7 +23,7 @@ task, and LangGraph makes each model call on its own task (DDK #613 tracks a
 run-level record).
 
     python demos/claude-made/09_langgraph_agent/demo.py        # needs real credentials
-    DEMO_LANGGRAPH_API=chat python demos/.../demo.py           # proxy without /responses
+    DEMO_LANGGRAPH_API=responses python demos/.../demo.py      # opt into /responses
 """
 
 from __future__ import annotations
@@ -38,8 +38,8 @@ from _harness import narrate as say
 from _harness import preflight, redact
 
 MODEL = os.environ.get("DEMO_MODEL", "gpt-4o-mini")
-# `chat` for a proxy whose upstream has no `/responses` route (e.g. ddk-token-rate-limit).
-API = os.environ.get("DEMO_LANGGRAPH_API", "responses")
+# `responses` opts into `/responses`, on an OpenAI-routed proxy only.
+API = os.environ.get("DEMO_LANGGRAPH_API", "chat")
 QUESTION = "Can I ship SKU AF-1001 today, and what does it cost?"
 
 INVENTORY = {"AF-1001": "42 units in Amsterdam", "AF-2002": "0 units"}
@@ -84,17 +84,12 @@ async def _main() -> None:
         )
 
         # No `temperature`: reasoning models (gpt-5, o-series) reject it with a 400.
-        if API == "chat":
-            from langchain_openai import ChatOpenAI
-
-            # chat_model() cannot take `use_responses_api=False`: it collides with the
-            # adapter's own kwarg (TypeError), so build from connection_kwargs().
-            kwargs = {**donkey.langgraph.connection_kwargs(), "use_responses_api": False}
-            model = ChatOpenAI(model=MODEL, **kwargs)
+        if API == "responses":
+            model = donkey.langgraph.chat_model(MODEL, use_responses_api=True)
         else:
             model = donkey.langgraph.chat_model(MODEL)
         say.field("type", f"{type(model).__module__}.{type(model).__name__}")
-        say.field("route", "/chat/completions" if API == "chat" else "/responses")
+        say.field("route", "/responses" if API == "responses" else "/chat/completions")
         say.field(
             "governed via",
             ", ".join(sorted(donkey.langgraph.connection_kwargs())),

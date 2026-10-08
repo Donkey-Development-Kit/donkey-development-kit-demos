@@ -8,13 +8,12 @@ make demo N=09          # needs real credentials
 ```
 
 **To show a populated `budget`**, point this one run at `ddk-token-rate-limit`,
-the only proxy that sends the token-window header. Its Azure upstream has no
-`/responses` route, so switch the adapter to chat completions. Exported
-variables win over `.env`, so nothing needs editing:
+the only proxy that sends the token-window header. Exported variables win
+over `.env`, so nothing needs editing:
 
 ```bash
 DONKEY_LLM_PROXY_URL=… DONKEY_LLM_PROXY_CLIENT_ID=… DONKEY_LLM_PROXY_CLIENT_SECRET=… \
-DEMO_MODEL=azureopenai/gpt-5-mini DEMO_LANGGRAPH_API=chat make demo N=09
+DEMO_MODEL=azureopenai/gpt-5-mini make demo N=09
 ```
 
 One run uses roughly half of that proxy's 500-token/minute window, so a second
@@ -25,9 +24,9 @@ run within the minute is likely to be refused with a 429.
 with setup guidance; that is the expected path, not a failure.
 
 **Why there is no offline version.** This is a real tool-calling loop, and the
-simulator only replays a captured `/responses` completion — it will not decide
-to call tools. The adapter itself targets the live-verified `/responses` route
-(`use_responses_api=True`), the same one `donkey.openai()` uses. The refusal
+simulator only replays a captured completion — it will not decide to call
+tools. The adapter calls `/chat/completions` (`use_responses_api=False`), the
+one route every upstream behind an OpenAI-format proxy serves. The refusal
 path *can* be exercised offline — act 6 of [demo 04](../04_simulate_refusals/)
 drives this same `ChatOpenAI` through `donkey.simulate()`.
 
@@ -78,7 +77,7 @@ cp .env.example .env.local     # then fill in:
 # DONKEY_LLM_PROXY_CLIENT_SECRET=…
 ```
 
-**Live note:** `DEMO_MODEL` overrides the model id and `DEMO_LANGGRAPH_API=chat` switches to chat completions — see the budget recipe above for `ddk-token-rate-limit`.
+**Live note:** `DEMO_MODEL` overrides the model id, and `DEMO_LANGGRAPH_API=responses` opts into `/responses` on an OpenAI-routed proxy (Azure upstreams 404 it).
 
 **3. What you should see:**
 

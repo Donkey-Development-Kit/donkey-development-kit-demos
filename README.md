@@ -61,10 +61,10 @@ against.
 | 15 | [provider passthrough](demos/claude-made/15_provider_passthrough/) | Per-provider request id, Azure vs Bedrock guardrails, OpenAI vs Gemini error envelopes, ingress Formats | nothing |
 
 Every claude-made demo takes `--target mock` (default) or `--target live`. Demo
-09 is live only: the simulator replays a captured `/responses` completion and
-will not decide to call tools. The LangGraph adapter itself targets
-`/responses` (`use_responses_api=True`), the same live-verified route as
-`donkey.openai()`.
+09 is live only: the simulator replays a captured completion and will not
+decide to call tools. The LangGraph adapter calls `/chat/completions`
+(`use_responses_api=False`), the one route every upstream behind an
+OpenAI-format proxy serves.
 
 ```bash
 make list                   # claude-made table, from the filesystem
@@ -102,9 +102,9 @@ rather than hide it:
 | Folder | Route | `X-Correlation-Id` per run | `donkey.last_call` | Typed refusal |
 |---|---|---|---|---|
 | `openai` | `/responses` | yes | observed | `classify(err.response)` |
-| `langgraph` | `/responses` | yes | unobserved (LangChain's task) | `donkey.langgraph.typed_refusals()` |
+| `langgraph` | `/chat/completions` | yes | unobserved (LangChain's task) | `donkey.langgraph.typed_refusals()` |
 | `openai-agents` | `/responses` | yes | unobserved (Runner's task) | `classify(err.response)` |
-| `agent-framework` | `/responses` | yes | observed | `classify(err.__cause__.response)` |
+| `agent-framework` | `/chat/completions` | yes | observed | `classify(err.__cause__.response)` |
 | `strands` | `/chat/completions` | yes | observed | `classify(err.response)` |
 | `crewai` | `/chat/completions` | no | unavailable | `classify(err.response)` |
 | `llamaindex` | `/chat/completions` | yes | observed | `classify(err.response)` |
@@ -119,9 +119,9 @@ rest, with the framework's own error on `exc.framework_error`), and
 `donkey_kit.typed_refusals()` does the same around any block. ADK's `model()`
 is the exception: LiteLLM rebuilds the response, so 02 keeps its callback.
 
-The local simulator serves only `/responses`, so the `/chat/completions`
-folders have no simulator script; `strands/03` uses in-process `simulate()`
-instead.
+On SDK `develop` the local simulator serves `/chat/completions` as well as
+`/responses`. The `/chat/completions` folders predate that and have no
+simulator script; `strands/03` uses in-process `simulate()` instead.
 
 ### `openai/`
 

@@ -258,11 +258,11 @@ first.
 **Point at:** `connection_kwargs()` being the *entire supported surface* for
 seven of the eight — which makes it the most load-bearing method in the module,
 not the least. LangGraph is the only adapter held to the conformance bar, and
-it targets `/responses`. And at `donkey.openai_agents`, which is the Agents SDK
+it calls `/chat/completions`. And at `donkey.openai_agents`, which is the Agents SDK
 adapter; `donkey.openai()` is the raw client and got the good name. Then point
 at `connection_kwargs()` for the Agents SDK: one key, `openai_client`, a real
-`AsyncOpenAI`. Agent Framework's `OpenAIChatClient(model=…)` is confirmed
-offline against 1.19.0 — the kwarg is `model=`, not `model_id`. Then act 4:
+`AsyncOpenAI`. Agent Framework's `chat_client()` builds an
+`OpenAIChatCompletionClient(model=…)` — the kwarg is `model=`, not `model_id`. Then act 4:
 a real `Agent` with `middleware=[donkey.agent_framework.policy_middleware()]`,
 run under `donkey.simulate(PIIDetected)`. `agent.run()` ends as `PIIDetected`,
 with the run's correlation id, not as Agent Framework's generic

@@ -20,12 +20,13 @@ as a decision than to explain as a gap.
 
 **Point at:** `connection_kwargs()` is the *entire supported surface* for seven
 of the eight, which makes it the most load-bearing method here, not the least.
-LangGraph is the only adapter held to the conformance bar, and it sets
-`use_responses_api=True` so `ChatOpenAI` calls `/responses`, the raw client's
-route and the only one the local simulator serves. The Agents SDK is the exception that proves the rule: it takes a
+LangGraph is the only adapter held to the conformance bar, and it keeps
+`ChatOpenAI` on `/chat/completions` (`use_responses_api=False`), the one route
+every upstream behind an OpenAI-format proxy serves. The Agents SDK is the exception that proves the rule: it takes a
 pre-built `AsyncOpenAI`, so `donkey.openai_agents.connection_kwargs()` is one
 key — `openai_client` — not "no connection_kwargs()". Agent Framework's
-`OpenAIChatClient` takes `model=` (confirmed offline against 1.19.0). Act 4
+`chat_client()` builds an `OpenAIChatCompletionClient` (`api="responses"` opts
+into `OpenAIChatClient`), and both take `model=`. Act 4
 builds a real `Agent(client=…, middleware=[donkey.agent_framework.policy_middleware()])`
 and runs it under `donkey.simulate(PIIDetected)`: `agent.run()` ends as the typed
 `PIIDetected`, with the framework's `ChatClientException` on `.framework_error`.

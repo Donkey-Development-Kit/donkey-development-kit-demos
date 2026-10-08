@@ -1,8 +1,9 @@
 # Human-made — `agent-framework/`
 
-Microsoft Agent Framework. `donkey.agent_framework.chat_client("…")` builds an `OpenAIChatClient`
-(verified against 1.19.0 — the kwarg is `model=`) calls `/responses` through
-the SDK's own transport: **the run id goes on the wire and `last_call` is
+Microsoft Agent Framework. `donkey.agent_framework.chat_client("…")` builds an
+`OpenAIChatCompletionClient` (the kwarg is `model=`) that calls `/chat/completions`
+through the SDK's own transport (`api="responses"` opts into `OpenAIChatClient`
+and `/responses`): **the run id goes on the wire and `last_call` is
 observed** in the context that made the call.
 
 ## Install
