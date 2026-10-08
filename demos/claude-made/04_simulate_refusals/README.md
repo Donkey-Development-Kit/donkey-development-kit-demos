@@ -84,7 +84,7 @@ cp .env.example .env.local     # then fill in:
 
 **4. If something goes wrong:**
 
-- `No simulator at http://127.0.0.1:8080` — the port is taken or `[local]` is missing. Use another port: `DEMO_MOCK_URL=http://127.0.0.1:8099 make demo N=04`.
+- `Could not start the local simulator` — the port is taken or `[local]` / `[cli]` is missing. Use another port: `DEMO_MOCK_URL=http://127.0.0.1:8099 make demo N=04`.
 - Want the simulator in its own pane? Run `make mock` there, then `make demo N=04 ARGS="--no-autostart"`. `DEMO_QUIET_MOCK=0` shows its log.
 - `Missing prerequisites` — the demo names the module and the `pip install` line; it exits 0 without running anything.
 - `The demo raised` — re-run with `DEMO_TRACEBACK=1` for the full, still-masked traceback.

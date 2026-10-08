@@ -138,7 +138,7 @@ demos/showcase/
       telemetry.py          in-memory OTel exporter for the in-UI span viewer
       agent.py              the LangGraph graph (call_model inside typed_refusals())
       features.py           the feature catalog (single source of truth)
-      routes/               chat (SSE), compare, pace (SSE), conformance, doctor, telemetry
+      routes/               chat (SSE), cli, compare, conformance, features, pace (SSE), telemetry
     tests/
       agent_app.py          the agent factory the conformance suite grades
   frontend/                 Vite + React + TypeScript

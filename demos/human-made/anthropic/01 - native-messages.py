@@ -27,7 +27,7 @@ async def main() -> None:
         print("served_model   ", last.served_model)
         print("input_tokens   ", last.input_tokens)
         print("output_tokens  ", last.output_tokens)
-        # Anthropic's id is `request-id`, which last_call does not read yet.
+        # Anthropic's id is `request-id`; last_call reads it on SDK develop.
         print("request-id     ", raw.headers.get("request-id"))
         print("request_id     ", last.request_id)
 
