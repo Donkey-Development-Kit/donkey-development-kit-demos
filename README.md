@@ -113,13 +113,13 @@ rather than hide it:
 | `gemini` | `:generateContent` (`Format=Gemini`, plain `httpx`) | — | — | `classify(response)` |
 
 The typed-refusal column is the explicit pattern each script uses; it works on
-the released SDK and on `develop`. On SDK `develop` (0.1.2), an error leaving
+SDK 0.1.1 and later. From SDK 0.1.2, an error leaving
 `donkey.run()` or `@donkey.governed` is already typed (`PIIDetected` and the
 rest, with the framework's own error on `exc.framework_error`), and
 `donkey_kit.typed_refusals()` does the same around any block. ADK's `model()`
 is the exception: LiteLLM rebuilds the response, so 02 keeps its callback.
 
-On SDK `develop` the local simulator serves `/chat/completions` as well as
+From SDK 0.1.2 the local simulator serves `/chat/completions` as well as
 `/responses`. The `/chat/completions` folders predate that and have no
 simulator script; `strands/03` uses in-process `simulate()` instead.
 
