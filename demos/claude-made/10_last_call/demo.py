@@ -27,6 +27,8 @@ from _harness import narrate as say
 from _harness import preflight
 
 MODEL = os.environ.get("DEMO_MODEL", "gpt-4o")
+# Simulator-only: replays the live-captured semantic-routing 200 ('Finance').
+SEMANTIC_SENTINEL = "donkey-sim/success-semantic"
 
 
 def _unwrap_substituted(exc: BaseException) -> ModelSubstituted | None:
@@ -41,6 +43,12 @@ def _unwrap_substituted(exc: BaseException) -> ModelSubstituted | None:
         seen.add(id(current))
         current = current.__cause__ or current.__context__
     return None
+
+
+def _is_mock() -> bool:
+    from _harness import env
+
+    return env.target_is_mock()
 
 
 def _show(record: LastCall, *, label: str) -> None:
@@ -157,15 +165,88 @@ async def act_3_routing_and_usage(donkey: Donkey) -> None:
         "These are per-call; donkey.budget is the shared window (demo 03)."
     )
     say.note(
-        "The SDK never double-retries a fallback. It retries 502/503/504 with "
-        "backoff, but a 503 the gateway already marked as a failover is left "
-        "alone — a second recovery layer stacked on a working first one just "
-        "multiplies latency against an outage the gateway already handled."
+        "The SDK never double-retries a fallback. It retries a 503 with backoff, "
+        "but a 503 the gateway already marked as a failover is left alone — a "
+        "second recovery layer stacked on a working first one just multiplies "
+        "latency against an outage the gateway already handled. A 502 or 504 on "
+        "a model call is not re-sent at all unless you opt in "
+        "(retry_model_calls_on_gateway_errors): the upstream may already have "
+        "completed, and billed, the call."
     )
 
 
-async def act_4_opt_in_determinism() -> None:
-    say.step(4, "Opt in, and a substitution is a hard error instead of a flag")
+async def act_4_semantic_routing(donkey: Donkey) -> None:
+    say.step(4, "The same record, on a semantic-routing proxy")
+    model_based = donkey.last_call
+    if not hasattr(model_based, "matched_topic"):
+        say.warn(
+            "This donkey-kit predates matched_topic / routing_score on last_call. "
+            "Install the SDK this branch tracks to see the semantic branch."
+        )
+        return
+    say.code(
+        """
+        await client.responses.create(model="donkey-sim/success-semantic", input=...)
+        donkey.last_call.routing_type     # "Semantic"
+        donkey.last_call.matched_topic    # which topic the prompt matched
+        donkey.last_call.routing_score    # how close the match was
+        """
+    )
+    if _is_mock():
+        client = donkey.openai()
+        await client.responses.create(
+            model=SEMANTIC_SENTINEL, input="How do I calculate compound interest?"
+        )
+        say.note(
+            f"{SEMANTIC_SENTINEL} is a simulator sentinel: it replays the live "
+            "capture of a semantic-routing 200 (the 'Finance' topic), so this "
+            "branch runs offline. It means nothing to a real gateway."
+        )
+    else:
+        say.note(
+            "The sentinel is simulator-only, so no second call: the record below "
+            "is act 2's call against your proxy. On a model-based proxy the two "
+            "semantic fields stay None; on a semantic one they are filled in."
+        )
+    semantic = donkey.last_call
+    print()
+    say.section("Model-based (act 2) vs this call")
+    say.field("routing_type", f"{model_based.routing_type}  →  {semantic.routing_type}",
+              raw=True)
+    say.field("served", f"{model_based.served_provider}/{model_based.served_model}  →  "
+              f"{semantic.served_provider}/{semantic.served_model}", raw=True)
+    say.field("matched_topic", f"{model_based.matched_topic}  →  {semantic.matched_topic}",
+              raw=True)
+    say.field("routing_score", f"{model_based.routing_score}  →  {semantic.routing_score}",
+              raw=True)
+    say.field("substituted", f"{model_based.substituted}  →  {semantic.substituted}",
+              raw=True)
+    print()
+    if semantic.routing_type == "Semantic" and semantic.matched_topic is not None:
+        say.ok(
+            f"Semantic — matched '{semantic.matched_topic}' at "
+            f"{semantic.routing_score}, served by "
+            f"{semantic.served_provider}/{semantic.served_model}"
+        )
+        say.note(
+            "Same container, same four routing fields, two more filled in. Both "
+            "come from the semantic-only x-llm-proxy-semantic-routing-success "
+            "header, so on a model-based proxy they are None — not empty, not 0. "
+            "An unparseable message also leaves them None rather than guessing."
+        )
+        say.note(
+            "substituted is True here, and on a semantic proxy that is expected: "
+            "the gateway picks the model from the prompt's meaning, so the model "
+            "you sent is a placeholder. routing_type tells you which kind of "
+            "mismatch you are looking at. Keep that in mind before turning on "
+            "act 5's on_model_substitution='raise' against a semantic proxy."
+        )
+    elif _is_mock():
+        say.warn("the sentinel call did not report Semantic routing")
+
+
+async def act_5_opt_in_determinism() -> None:
+    say.step(5, "Opt in, and a substitution is a hard error instead of a flag")
     say.code(
         """
         donkey = Donkey.from_env(on_model_substitution="raise")
@@ -230,7 +311,9 @@ async def _main() -> None:
         say.pause()
         await act_3_routing_and_usage(donkey)
         say.pause()
-        await act_4_opt_in_determinism()
+        await act_4_semantic_routing(donkey)
+        say.pause()
+        await act_5_opt_in_determinism()
 
         print()
         say.section("The point")

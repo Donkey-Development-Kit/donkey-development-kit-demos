@@ -49,11 +49,11 @@ against.
 | 03 | [budget and pacing](demos/claude-made/03_budget_and_pacing/) | The token window as an object; `pace(reserve=)` and `wait_for_reset()` (only when `reset_at` is known) | nothing |
 | 04 | [simulating refusals](demos/claude-made/04_simulate_refusals/) | `donkey.simulate()`, `donkey mock --scenario`, and `start_gateway()` | nothing |
 | 05 | [conformance suite](demos/claude-made/05_conformance/) | `pytest --donkey-conformance` (and `donkey test`) grading a naive agent, then the fixed one | nothing |
-| 06 | [telemetry](demos/claude-made/06_telemetry/) | GenAI spans (`gen_ai.*` + `donkey.*`), `donkey.run(id=…)`, zero-config OTLP | nothing |
+| 06 | [telemetry](demos/claude-made/06_telemetry/) | GenAI spans (`gen_ai.*` + `donkey.*`), `donkey.run(id=…)`, zero-config OTLP (no implicit global provider) | nothing |
 | 07 | [model handles](demos/claude-made/07_model_handles/) | Honest gaps: no `/models` catalog; points at `donkey doctor` (demo 14) | nothing |
 | 08 | [framework objects](demos/claude-made/08_framework_objects/) | One deep adapter, seven at `connection_kwargs()` (Agents SDK: `{openai_client}`), an Agent Framework `Agent` whose `policy_middleware()` ends a simulated PII refusal as `PIIDetected` | nothing |
 | 09 | [LangGraph agent](demos/claude-made/09_langgraph_agent/) | A real tool-calling loop, governed end to end | **credentials** |
-| 10 | [last_call](demos/claude-made/10_last_call/) | Gateway identity, routing/usage on a 200; `ModelSubstituted` when you opt in | nothing |
+| 10 | [last_call](demos/claude-made/10_last_call/) | Gateway identity, routing/usage on a 200 (model-based and semantic); `ModelSubstituted` when you opt in | nothing |
 | 11 | [donkey init](demos/claude-made/11_cli_init/) | Commented `.donkey-kit.toml`, every gap named at once, no secrets on disk | nothing (`[cli]`) |
 | 12 | [ToolSet.filter](demos/claude-made/12_toolset_filter/) | Independent filtered views of MCP tools; binding still blocked on verification | nothing |
 | 13 | [JWT / model-wallet](demos/claude-made/13_jwt_wallet/) | `llm_proxy_auth="jwt"`: `X-Client-Id` + rotating JWT, no `client_secret` | nothing (`[llm]`) |
@@ -61,10 +61,10 @@ against.
 | 15 | [provider passthrough](demos/claude-made/15_provider_passthrough/) | Per-provider request id, Azure vs Bedrock guardrails, OpenAI vs Gemini error envelopes, ingress Formats | nothing |
 
 Every claude-made demo takes `--target mock` (default) or `--target live`. Demo
-09 is live only: the simulator replays a captured `/responses` completion and
-will not decide to call tools. The LangGraph adapter itself targets
-`/responses` (`use_responses_api=True`), the same live-verified route as
-`donkey.openai()`.
+09 is live only: the simulator replays a captured completion and will not
+decide to call tools. The LangGraph adapter calls `/chat/completions`
+(`use_responses_api=False`), the one route every upstream behind an
+OpenAI-format proxy serves.
 
 ```bash
 make list                   # claude-made table, from the filesystem
@@ -102,19 +102,26 @@ rather than hide it:
 | Folder | Route | `X-Correlation-Id` per run | `donkey.last_call` | Typed refusal |
 |---|---|---|---|---|
 | `openai` | `/responses` | yes | observed | `classify(err.response)` |
-| `langgraph` | `/responses` | yes | unobserved (LangChain's task) | `donkey.langgraph.typed_refusals()` |
+| `langgraph` | `/chat/completions` | yes | unobserved (LangChain's task) | `donkey.langgraph.typed_refusals()` |
 | `openai-agents` | `/responses` | yes | unobserved (Runner's task) | `classify(err.response)` |
-| `agent-framework` | `/responses` | no | unavailable | `classify(err.__cause__.response)` |
+| `agent-framework` | `/chat/completions` | yes | observed | `classify(err.__cause__.response)` |
 | `strands` | `/chat/completions` | yes | observed | `classify(err.response)` |
 | `crewai` | `/chat/completions` | no | unavailable | `classify(err.response)` |
-| `llamaindex` | `/chat/completions` | no | unavailable | `classify(err.response)` |
-| `adk` | `/chat/completions` (LiteLLM) | no | unavailable | none — LiteLLM drops the headers |
+| `llamaindex` | `/chat/completions` | yes | observed | `classify(err.response)` |
+| `adk` | `/chat/completions` (LiteLLM) | yes | in `after_model_callback` (Runner's task) | `classify()` in `on_model_error_callback` |
 | `anthropic` | `/v1/messages` (`Format=Anthropic`) | yes | observed | `classify(err.response)` |
 | `gemini` | `:generateContent` (`Format=Gemini`, plain `httpx`) | — | — | `classify(response)` |
 
-The local simulator serves only `/responses`, so the `/chat/completions`
-folders have no simulator script; `strands/03` uses in-process `simulate()`
-instead.
+The typed-refusal column is the explicit pattern each script uses; it works on
+SDK 0.1.1 and later. From SDK 0.1.2, an error leaving
+`donkey.run()` or `@donkey.governed` is already typed (`PIIDetected` and the
+rest, with the framework's own error on `exc.framework_error`), and
+`donkey_kit.typed_refusals()` does the same around any block. ADK's `model()`
+is the exception: LiteLLM rebuilds the response, so 02 keeps its callback.
+
+From SDK 0.1.2 the local simulator serves `/chat/completions` as well as
+`/responses`. The `/chat/completions` folders predate that and have no
+simulator script; `strands/03` uses in-process `simulate()` instead.
 
 ### `openai/`
 
@@ -129,7 +136,7 @@ instead.
 | 07 | [otel exporter advanced](demos/human-made/openai/07%20-%20otel%20exporter%20advanced.py) | Several `donkey.run(team=…, project=…)` + a refusal span | proxy + OTLP |
 | 08 | [last-call](demos/human-made/openai/08%20-%20last-call.py) | Full `last_call` record; `on_model_substitution="raise"` | proxy creds |
 | 09 | [governed-and-tool](demos/human-made/openai/09%20-%20governed-and-tool.py) | `@donkey.governed` and `@donkey.tool` | nothing |
-| 10 | [zero-config-otlp](demos/human-made/openai/10%20-%20zero-config-otlp.py) | `Donkey.from_env()` installs OTLP when the env var is set | proxy creds |
+| 10 | [zero-config-otlp](demos/human-made/openai/10%20-%20zero-config-otlp.py) | `Donkey.from_env()` exports Donkey's own spans over OTLP when the env var is set | proxy creds |
 | 11 | [gateway-unavailable](demos/human-made/openai/11%20-%20gateway-unavailable.py) | Dead origin → `GatewayUnavailable` as `__cause__` | nothing |
 | 12 | [streaming](demos/human-made/openai/12%20-%20streaming.py) | `responses` SSE; `last_call` usage after the terminal event | proxy creds (live) |
 | 13 | [regex-and-content-safety](demos/human-made/openai/13%20-%20regex-and-content-safety.py) | Live regex-prompt-guard and Azure content-safety | proxy + those policies |
@@ -185,7 +192,7 @@ instead.
 | 01 | [basic-gw](demos/human-made/llamaindex/01%20-%20basic-gw.py) | `OpenAILike` `complete` and `chat` | proxy creds |
 | 02 | [typed-refusals-live](demos/human-made/llamaindex/02%20-%20typed-refusals-live.py) | PII / unknown model / bad creds | proxy creds + policies |
 | 01 | [basic-gw](demos/human-made/adk/01%20-%20basic-gw.py) | `LiteLlm` agent through `InMemoryRunner` | proxy creds |
-| 02 | [refusal-live](demos/human-made/adk/02%20-%20refusal-live.py) | PII 403 as a LiteLLM `APIError` — status only | proxy creds + PII policy |
+| 02 | [refusal-live](demos/human-made/adk/02%20-%20refusal-live.py) | PII 403 typed as `PIIDetected` in `on_model_error_callback` | proxy creds + PII policy |
 
 ### `anthropic/`, `gemini/`
 
@@ -212,17 +219,17 @@ source .venv/bin/activate      # once per terminal
 python -m pip install -e .
 
 # 2. The SDK. Either the release this branch tracks, from PyPI…
-python -m pip install -e ".[full]"      # donkey-kit 0.1.1 + langchain
+python -m pip install -e ".[full]"      # donkey-kit 0.1.2 + langchain
 
 #    …or your own checkout, on the matching SDK branch (main here)
 python -m pip install -e "../donkey-development-kit/python[llm,local,test,otel,langgraph,cli]"
 python -m pip install "langchain>=1.0"   # demo 09 only; no donkey-kit extra ships it
 ```
 
-**Which SDK each branch tracks.** `main` runs against the SDK's latest release
-(`main`, on PyPI), so `[sdk]` and `[full]` pin it exactly. `develop` tracks the
-SDK's `develop`. Don't run `main` demos against an SDK `develop` checkout:
-module paths and CLI flags change between releases.
+**Which SDK each branch tracks.** `main` (this branch) runs against the SDK's
+latest release (`main`, on PyPI), so here `[sdk]` and `[full]` pin it exactly.
+`develop` tracks the SDK's `develop`, so there they pin the git ref `@develop`.
+Don't mix the two: module paths and CLI flags change between releases.
 CI enforces this: the `SDK alignment` workflow checks the pin
 (`make check-sdk`) and runs `make offline` against it on every PR, and nightly
 on both branches, so an SDK release or a breaking SDK `develop` change shows up

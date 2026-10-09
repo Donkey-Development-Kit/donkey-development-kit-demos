@@ -7,8 +7,11 @@ rather than a bespoke one.
 
 Both come from the same place the budget and the typed refusals come from — the
 one client every request leaves through. Set `OTEL_EXPORTER_OTLP_ENDPOINT` and
-`Donkey.from_env()` installs the exporter; with no endpoint the path is inert
-and silent. This demo installs an in-memory exporter so the spans can be a table.
+`Donkey.from_env()` builds an exporter for Donkey's own spans; with no endpoint
+the path is inert and silent. Donkey never takes over the process-global
+TracerProvider unless you opt in (`DONKEY_TELEMETRY_INSTALL_GLOBAL=true`), and a
+provider the host sets, before or after `Donkey()`, always wins. This demo is the
+host: it owns an in-memory provider so the spans can be a table.
 
 Two attribute namespaces land on one span, deliberately:
 
@@ -57,7 +60,9 @@ MODEL = os.environ.get("DEMO_MODEL", "gpt-4o")
 
 def _install_exporter():
     """An in-memory exporter, so the demo can show the spans as a table instead
-    of as a wall of console-exporter JSON."""
+    of as a wall of console-exporter JSON. The demo owns the global provider, so
+    Donkey's spans ride it on every SDK version (older ones defer to a host
+    provider; newer ones never take the global slot without an opt-in)."""
     from opentelemetry import trace
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import SimpleSpanProcessor
@@ -263,9 +268,12 @@ async def act_4_otlp_export() -> None:
         """
         # no Donkey-specific variable
         export OTEL_EXPORTER_OTLP_ENDPOINT=https://…
-        donkey = Donkey.from_env()   # installs OTLP behind a BatchSpanProcessor
+        donkey = Donkey.from_env()   # OTLP behind a BatchSpanProcessor, for Donkey's spans
         # no endpoint → inert, silent, nothing connects
         # DONKEY_TELEMETRY=false    → opt out even if an endpoint is set
+        # Donkey leaves trace.get_tracer_provider() alone; to make its provider
+        # the global one (other libraries' spans too):
+        #   export DONKEY_TELEMETRY_INSTALL_GLOBAL=true
         """
     )
     traces = os.environ.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "").strip()
@@ -276,18 +284,20 @@ async def act_4_otlp_export() -> None:
             "set",
         )
         say.note(
-            "An endpoint is set, so Donkey.from_env() would install OTLP — unless "
-            "a TracerProvider is already in place. This demo installed an "
-            "in-memory one first, so Donkey rode it rather than replacing it. "
-            "Your spans still land in the table above. Opt out with "
-            "DONKEY_TELEMETRY=false."
+            "An endpoint is set, so Donkey.from_env() builds an OTLP exporter for "
+            "its own spans — but a TracerProvider the host owns always wins. "
+            "This demo set an in-memory one, so Donkey rode it and its own "
+            "exporter went unused. Your spans still land in the table above. "
+            "Opt out with DONKEY_TELEMETRY=false."
         )
     else:
         say.ok("no OTEL_EXPORTER_OTLP_ENDPOINT — export stayed inert and silent")
         say.note(
-            "Donkey.from_env() installs OTLP only when that standard env var is "
-            "set. It will not clobber a TracerProvider the host already installed "
-            "— which is why this demo's in-memory table still works. Opt out with "
+            "Donkey.from_env() sets up OTLP only when that standard env var is "
+            "set, and only for its own spans: it does not take the global "
+            "TracerProvider unless DONKEY_TELEMETRY_INSTALL_GLOBAL=true, and a "
+            "provider the host sets, even after Donkey(), wins — which is why "
+            "this demo's in-memory table works. Opt out with "
             "DONKEY_TELEMETRY=false (or telemetry = false in .donkey-kit.toml). "
             "Cost tags on donkey.run(team=..., project=...) are what let a "
             "backend slice refusals, budget and latency by agent without another "

@@ -143,10 +143,10 @@ def act_2_connection_kwargs(donkey: Donkey) -> None:
         "the supported surface."
     )
     say.note(
-        "LangGraph is the only adapter held to the conformance bar. It sets "
-        "use_responses_api=True so ChatOpenAI calls /responses rather than its "
-        "/chat/completions default: /responses is the raw client's route and the "
-        "only one the local simulator serves."
+        "LangGraph is the only adapter held to the conformance bar. It keeps "
+        "ChatOpenAI on /chat/completions (use_responses_api=False), the one route "
+        "every upstream behind an OpenAI-format proxy serves; pass "
+        "use_responses_api=True to opt into /responses on an OpenAI-routed proxy."
     )
 
 

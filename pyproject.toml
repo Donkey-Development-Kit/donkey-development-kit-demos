@@ -23,12 +23,12 @@ dependencies = ["httpx>=0.27"]
 # harness starts for every mock-target demo. Skip it if you already have a local
 # checkout.
 sdk = [
-  "donkey-kit[llm,local,test,cli]==0.1.1",
+  "donkey-kit[llm,local,test,cli]==0.1.2",
 ]
 # Everything the full walkthrough can exercise, including the deep adapter.
 # `langchain` is for demo 09's `create_agent`; no donkey-kit extra ships it.
 full = [
-  "donkey-kit[llm,local,test,cli,otel,langgraph]==0.1.1",
+  "donkey-kit[llm,local,test,cli,otel,langgraph]==0.1.2",
   "langchain>=1.0",
 ]
 dev = ["ruff>=0.6"]

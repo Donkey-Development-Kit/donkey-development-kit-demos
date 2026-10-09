@@ -220,9 +220,11 @@ a refused request produces an `ERROR` span, because a span that ends OK on a
 refusal makes a dashboard say everything is fine. Act 1 also now shows
 `gen_ai.response.model` vs `gen_ai.request.model` and `donkey.routing.*` —
 when those differ, a failover happened. Act 4 is zero-config OTLP: set
-`OTEL_EXPORTER_OTLP_ENDPOINT` and `Donkey.from_env()` installs it; no endpoint
-is inert and silent; `DONKEY_TELEMETRY=false` opts out. This demo's in-memory
-`TracerProvider` is left alone — Donkey will not clobber a host provider.
+`OTEL_EXPORTER_OTLP_ENDPOINT` and `Donkey.from_env()` exports its own spans; no
+endpoint is inert and silent; `DONKEY_TELEMETRY=false` opts out. Donkey does not
+take the process-global `TracerProvider` unless you set
+`DONKEY_TELEMETRY_INSTALL_GLOBAL=true`, and a host provider always wins, even
+one set after `Donkey()`. This demo's in-memory `TracerProvider` is the host's.
 
 **The line that lands with platform teams** is act 2. `donkey.run(id="ticket-4417")`
 binds *your* identifier — not a uuid — and every call inside the block carries
@@ -256,11 +258,11 @@ first.
 **Point at:** `connection_kwargs()` being the *entire supported surface* for
 seven of the eight — which makes it the most load-bearing method in the module,
 not the least. LangGraph is the only adapter held to the conformance bar, and
-it targets `/responses`. And at `donkey.openai_agents`, which is the Agents SDK
+it calls `/chat/completions`. And at `donkey.openai_agents`, which is the Agents SDK
 adapter; `donkey.openai()` is the raw client and got the good name. Then point
 at `connection_kwargs()` for the Agents SDK: one key, `openai_client`, a real
-`AsyncOpenAI`. Agent Framework's `OpenAIChatClient(model=…)` is confirmed
-offline against 1.19.0 — the kwarg is `model=`, not `model_id`. Then act 4:
+`AsyncOpenAI`. Agent Framework's `chat_client()` builds an
+`OpenAIChatCompletionClient(model=…)` — the kwarg is `model=`, not `model_id`. Then act 4:
 a real `Agent` with `middleware=[donkey.agent_framework.policy_middleware()]`,
 run under `donkey.simulate(PIIDetected)`. `agent.run()` ends as `PIIDetected`,
 with the run's correlation id, not as Agent Framework's generic
@@ -293,7 +295,10 @@ facts used to vanish. `donkey.last_call` is that record."
 **Point at:** three honest states, never a bare `None`. Then `substituted` —
 against the simulator this lights up because the captured fixture was served
 by a different model than the one we asked for; that is the fixture talking,
-and it is exactly the mismatch the record exists to surface. Then
+and it is exactly the mismatch the record exists to surface. Then act 4, the
+same record on a semantic-routing proxy: `routing_type` flips to `Semantic` and
+`matched_topic` / `routing_score` (`Finance`, `0.62`) fill in where the
+model-based call had `None`. Then
 `on_model_substitution="raise"` turning the flag into `ModelSubstituted`,
 which is not a `PolicyViolation`. Pair this with demo 06 if the room is
 platform-heavy: the same facts land on the span.
@@ -385,7 +390,7 @@ DEMO_REDACT=0 python run.py 01     # never `export DEMO_REDACT=0`
 
 | Symptom | Cause | Do this |
 |---|---|---|
-| `No simulator at http://127.0.0.1:8080` | Port taken, or `[local]` not installed | `DEMO_MOCK_URL=http://127.0.0.1:8099 make demo N=03` |
+| `Could not start the local simulator` | Port taken, or `[local]` / `[cli]` not installed | `DEMO_MOCK_URL=http://127.0.0.1:8099 make demo N=03` |
 | `donkey: command not found` | CLI extra missing | `pip install "donkey-kit[cli,local]"` — or run demos 02, 07, 08, which need no simulator |
 | Demo 05 warns about the pytest11 entry point | Editable install predates the plugin | Harmless; it loads the plugin by module instead. `pip install -e python` in the SDK checkout to clear it |
 | Demo 09 exits with setup guidance | Credentials not loaded | Expected, not a failure. Switch to demo 08 |

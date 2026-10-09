@@ -65,8 +65,8 @@ python "demos/human-made/openai/11 - gateway-unavailable.py"
 python "demos/human-made/openai/15 - start-gateway.py"            # needs [local]
 python "demos/human-made/langgraph/08 - gateway-unavailable.py"
 python "demos/human-made/langgraph/09 - start-gateway.py"         # needs [local]
-python "demos/human-made/openai-agents/03 - start-gateway.py"     # needs [local]
-python "demos/human-made/agent-framework/03 - start-gateway.py"   # needs [local]
+python "demos/human-made/openai-agents/03 - start-gateway.py"     # needs [local,openai-agents]
+python "demos/human-made/agent-framework/03 - start-gateway.py"   # needs [local,agent_framework]
 ```
 
 The `*-simulated.py` scripts also make no network call, but read
@@ -78,5 +78,19 @@ Frameworks pin conflicting dependencies; one environment per framework is the
 safe default. If you want one environment anyway:
 
 ```bash
-python -m pip install -e "../donkey-development-kit/python[all]" "langchain>=1.0" "strands-agents[openai]"
+python -m pip install -e "../donkey-development-kit/python[llm,local,cli,otel,langgraph,openai-agents,agent_framework,anthropic,strands,crewai,llamaindex,adk]" "langchain>=1.0"
+```
+
+`[all]` is not enough: on SDK `develop` it is `llm,langgraph,otel,cli,local`
+only, with no other framework.
+
+## After updating the SDK
+
+If `donkey mock` or `donkey doctor` fails with
+`ModuleNotFoundError: No module named 'donkey_kit.provisioning.cli'`, the
+console script is stale (the CLI moved to `donkey_kit.cli`). Reinstall the
+editable SDK with the extras you use, e.g.:
+
+```bash
+python -m pip install -e "../donkey-development-kit/python[llm,local,cli]"
 ```

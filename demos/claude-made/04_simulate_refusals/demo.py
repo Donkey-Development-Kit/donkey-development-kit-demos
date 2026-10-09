@@ -26,9 +26,13 @@ from donkey_kit import (
     PIIDetected,
     PromptInjectionBlocked,
     TokenBudgetExceeded,
-    ToolInvocationError,
 )
 from donkey_kit.core.errors import DonkeyError, classify
+
+try:  # moved to donkey_kit.experimental in #730; the old spelling now warns
+    from donkey_kit.experimental import ToolInvocationError
+except ImportError:
+    from donkey_kit import ToolInvocationError
 
 from _harness import narrate as say
 from _harness import preflight
@@ -181,7 +185,7 @@ async def act_5_what_it_refuses_to_fake(donkey: Donkey) -> None:
         say.field("message", exc)
     print()
     say.note(
-        "Tool invocation, registry, and provisioning errors are not gateway "
+        "Tool invocation and registry errors are not gateway "
         "refusals, and they have no captured wire shape. GatewayUnavailable is "
         "the same kind of gap for a different reason: there is no HTTP response "
         "at all, so there is nothing to replay. Injecting a plausible body would "
