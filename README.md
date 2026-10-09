@@ -218,18 +218,18 @@ source .venv/bin/activate      # once per terminal
 # 1. The demo harness (adds _harness to the path; no SDK pinned)
 python -m pip install -e .
 
-# 2. The SDK. Either the branch this one tracks, from git…
-python -m pip install -e ".[full]"      # donkey-kit @ develop + langchain
+# 2. The SDK. Either the release this branch tracks, from PyPI…
+python -m pip install -e ".[full]"      # donkey-kit 0.1.2 + langchain
 
-#    …or your own checkout, on the matching SDK branch (develop here)
+#    …or your own checkout, on the matching SDK branch (main here)
 python -m pip install -e "../donkey-development-kit/python[llm,local,test,otel,langgraph,cli]"
 python -m pip install "langchain>=1.0"   # demo 09 only; no donkey-kit extra ships it
 ```
 
-**Which SDK each branch tracks.** `main` runs against the SDK's latest release
-(`main`, on PyPI), so there `[sdk]` and `[full]` pin it exactly. `develop` (this
-branch) tracks the SDK's `develop`, so here they pin the git ref `@develop`. Don't
-mix the two: module paths and CLI flags change between releases.
+**Which SDK each branch tracks.** `main` (this branch) runs against the SDK's
+latest release (`main`, on PyPI), so here `[sdk]` and `[full]` pin it exactly.
+`develop` tracks the SDK's `develop`, so there they pin the git ref `@develop`.
+Don't mix the two: module paths and CLI flags change between releases.
 CI enforces this: the `SDK alignment` workflow checks the pin
 (`make check-sdk`) and runs `make offline` against it on every PR, and nightly
 on both branches, so an SDK release or a breaking SDK `develop` change shows up
