@@ -12,7 +12,9 @@ silently ran against unreleased code until it was pinned (#25).
 
 What each branch must pin, in every `donkey-kit` line of `[sdk]` and `[full]`:
 
-* `main`: `donkey-kit[...]==X`, where X is `project.version` on SDK `main`.
+* `main`: `donkey-kit[...]==X`, where X is the version on SDK `main`: its
+  `__version__`, or `project.version` for releases from before that became the
+  single source (donkey-development-kit#1075).
   When the SDK releases, this fails until the pin is bumped, by design.
 * `develop`: `donkey-kit[...] @ git+https://…/donkey-development-kit.git@develop#subdirectory=python`.
 
@@ -43,13 +45,12 @@ except ModuleNotFoundError:  # Python 3.10
 REPO = Path(__file__).resolve().parents[1]
 SDK_REPO = "Donkey-Development-Kit/donkey-development-kit"
 SDK_GIT = f"git+https://github.com/{SDK_REPO}.git@develop#subdirectory=python"
-SDK_MAIN_PYPROJECT = (
-    f"https://raw.githubusercontent.com/{SDK_REPO}/main/python/pyproject.toml"
-)
+SDK_MAIN_RAW = f"https://raw.githubusercontent.com/{SDK_REPO}/main/python"
 CHECKED_EXTRAS = ("sdk", "full")
 REQUIRED_SDK_EXTRAS = {"llm", "local", "test", "cli"}
 
 _REQ = re.compile(r"^donkey-kit\[(?P<extras>[^\]]*)\]\s*(?P<spec>.*)$")
+_DUNDER_VERSION = re.compile(r'^__version__\s*=\s*"(?P<version>[^"]+)"', re.M)
 
 
 def _current_branch() -> str:
@@ -72,9 +73,20 @@ def _target(branch: str) -> str:
     return "main" if branch.startswith("hotfix/") else "develop"
 
 
+def _fetch(path: str) -> str:
+    with urllib.request.urlopen(f"{SDK_MAIN_RAW}/{path}", timeout=30) as response:
+        return response.read().decode()
+
+
 def _sdk_main_version() -> str:
-    with urllib.request.urlopen(SDK_MAIN_PYPROJECT, timeout=30) as response:
-        return tomllib.loads(response.read().decode())["project"]["version"]
+    # The SDK's single version source is `__version__` in the package; its
+    # pyproject version is dynamic (donkey-development-kit#1075). Releases from
+    # before that change carry it only as a static `project.version`.
+    if match := _DUNDER_VERSION.search(_fetch("src/donkey_kit/__init__.py")):
+        return match["version"]
+    if version := tomllib.loads(_fetch("pyproject.toml"))["project"].get("version"):
+        return version
+    sys.exit("could not read the SDK main version from __version__ or pyproject.toml")
 
 
 def _problems(target: str, sdk_version: str | None) -> list[str]:
