@@ -219,7 +219,7 @@ source .venv/bin/activate      # once per terminal
 python -m pip install -e .
 
 # 2. The SDK. Either the release this branch tracks, from PyPI…
-python -m pip install -e ".[full]"      # donkey-kit 0.1.2 + langchain
+python -m pip install -e ".[full]"      # donkey-kit 0.1.3 + langchain
 
 #    …or your own checkout, on the matching SDK branch (main here)
 python -m pip install -e "../donkey-development-kit/python[llm,local,test,otel,langgraph,cli]"
