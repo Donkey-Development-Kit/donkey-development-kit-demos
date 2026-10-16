@@ -2,7 +2,7 @@
 
 `donkey.langgraph("…")` returns a real `langchain_openai.ChatOpenAI`
 with `use_responses_api=False`, so calls go to `/chat/completions`, the one
-route every upstream behind an OpenAI-format proxy serves. This is the one deep, conformance-gated adapter.
+route every upstream behind an OpenAI-format proxy serves. This is the first deep, conformance-gated adapter; the OpenAI Agents SDK is the second.
 
 ## Install
 

@@ -251,14 +251,14 @@ Good filler if you are running ahead; safe to cut entirely if behind.
 
 ### 08 — framework objects
 
-**Say:** "One deep adapter, seven at `connection_kwargs()`. That is a deliberate
+**Say:** "Two deep adapters, six at `connection_kwargs()`. That is a deliberate
 cut, not a roadmap gap." The uneven roster is easier to defend when you name it
 first.
 
 **Point at:** `connection_kwargs()` being the *entire supported surface* for
-seven of the eight — which makes it the most load-bearing method in the module,
-not the least. LangGraph is the only adapter held to the conformance bar, and
-it calls `/chat/completions`. And at `donkey.openai_agents`, which is the Agents SDK
+six of the eight — which makes it the most load-bearing method in the module,
+not the least. LangGraph and the Agents SDK are the adapters held to the
+conformance bar, and both call `/chat/completions`. And at `donkey.openai_agents`, which is the Agents SDK
 adapter; `donkey.openai()` is the raw client and got the good name. Then point
 at `connection_kwargs()` for the Agents SDK: one key, `openai_client`, a real
 `AsyncOpenAI`. Agent Framework's `chat_client()` builds an

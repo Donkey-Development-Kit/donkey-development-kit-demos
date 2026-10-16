@@ -6,8 +6,8 @@ two tools, the tools return, the model composes an answer. Every model call in
 that loop goes through the governed proxy, and the object driving it is
 LangChain's own `ChatOpenAI` — not a wrapper the SDK invented.
 
-This is the deep, conformance-gated adapter. The other seven frameworks are
-supported at `connection_kwargs()` (demo 08).
+This is the first deep, conformance-gated adapter (the OpenAI Agents SDK is the
+second). The other six frameworks are supported at `connection_kwargs()` (demo 08).
 
 **Live only.** This is a real multi-step tool-calling loop, so it needs a model
 that can actually decide to call tools. The local simulator replays a captured
