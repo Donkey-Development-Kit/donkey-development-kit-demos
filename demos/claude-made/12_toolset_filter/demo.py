@@ -6,28 +6,40 @@ predicate=...)` returns a *new* ToolSet: the parent is unchanged, and two
 filtered views do not clobber each other.
 
 This is the part that is shipped and pure. Binding those tools into LangGraph /
-ADK / … still raises `blocked on verification` — Exchange and the MCP Bridge
-have not been confirmed against a sandbox, so the demo does not pretend they
-work.
+ADK / … first refuses any server that is not governed (`UngovernedMcpServer`,
+before a connection opens), then still raises `blocked on verification`: the
+binders' class names have not been confirmed, so the demo does not pretend
+they work.
 
     python demos/claude-made/12_toolset_filter/demo.py
 """
 
 from __future__ import annotations
 
-from donkey_kit.registry import AssetRef, McpServerHandle
+from donkey_kit.registry import AssetRef, GovernanceReport, McpServerHandle
 from donkey_kit.tools import ToolSet
+from donkey_kit.tools.session import UngovernedMcpServer
 
 from _harness import narrate as say
 from _harness import preflight
 
 
-def _server(asset_id: str, tools: tuple[str, ...]) -> McpServerHandle:
+def _server(
+    asset_id: str, tools: tuple[str, ...], governance: GovernanceReport | None = None
+) -> McpServerHandle:
     return McpServerHandle(
         ref=AssetRef("com.acme", asset_id, "1.0.0"),
         endpoint_url=f"https://mcp.example.invalid/{asset_id}",
         tool_descriptors=tuple({"name": name} for name in tools),
+        governance=governance,
     )
+
+
+def _servers(governance: GovernanceReport | None = None) -> list[McpServerHandle]:
+    return [
+        _server("hr", ("get_employee", "update_salary"), governance),
+        _server("crm", ("get_employee", "create_lead"), governance),
+    ]
 
 
 def act_1_independent_views() -> ToolSet:
@@ -39,9 +51,7 @@ def act_1_independent_views() -> ToolSet:
         write_only = tools.filter(deny=["get_employee"])
         """
     )
-    hr = _server("hr", ("get_employee", "update_salary"))
-    crm = _server("crm", ("get_employee", "create_lead"))
-    tools = ToolSet([hr, crm])
+    tools = ToolSet(_servers())
     read_only = tools.filter(allow=["get_employee"])
     write_only = tools.filter(deny=["get_employee"])
 
@@ -64,39 +74,54 @@ def act_1_independent_views() -> ToolSet:
     return tools
 
 
-def act_2_binding_is_blocked(tools: ToolSet) -> None:
-    say.step(2, "Binding into a framework is still blocked on verification")
+def act_2_binding_is_refused_then_blocked(tools: ToolSet) -> None:
+    say.step(2, "Binding refuses ungoverned servers, then is blocked on verification")
     say.code(
         """
-        tools.langgraph()   # → NotImplementedError("blocked on verification")
+        tools.langgraph()           # → UngovernedMcpServer (no governance verdict)
+        governed.langgraph()        # → NotImplementedError("blocked on verification")
         """
     )
     try:
         tools.langgraph()
+        say.fail("expected UngovernedMcpServer")
+    except UngovernedMcpServer as exc:
+        say.ok("refused before any connection — no gateway credentials were sent")
+        say.field("servers", list(exc.servers), raw=True)
+        say.field("reasons", list(exc.reasons), raw=True)
+    print()
+
+    # The verdict discover(governed=True) would attach; built by hand here.
+    governed = ToolSet(_servers(GovernanceReport(governed=True, checks=[])))
+    try:
+        governed.langgraph()
         say.fail("expected blocked on verification")
     except NotImplementedError as exc:
-        say.ok("blocked on verification — Exchange / MCP Bridge are unconfirmed")
+        say.ok("a governed set passes the check, and binding is still blocked")
         say.field("message", str(exc).splitlines()[0])
     print()
     say.note(
-        "Filter and collision resolution are pure, so they shipped. The per-"
-        "framework binders open a real MCP session, and those class names are "
-        "not confirmed, so they raise rather than guess. @donkey.tool (demo 01) "
-        "is a different marker — it records a Python callable, it does not "
-        "discover MCP tools."
+        "The governed transport attaches your gateway credentials to every MCP "
+        "request, so binding a server the gateway does not front would hand them "
+        "to it. donkey.tools.discover(governed=True) attaches the verdict; a "
+        "handle built by hand has none, so it is refused. Past that check the "
+        "per-framework binders still raise, because their class names are not "
+        "confirmed. @donkey.tool (demo 01) is a different marker: it records a "
+        "Python callable, it does not discover MCP tools."
     )
 
 
 def main() -> None:
     tools = act_1_independent_views()
     say.pause()
-    act_2_binding_is_blocked(tools)
+    act_2_binding_is_refused_then_blocked(tools)
 
     print()
     say.section("The point")
     say.note(
-        "Two filtered views of the same servers, neither mutating the parent. "
-        "That is the whole shipped surface. Discover and bind come later."
+        "Two filtered views of the same servers, neither mutating the parent, and "
+        "a binder that refuses any server the gateway does not govern before it "
+        "opens a connection. Binding itself comes later."
     )
 
 
@@ -104,6 +129,6 @@ if __name__ == "__main__":
     preflight.cli(
         main,
         title="Demo 12 — ToolSet.filter",
-        subtitle="Independent filtered views of MCP tools. Binding is still blocked on verification.",
+        subtitle="Independent filtered views of MCP tools. Binding refuses ungoverned servers.",
         target="offline",
     )
