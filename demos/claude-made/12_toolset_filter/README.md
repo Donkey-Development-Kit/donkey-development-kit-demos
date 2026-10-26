@@ -1,7 +1,8 @@
 # 12 — ToolSet.filter
 
 **Claim:** filtering MCP tools is shipped and pure. Binding them into a
-framework is not, and the SDK says so.
+framework refuses any server that is not governed, and past that is still
+blocked on verification. The SDK says so.
 
 ```bash
 make demo N=12
@@ -12,8 +13,11 @@ handles are constructed in-process with obviously-fake endpoints.
 
 **Two acts.** `ToolSet.filter(allow=…)` / `deny=…` each return a new ToolSet;
 the parent `name_map` is unchanged, and colliding `get_employee` names are
-prefixed `hr__get_employee`. Then `tools.langgraph()` raises `blocked on
-verification` because Exchange / MCP Bridge class names are unconfirmed.
+prefixed `hr__get_employee`. Then `tools.langgraph()` raises
+`UngovernedMcpServer`: the hand-built handles carry no governance verdict, so
+binding is refused before a connection opens. The same set with a governed
+verdict passes that check and raises `blocked on verification`, because the
+binders' class names are unconfirmed.
 
 **Point at:** this is not `@donkey.tool` (demo 01). That marker records a
 Python callable. This filters descriptors from MCP server handles.
@@ -41,7 +45,7 @@ python run.py 12                           # same thing without make
 **3. What you should see:**
 
 1. `ToolSet.filter(allow=…)` and `deny=…` returning new sets; the parent `name_map` unchanged; `hr__get_employee` prefixing.
-2. `tools.langgraph()` raising `blocked on verification`.
+2. `tools.langgraph()` raising `UngovernedMcpServer` (servers and reasons listed), then the governed set raising `blocked on verification`.
 
 **4. If something goes wrong:**
 

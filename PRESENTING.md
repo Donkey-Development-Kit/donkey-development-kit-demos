@@ -317,7 +317,9 @@ Good filler if you are running ahead. Pair with 07 if the room is ops-heavy.
 
 **Say:** "Filter shipped. Bind did not." Show two views of the same servers
 (`allow=` / `deny=`), the parent unchanged, colliding `get_employee` names
-prefixed. Then `tools.langgraph()` raising `blocked on verification`.
+prefixed. Then `tools.langgraph()` refusing the ungoverned servers
+(`UngovernedMcpServer`, no credentials sent), and the governed set raising
+`blocked on verification`.
 
 Do not let this become a discovery demo. Exchange and the MCP Bridge are still
 unconfirmed. `@donkey.tool` (demo 01) is a different marker.
