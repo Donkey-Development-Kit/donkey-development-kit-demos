@@ -1,0 +1,47 @@
+name: Publish from CI (demo 16)
+
+# Demo 16: the scan-and-publish action (Donkey-Development-Kit/donkey-development-kit#219)
+# on demos/claude-made/16_publish_from_ci/server. A PR gets a dry run: the plan
+# in the job summary, nothing sent. A push to develop publishes for real to
+# Exchange, and only what changed (--if-changed). The action is pinned to the
+# SDK's develop branch, which demos develop tracks; it moves to a release tag
+# when demos main does.
+
+on:
+  pull_request:
+    paths:
+      - "demos/claude-made/16_publish_from_ci/server/**"
+      - ".github/workflows/publish-from-ci.yml"
+  push:
+    branches: [develop]
+    paths:
+      - "demos/claude-made/16_publish_from_ci/server/**"
+      - ".github/workflows/publish-from-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One publish at a time; a newer push waits rather than racing it.
+concurrency:
+  group: publish-from-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Fork PRs get no secrets, and the plan needs the org ID as its group.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Tracks SDK develop until the action ships in a release (see the header).
+      - uses: Donkey-Development-Kit/donkey-development-kit/action@develop # zizmor: ignore[unpinned-uses]
+        with:
+          path: demos/claude-made/16_publish_from_ci/server
+          dry-run: ${{ github.event_name == 'pull_request' }}
+          client-id: ${{ secrets.ANYPOINT_CLIENT_ID }}
+          client-secret: ${{ secrets.ANYPOINT_CLIENT_SECRET }}
+          org-id: ${{ secrets.ANYPOINT_ORG_ID }}

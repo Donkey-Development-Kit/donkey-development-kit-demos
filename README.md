@@ -59,6 +59,7 @@ against.
 | 13 | [JWT / model-wallet](demos/claude-made/13_jwt_wallet/) | `llm_proxy_auth="jwt"`: `X-Client-Id` + rotating JWT, no `client_secret` | nothing (`[llm]`) |
 | 14 | [donkey doctor](demos/claude-made/14_cli_doctor/) | Wrong URL / wrong creds / model-not-allowed, against the local simulator | nothing (`[cli]` `[local]`) |
 | 15 | [provider passthrough](demos/claude-made/15_provider_passthrough/) | Per-provider request id, Azure vs Bedrock guardrails, OpenAI vs Gemini error envelopes, ingress Formats | nothing |
+| 16 | [publish from CI](demos/claude-made/16_publish_from_ci/) | `donkey publish` dry-run plan and digest; the GitHub Action publishing an MCP server to Exchange on merge | nothing (`[cli]`) |
 
 Every claude-made demo takes `--target mock` (default) or `--target live`. Demo
 09 is live only: the simulator replays a captured completion and will not

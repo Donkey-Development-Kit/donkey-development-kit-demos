@@ -356,6 +356,19 @@ question has a different wire answer on OpenAI, Bedrock and Gemini."
 never happened. Act 4: Format is fixed per proxy; `donkey.anthropic` needs a
 `Format=Anthropic` proxy, and Gemini-native has no adapter on purpose.
 
+### 16 — publish from CI
+
+**Say:** "Nobody registers this server by hand. The decorator and a version
+number are the registration; merging is the publish."
+
+**Point at:** act 1's `asset` line: the group is the org ID, which is a fake one
+here and a secret in CI, so nothing org-specific is in the repo. In act 2, the
+digest stays the same on a re-run and moves on a one-line docstring edit. That
+is why a merge that changes nothing publishes nothing, and why an edited tool
+needs a version bump. Then open the repo's Actions tab: a PR run's job summary
+is the same plan, and the `develop` run's summary shows `published` or
+`unchanged`.
+
 ## Screen-recording safety
 
 Output masking is on by default and you should leave it on. It covers the three
