@@ -5,8 +5,17 @@
 # committed here.
 
 [donkey.publication]
-# Exchange never overwrites a version. Change the tool, bump this.
-version = "1.0.0"
+# Exchange never overwrites a version. Change the tool or its page, bump this.
+version = "1.1.0"
+# Shown by Agent Fabric as the asset's protocol version and provider.
+protocol_version = "2025-06-18"
+provider = { organization = "Donkey Development Kit", url = "https://docs.donkey-kit.dev" }
+
+[donkey.publication.assets.ddk-demo-sku-lookup]
+name = "SKU Lookup MCP Server"
+description = "Looks up a product by its SKU: name, price and stock level."
+# Opens the asset's generated Exchange page, above the tools and provenance.
+documentation = "README.md"
 
 [donkey.mcp_servers.ddk-demo-sku-lookup]
 transport = "streamable-http"

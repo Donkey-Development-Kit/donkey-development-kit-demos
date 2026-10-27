@@ -55,11 +55,16 @@ def verify(report: Callable[[str], None] = print) -> None:
             assert len(data["assets"]) == 1
             asset = data["assets"][0]
             assert asset["type"] == "mcp" and asset["tools"] == ["lookup_sku"]
-            assert asset["version"] == "1.0.0"
+            assert asset["version"] == "1.1.0"
+            assert asset["name"] == "SKU Lookup MCP Server"
+            assert asset["description"].startswith("Looks up a product by its SKU")
+            assert asset["protocol_version"] == "2025-06-18"
+            assert asset["provider"]["organization"] == "Donkey Development Kit"
+            assert asset["documentation"] == "README.md"
             assert asset["endpoint"] == "https://sku-lookup.example.invalid/mcp"
             digest = asset["digest"]
             assert digest.startswith("sha256:") and len(digest) == 71
-    report("PASS: deterministic scan and dry-run JSON; one declared MCP asset")
+    report("PASS: deterministic scan and dry-run JSON; one MCP asset with its metadata")
 
     with TemporaryDirectory(prefix="ddk-registration-") as directory:
         copied = Path(directory) / "server"
@@ -87,13 +92,21 @@ def verify(report: Callable[[str], None] = print) -> None:
         source.write_text(original, encoding="utf-8")
         declaration = copied / ".donkey-kit.toml"
         declaration.write_text(
-            declaration.read_text(encoding="utf-8").replace('"1.0.0"', '"1.0.1"'),
+            declaration.read_text(encoding="utf-8").replace('"1.1.0"', '"1.1.1"'),
             encoding="utf-8",
         )
         code, bumped, _ = cli("publish", copied)
         assert code == 0 and bumped["assets"][0]["digest"] == digest, bumped
-        assert bumped["assets"][0]["version"] == "1.0.1"
-    report("PASS: no code execution; description changes digest; version does not")
+        assert bumped["assets"][0]["version"] == "1.1.1"
+        page = copied / "README.md"
+        page.write_text(
+            page.read_text(encoding="utf-8") + "\nOne more line.\n", encoding="utf-8"
+        )
+        code, documented, _ = cli("publish", copied)
+        assert code == 0 and documented["assets"][0]["digest"] != digest, documented
+    report(
+        "PASS: no code execution; description and documentation change digest; version does not"
+    )
 
     for sample, expected in (
         ("invalid_version.toml", "invalid-version"),
