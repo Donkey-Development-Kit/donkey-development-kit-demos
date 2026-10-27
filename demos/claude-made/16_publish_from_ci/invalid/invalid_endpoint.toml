@@ -1,0 +1,6 @@
+[donkey.publication]
+version = "1.0.0"
+
+[donkey.mcp_servers.ddk-demo-sku-lookup]
+transport = "streamable-http"
+endpoint = "not-a-real-url"

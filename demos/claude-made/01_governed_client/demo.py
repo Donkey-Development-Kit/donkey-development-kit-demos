@@ -31,7 +31,6 @@ from donkey_kit.core.telemetry import current_correlation_id, current_cost_tags
 from _harness import mock, preflight, redact
 from _harness import narrate as say
 
-MODEL = os.environ.get("DEMO_MODEL", "gpt-4o")
 PROMPT = "Say hello in exactly three words."
 # Act 3 needs a prompt the PII policy actually blocks. The Email entity is the one
 # the captured rejection carries, so it is the one to configure for a live run.
@@ -88,19 +87,19 @@ async def act_1_the_governed_client(donkey: Donkey) -> None:
     )
 
 
-async def act_2_a_governed_call(donkey: Donkey) -> None:
+async def act_2_a_governed_call(donkey: Donkey, model: str) -> None:
     say.step(2, "One call. Nothing new to learn — it is the OpenAI SDK.")
     say.code(
         f"""
         response = await client.responses.create(
-            model={MODEL!r},
+            model={model!r},
             input={PROMPT!r},
         )
         """
     )
 
     client = donkey.openai()
-    response = await client.responses.create(model=MODEL, input=PROMPT)
+    response = await client.responses.create(model=model, input=PROMPT)
 
     if _is_mock():
         say.warn(
@@ -150,13 +149,13 @@ async def act_2_a_governed_call(donkey: Donkey) -> None:
         """
     )
     blocking = donkey.openai(sync=True)
-    sync_response = blocking.responses.create(model=MODEL, input=PROMPT)
+    sync_response = blocking.responses.create(model=model, input=PROMPT)
     say.field("sync reply", _text_of(sync_response))
     say.field("last_call.status", donkey.last_call.status.value, raw=True)
     say.ok("same governance — budget, last_call, typed refusals — on a blocking OpenAI")
 
 
-async def act_3_raw_vs_governed(donkey: Donkey) -> None:
+async def act_3_raw_vs_governed(donkey: Donkey, model: str) -> None:
     say.step(3, "The same refusal, through both clients")
 
     if _is_mock():
@@ -166,7 +165,7 @@ async def act_3_raw_vs_governed(donkey: Donkey) -> None:
             "the sentinel below. This is the byte-identical body a live gateway sent."
         )
     else:
-        pii_model = MODEL
+        pii_model = model
         say.note(
             "There is no sentinel against a live proxy, so this act needs the "
             "PII-detection policy in force with Email among its entities and its "
@@ -331,13 +330,13 @@ def _is_mock() -> bool:
     return env.target_is_mock()
 
 
-async def _main() -> None:
+async def _main(model: str) -> None:
     async with Donkey.from_env() as donkey:
         await act_1_the_governed_client(donkey)
         say.pause()
-        await act_2_a_governed_call(donkey)
+        await act_2_a_governed_call(donkey, model)
         say.pause()
-        await act_3_raw_vs_governed(donkey)
+        await act_3_raw_vs_governed(donkey, model)
         say.pause()
         await act_4_the_one_line_onramps(donkey)
 
@@ -354,7 +353,7 @@ async def _main() -> None:
 
 
 def main() -> None:
-    asyncio.run(_main())
+    asyncio.run(_main(os.environ.get("DEMO_MODEL", "gpt-4o")))
 
 
 if __name__ == "__main__":

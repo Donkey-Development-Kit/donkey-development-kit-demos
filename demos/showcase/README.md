@@ -4,10 +4,10 @@ An interactive, developer-facing demo of the **Donkey Development Kit** — the 
 that makes MuleSoft Agent Fabric / Omni Gateway governance **legible and
 actionable inside agent code**.
 
-- **Left pane** — a clickable catalog of DDK's milestone-11 features. Each card
-  carries a prepared prompt and a side-by-side **Without DDK vs With DDK** code
-  comparison. Click one, run it, and watch the typed refusal, budget, and OTel
-  span appear in the chat.
+- **Left pane** — a clickable catalog with side-by-side **Without DDK vs With
+  DDK** code comparisons. **Live** cards are wired into this showcase; run them
+  to watch typed refusals, budgets and OTel spans. Descriptive-only cards state
+  which SDK capabilities shipped and which limits still apply.
 - **Right pane** — a live chat backed by a real **LangGraph** agent.
 
 Everything runs against **`donkey mock`**, DDK's local gateway simulator, which
@@ -17,7 +17,7 @@ Anypoint account, no credentials, and no OpenAI key**.
 
 ```
 ┌────────────────────────────┬───────────────────────────┐
-│  Features · milestone 11    │  Governed agent (chat)     │
+│  Features · showcase        │  Governed agent (chat)     │
 │  ▸ Governed LLM client       │                            │
 │  ▸ Typed refusals (PII, …)   │  You: …                    │
 │  ▸ Budget & pacing           │  Agent: …                  │
@@ -25,7 +25,7 @@ Anypoint account, no credentials, and no OpenAI key**.
 │  ▸ Local simulator           │   └ last_call identity     │
 │  ▸ Testing & conformance     │   └ donkey.llm.chat span   │
 │  ▸ CLI & decorators          │                            │
-│  Roadmap (documented)…       │  [ Send ]                  │
+│  SDK shipped (documented)…   │  [ Send ]                  │
 └────────────────────────────┴───────────────────────────┘
 ```
 
@@ -34,11 +34,14 @@ Anypoint account, no credentials, and no OpenAI key**.
 **<https://donkey-development-kit.github.io/donkey-development-kit-demos/>**
 
 The Pages build is a **static replay**. There is no backend in the browser, so
-every feature card replays the responses the real backend returned against
+interactive feature cards replay the responses the real backend returned against
 `donkey mock`, recorded into [`frontend/public/replay/`](frontend/public/replay/).
 The header shows a `static replay` pill. Free-form prompts typed into the chat
 get a note pointing here instead of an answer. Run it locally for the live
-version.
+version. Descriptive-only cards have no run/compare controls and no fabricated
+recordings. The existing **Roadmap** badge means showcase integration is planned;
+titles explicitly say **SDK shipped** where the SDK already implements a surface.
+Neither **Live** nor **SDK shipped** asserts live gateway verification.
 
 It deploys from `main` via
 [`.github/workflows/pages.yml`](../../.github/workflows/pages.yml) whenever
@@ -91,7 +94,13 @@ hand to move it too:
 
 ## Re-record the static replay
 
-After an SDK or feature-catalog change, refresh what Pages replays:
+For catalog-only changes, manually synchronize `backend/app/features.py` with
+`frontend/public/replay/features.json`; do not regenerate response recordings.
+The live API wraps the catalog in `{"features": [...]}`; the replay file is the
+same list without that wrapper. Preserve IDs, prompts and models for existing
+interactive cards because chat/compare recordings key on `model::prompt`.
+
+Only when interactive behavior changes, refresh what Pages replays:
 
 ```bash
 cd demos/showcase/backend
@@ -122,7 +131,35 @@ VITE_BASE=/donkey-development-kit-demos/ npx vite preview   # http://localhost:4
 | **Local simulator** | `donkey mock` | Sentinel model `donkey-sim/<shape>` forces one exact refusal; `--scenario` fires them on a rule. |
 | **Testing & conformance** | `simulate()`, `pytest --donkey-conformance` | Grades this demo's own agent against every refusal shape → a pass/fail/exempt table. |
 | **CLI & decorators** | `donkey doctor`, `@donkey.governed` | `doctor` tells wrong URL from wrong credentials from unallowed model — one diagnosis. |
-| **Roadmap** | MCP tools, A2A, on-behalf-of, HITL, publish | Documented, clearly marked, **not** wired — the demo is honest about what milestone 11 shipped. |
+| **Refusal reactions / custom classifier** | `donkey.on(...)`, `classify.register(...)` | SDK shipped, descriptive-only. Reactions are bounded and cannot manufacture success; custom classification is process-wide. |
+| **Terminal kill handling** | `AgentKilled`, budget pacing/reset latch | SDK shipped, descriptive-only. No recovery handler; consumes a platform decision, not a kill-switch administration API or HTTP firewall. |
+| **Local tool approvals** | `@donkey.tool(approval="required")`, `donkey.approvals`, native LangGraph interrupts | SDK shipped, descriptive-only. Base approvals are process-global memory; native pauses use the framework checkpointer with no DDK expiry. Advisory, not a platform queue/UI/step-up service. |
+| **Local A2A serving** | `@donkey.agent`, `donkey.serve(handler)`, `build_app()` | SDK shipped, descriptive-only. Official A2A app; demo evidence is in-process ASGI/lifespan, not a tested TCP launcher or gateway exposure. |
+| **Scan & MCP publication** | `donkey scan`, `publish --dry-run`, `--if-changed` | SDK shipped, descriptive-only. Offline plans are not publication outcomes; agents are skipped and connected-app publication authentication is unconfirmed live. |
+| **Descriptor fidelity / tool filtering** | `derive_descriptor()`, `ToolSet.filter()`, `descriptor_tokens()` | SDK shipped, descriptive-only. Auto modes execute imports/factories; local protocol/schema fidelity does not unblock remote discovery/bind. Token cost is an estimate, not a bill. |
+| **Server-mode conformance** | `--donkey-mode=server` | SDK shipped, descriptive-only. Real loopback HTTP; uncaptured custom shapes require in-process mode. The existing showcase button is unchanged. |
+| **Telemetry flush** | `flush_telemetry(timeout_s=...)` | SDK shipped, descriptive-only. Flushes DDK-owned spans only; host providers need host flush/shutdown. `True` can be a no-op; `False` is timeout/failure. |
+| **Upstream budget / dynamic key** | `budget.upstream`, `llm_proxy_key_header` | SDK shipped, descriptive-only. Provider quota is observe-only; dynamic header names belong to customer routes, not a universal gateway contract. |
+| **Verification gates / roadmap** | remote MCP discovery/bind, A2A expose/dev, agent publication, on-behalf-of identity | **Not** wired. Remote MCP discovery/bind remain verification-blocked; expose/dev are outside implemented scope and agents are skipped on publication. |
+
+### Narrative Companions
+
+These are separate local scripts, not showcase recordings. See each linked README
+for dependencies, asserted evidence and synthetic-input boundaries.
+
+| Demo | Real files and scope |
+| --- | --- |
+| [17 - Refusal reactions](../claude-made/17_refusal_reactions/README.md) | `17_refusal_reactions/demo.py`: bounded wait/resend/fallback/escalation, synthetic custom classification and registry cleanup. |
+| [18 - Terminal kill handling](../claude-made/18_kill_switch/README.md) | `18_kill_switch/demo.py`: simulated `AgentKilled`, waiter wakeup and stopped paced effects. |
+| [19 - Tool approvals](../claude-made/19_tool_approvals/README.md) | `19_tool_approvals/demo.py`: base approval lifecycle, native checkpoint resume and downstream governance after approval. In-memory checkpoints do not prove restart durability. |
+| [20 - Descriptor fidelity](../claude-made/20_descriptor_fidelity/README.md) | `20_descriptor_fidelity/demo.py`, `example.py`, `tools.py`, `memory_server.py`, `descriptor.json`: real framework schemas, drift and in-memory official MCP `tools/list`. No remote discovery/bind. |
+| [21 - Local A2A serving](../claude-made/21_a2a_serving/README.md) | `21_a2a_serving/demo.py`: official SDK app through ASGITransport/lifespan, card/tasks/refusals/trace relationships and worker cleanup. No socket launcher, streaming or gateway exposure claim. |
+
+Related evidence: [03 - budgets](../claude-made/03_budget_and_pacing/README.md),
+[05 - conformance](../claude-made/05_conformance/README.md),
+[06 - telemetry](../claude-made/06_telemetry/README.md),
+[16 - static CI registration](../claude-made/16_publish_from_ci/README.md), and
+[`18 - dynamic-provider-key.py`](../human-made/openai/18%20-%20dynamic-provider-key.py).
 
 ## Architecture
 
@@ -170,8 +207,9 @@ stays entirely on the in-memory exporter — no Docker required.
 
 ## Notes
 
-- Only the two conformance-tested surfaces (the LangGraph adapter and the raw
-  client) are wired; everything else is presented as documented **Roadmap**.
+- The wired showcase actions remain chat, pacing, conformance and doctor. New
+  SDK capabilities are descriptive-only (`action: "info"`, `badge: "roadmap"`),
+  with explicit shipped status and limits. No new endpoint or recording is added.
 - This demo consumes the installed `donkey-kit` package; it never modifies the
   SDK repo.
 - Docs: <https://donkey-development-kit.github.io/donkey-development-kit> ·

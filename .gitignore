@@ -86,6 +86,7 @@ __pycache__/
 build/
 dist/
 .venv/
+.venv-*/
 venv/
 env/
 .mypy_cache/

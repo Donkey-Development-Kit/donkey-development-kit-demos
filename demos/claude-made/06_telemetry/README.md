@@ -1,108 +1,65 @@
-# 06 — OTel GenAI spans and correlation ids
+# 06 - Cross-Hop Telemetry and Flush Ownership
 
-**Claim:** standard GenAI telemetry and one trace per logical run, with no
-instrumentation code in the agent.
-
-```bash
-pip install "donkey-kit[otel]"
-make demo N=06
-```
-
-**Needs:** `[otel]` on top of `[llm]` + `[local]`. Without it the demo prints the
-install command and exits cleanly.
-
-**Four acts.** One call producing one span with both attribute namespaces, and
-prompt/completion **absent** unless you opt in — plus `gen_ai.response.model` /
-`donkey.routing.*` / `donkey.usage.*` on that same span; `donkey.run(id=…,
-team=…, project=…)` giving three calls one correlation id and one set of
-`donkey.cost.*` tags; a refused call producing an `ERROR` span that names the
-policy; and zero-config OTLP — set `OTEL_EXPORTER_OTLP_ENDPOINT`, or stay silent.
-
-Act 2 binds a **business** id (`ticket-4417`), not a uuid — that is the point of
-binding it yourself. It propagates by async context, so a node the framework
-runs on a child task is inside the same run without being told. Two ids go out
-on every request: the run id (`X-Correlation-Id`) answers "everything this
-ticket did", the per-call id (`X-Donkey-Request-Id`) answers "which call was
-this". Act 3 shows both arriving on the caught exception — `classify()` reads
-them back off the failed request, so `.correlation_id` and `.call_id` are
-populated with no wiring.
-
-**Point at:** two namespaces on one span, deliberately. `gen_ai.*` follows the
-OpenTelemetry GenAI conventions **pinned** to a specific version — the keys are
-transcribed in the SDK rather than imported from the semconv package, whose
-default drifts release to release, so what lands on a span changes only by a
-reviewable edit. `donkey.*` is the stable Donkey namespace, where renaming
-a key is a breaking change. Cost tags are the fixed four
-(`team` / `project` / `env` / `enduser.id`), set on `from_env()` and overridable
-per `run()`. They land on `donkey.cost.*` as the authoritative carrier — the
-gateway has no inbound cost-tag ingestion (verified-negative). `X-Correlation-Id`
-is the opposite: the gateway reads it and echoes it.
-
-Also point at act 1: `gen_ai.prompt` / `gen_ai.completion` stay off unless
-`telemetry_capture_content=True`. Spans are emitted upstream of the gateway's
-PII mask, so defaulting capture on would re-export the content the platform
-just masked. And act 3: a span that ends OK on a refused request makes a
-dashboard say everything is fine, so refusals set `ERROR` and record
-`donkey.policy.decision=refuse` with the specific `donkey.policy.type`.
-
-Zero-config OTLP **is** shipped: `Donkey.from_env()` builds an OTLP
-`BatchSpanProcessor` for Donkey's own spans when `OTEL_EXPORTER_OTLP_ENDPOINT`
-(or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) is set. No endpoint → inert and silent.
-`DONKEY_TELEMETRY=false` opts out. The process-global `TracerProvider` is left
-alone unless you opt in with `DONKEY_TELEMETRY_INSTALL_GLOBAL=true`, and a host
-provider always wins, even one set after `Donkey()`. This demo is the host: it
-sets an in-memory provider so the spans can be a table, and Donkey rides it.
-(SDKs before the opt-in change installed the global provider themselves when none
-existed; they also defer to a host provider, so this demo behaves the same on both.) Cost tags, routing (`donkey.routing.*`) and cached/reasoning
-usage (`donkey.usage.*`) land on the same span. The same routing/usage facts
-live on `donkey.last_call` without a span backend (demo 10).
-
-## How to run
-
-**Local simulator by default.** The harness starts `donkey mock` on `127.0.0.1:8080`, points the SDK at it with fake credentials, and stops it afterwards. `--target live` runs the same acts against your proxy.
-
-**1. Set up once** (from the repo root):
+Local-only assertions for issue #58, `BG §1.6` and `BG §1.7`. Run in a fresh
+process from the demos repo:
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-python -m pip install -e .
-python -m pip install -e "../donkey-development-kit/python[llm,local,cli,otel]"   # or: python -m pip install -e ".[full]"
-make doctor                    # what is installed; prints no secrets
+.venv/bin/python demos/claude-made/06_telemetry/demo.py
 ```
 
-**2. Run it:**
+Needs the SDK `[llm,local,test,cli,otel]` extras. No config files, dotenv files,
+real credentials or external collectors are read. The script discards inherited
+`OTEL_*` settings in its own process and explicitly configures synthetic consumer
+credentials. It does not support a live mode.
 
-```bash
-make demo N=06                              # local simulator, auto-started
-make demo N=06 ARGS="--target live"         # your proxy
-python run.py 06                           # same thing without make
-```
+Offline `_harness.preflight.cli` prints the run context and masking status,
+checks optional dependencies before lazy imports, and contains errors. The six
+narrated acts use projector-friendly headings and `DEMO_PAUSE=1` pauses.
 
-Live runs read three variables from your shell or a git-ignored `.env.local`
-(see [Setup](../../../README.md#setup) for where the values come from):
+## What Is Asserted
 
-```bash
-cp .env.example .env.local     # then fill in:
-# DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/REPLACE-ME/   (trailing /, no /v1)
-# DONKEY_LLM_PROXY_CLIENT_ID=…
-# DONKEY_LLM_PROXY_CLIENT_SECRET=…
-```
+- Without an endpoint, bootstrap stays inert and flush succeeds as a no-op.
+  With the explicitly local endpoint, one call produces a `donkey.llm.chat`
+  span. Tables show pinned GenAI model/usage attributes, synthetic routing
+  fallback, and cached/cache-write/reasoning token counts without content.
+- Three calls in `run(id="ticket-4417", team="support", project="triage")`
+  share a business ID and override team/project while inheriting env. Each call
+  has its own call ID. This reproduces the original run/cost narrative.
+- `run_from_headers()` adopts a valid incoming ID and replaces a malformed ID
+  with a fresh 32-character hex ID. Both travel on the governed model request.
+- `correlation_headers()` is explicitly passed to a **plain HTTP hop** on a
+  separate `httpx.AsyncClient`; the hop gets the ID, not consumer credentials.
+  The hop is a MockTransport stand-in, not a working Exchange/MCP binding.
+- Two concurrently interleaved `run(business_group=...)` scopes stay isolated;
+  leaving them restores the outer attribution, then the configured default.
+  The SDK's business-group header name is still an **unverified placeholder**.
+  Observing it locally does not verify gateway ingestion or authorization.
+- Eleven real OTLP/protobuf spans reach a loopback HTTP receiver (four original
+  capability demonstrations, then seven cross-hop/refusal spans). The model calls
+  themselves use MockTransport and the refusal uses public `donkey.simulate()`.
+  Spans carry adopted/minted provenance, a refusal has ERROR status, and prompt
+  and completion attributes remain absent. No caller-supplied cost claims are
+  adopted from inbound headers or printed.
+- `await asyncio.to_thread(donkey.flush_telemetry, timeout_s=2.0)` returns `True`
+  and delivers queued DDK-owned spans before the receiver is stopped. A local
+  elapsed-time assertion allows one second of scheduling overhead. This is not
+  a hard real-time or remote-collector failure benchmark.
+- A host-owned batched provider installed later receives subsequent DDK spans.
+  DDK's flush does **not** flush that host queue; the host explicitly calls its
+  own `force_flush()` and `shutdown()`.
 
-**Live note:** To ship spans to a collector, export `OTEL_EXPORTER_OTLP_ENDPOINT` (and `OTEL_EXPORTER_OTLP_HEADERS` if it needs auth) before running.
+## Ownership Matters
 
-**3. What you should see:**
+DDK's OTLP provider is process-wide, not per `Donkey` instance. It is scoped by
+default and does not take the global provider. A host provider wins, even if
+installed later. `flush_telemetry()` flushes only the DDK-owned provider; `True`
+also means success/no-op when DDK owns no provider. `False` means a timeout or
+export failure, not successful delivery. Exporter retry/socket timeouts also
+matter; configure them for the application's shutdown budget. The call blocks,
+so async applications should offload it with `asyncio.to_thread`.
 
-1. Act 1: one span per call with `gen_ai.*` and `donkey.*` attributes; prompt and completion absent; `Routing and usage, on the same span`.
-2. Act 2: `donkey.run(id="ticket-4417", team=…, project=…)` — three calls, one correlation id, one set of `donkey.cost.*` tags; `Two ids, two questions`.
-3. Act 3: a refused call as an `ERROR` span naming the policy; `The same two ids, on the exception`.
-4. Act 4: zero-config OTLP — silent without `OTEL_EXPORTER_OTLP_ENDPOINT`, exporting with it.
-
-**4. If something goes wrong:**
-
-- `Could not start the local simulator` — the port is taken or `[local]` / `[cli]` is missing. Use another port: `DEMO_MOCK_URL=http://127.0.0.1:8099 make demo N=06`.
-- Want the simulator in its own pane? Run `make mock` there, then `make demo N=06 ARGS="--no-autostart"`. `DEMO_QUIET_MOCK=0` shows its log.
-- `Missing prerequisites` — the demo names the module and the `pip install` line; it exits 0 without running anything.
-- `The demo raised` — re-run with `DEMO_TRACEBACK=1` for the full, still-masked traceback.
-- Presenting? `DEMO_PAUSE=1` waits for Enter between acts. Leave `DEMO_REDACT` unset (masking on) when recording.
-
-Build guide: `BG §1.6`, `BG §1.7`. See [PRESENTING.md](../../../PRESENTING.md#06--telemetry).
+The receiver is a minimal real local OTLP sink, not a production collector or
+dashboard. Shutdown closes its port and joins its thread. Assertions fail the
+script rather than printing a success-looking warning. SDK APIs used here are
+covered by `test_inbound_correlation.py`, `test_per_request_business_group.py`
+and `test_otlp_export.py` in the read-only SDK checkout.

@@ -11,13 +11,19 @@ make demo N=12
 **Needs:** nothing at all. No gateway, no simulator, no MCP session — the
 handles are constructed in-process with obviously-fake endpoints.
 
-**Two acts.** `ToolSet.filter(allow=…)` / `deny=…` each return a new ToolSet;
+**Three acts.** `ToolSet.filter(allow=…)` / `deny=…` each return a new ToolSet;
 the parent `name_map` is unchanged, and colliding `get_employee` names are
 prefixed `hr__get_employee`. Then `tools.langgraph()` raises
 `UngovernedMcpServer`: the hand-built handles carry no governance verdict, so
 binding is refused before a connection opens. The same set with a governed
 verdict passes that check and raises `blocked on verification`, because the
 binders' class names are unconfirmed.
+
+Between those acts, chained allow/deny/predicate filters narrow through bare and
+qualified globs, typo patterns raise `ConfigError`, and `descriptor_tokens()`
+compares descriptor cost before and after filtering. The estimate is not billing.
+`require_approval()` is an advisory declaration only while public binding remains
+blocked; filtering even every tool out does not remove a server governance check.
 
 **Point at:** this is not `@donkey.tool` (demo 01). That marker records a
 Python callable. This filters descriptors from MCP server handles.

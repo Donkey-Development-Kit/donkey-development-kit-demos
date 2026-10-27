@@ -1,0 +1,6 @@
+[donkey.publication]
+version = "next"
+
+[donkey.mcp_servers.ddk-demo-sku-lookup]
+transport = "streamable-http"
+endpoint = "https://sku-lookup.example.invalid/mcp"

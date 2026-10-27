@@ -1,6 +1,6 @@
 // Types shared across the UI. The catalog data itself comes from GET /api/features
-// (backend app/features.py is the single source of truth); these just describe
-// its shape and the shapes of the SSE events the backend streams.
+// (backend app/features.py), or matching public/replay/features.json metadata in
+// static mode. These describe its shape and the backend's SSE event shapes.
 
 export type FeatureAction =
   | "chat"
@@ -14,6 +14,9 @@ export interface Feature {
   group: string;
   icon: string;
   title: string;
+  // "live" means showcase-wired, not live gateway verification. "roadmap"
+  // also covers shipped SDK surfaces whose showcase integration is planned.
+  // Descriptive-only cards use action "info" and never invent replay outputs.
   badge: "live" | "roadmap";
   blurb: string;
   action: FeatureAction;
