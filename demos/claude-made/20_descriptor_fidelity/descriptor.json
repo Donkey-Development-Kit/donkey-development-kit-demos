@@ -1,0 +1,18 @@
+{
+  "tools": [
+    {
+      "description": "Return the offline stock count for a SKU at a warehouse.",
+      "inputSchema": {
+        "description": "Return the offline stock count for a SKU at a warehouse.",
+        "properties": {
+          "sku": {"title": "Sku", "type": "string"},
+          "warehouse": {"default": "main", "title": "Warehouse", "type": "string"}
+        },
+        "required": ["sku"],
+        "title": "stock_count",
+        "type": "object"
+      },
+      "name": "stock_count"
+    }
+  ]
+}

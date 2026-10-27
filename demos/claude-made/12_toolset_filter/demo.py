@@ -16,6 +16,7 @@ they work.
 
 from __future__ import annotations
 
+from donkey_kit import ConfigError
 from donkey_kit.registry import AssetRef, GovernanceReport, McpServerHandle
 from donkey_kit.tools import ToolSet
 from donkey_kit.tools.session import UngovernedMcpServer
@@ -30,7 +31,18 @@ def _server(
     return McpServerHandle(
         ref=AssetRef("com.acme", asset_id, "1.0.0"),
         endpoint_url=f"https://mcp.example.invalid/{asset_id}",
-        tool_descriptors=tuple({"name": name} for name in tools),
+        tool_descriptors=tuple(
+            {
+                "name": name,
+                "description": f"{name} accesses the {asset_id} employee and customer records.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"record_id": {"type": "string"}},
+                    "required": ["record_id"],
+                },
+            }
+            for name in tools
+        ),
         governance=governance,
     )
 
@@ -74,8 +86,41 @@ def act_1_independent_views() -> ToolSet:
     return tools
 
 
+def act_2_narrowing_and_cost(tools: ToolSet) -> None:
+    say.step(2, "Globs and chained filters narrow; descriptor estimates show the cost")
+    gated = tools.require_approval(tools=["get_employee"], risk="personal-data", timeout=30)
+    final = (
+        gated.filter(allow=["get_*"])
+        .filter(deny=["crm__*"])
+        .filter(predicate=lambda tool: bool(tool.description))
+    )
+    assert final.name_map == {"get_employee": "get_employee"}
+    assert final is not gated and len(tools.name_map) == 4
+    assert final.descriptor_tokens() < tools.descriptor_tokens()
+    say.field("parent estimate", tools.descriptor_tokens(), raw=True)
+    say.field("filtered estimate", final.descriptor_tokens(), raw=True)
+    say.ok("Each filter narrowed without mutating the parent")
+    try:
+        tools.filter(deny=["misspelled_tool"])
+    except ConfigError:
+        say.ok("Unknown patterns fail instead of silently leaving a tool exposed")
+    else:
+        raise AssertionError("unknown filter pattern was accepted")
+    say.note(
+        "require_approval() declares an advisory gate that filters preserve. "
+        "The public binders remain blocked, so this does not execute an MCP tool. "
+        "Descriptor tokens are roughly four JSON characters per token, not a bill."
+    )
+    try:
+        tools.filter(allow=[]).langgraph()
+    except UngovernedMcpServer:
+        say.ok("Even an empty filtered view cannot bypass server governance")
+    else:
+        raise AssertionError("filter bypassed server governance")
+
+
 def act_2_binding_is_refused_then_blocked(tools: ToolSet) -> None:
-    say.step(2, "Binding refuses ungoverned servers, then is blocked on verification")
+    say.step(3, "Binding refuses ungoverned servers, then is blocked on verification")
     say.code(
         """
         tools.langgraph()           # → UngovernedMcpServer (no governance verdict)
@@ -84,7 +129,7 @@ def act_2_binding_is_refused_then_blocked(tools: ToolSet) -> None:
     )
     try:
         tools.langgraph()
-        say.fail("expected UngovernedMcpServer")
+        raise AssertionError("expected UngovernedMcpServer")
     except UngovernedMcpServer as exc:
         say.ok("refused before any connection — no gateway credentials were sent")
         say.field("servers", list(exc.servers), raw=True)
@@ -95,7 +140,7 @@ def act_2_binding_is_refused_then_blocked(tools: ToolSet) -> None:
     governed = ToolSet(_servers(GovernanceReport(governed=True, checks=[])))
     try:
         governed.langgraph()
-        say.fail("expected blocked on verification")
+        raise AssertionError("expected blocked on verification")
     except NotImplementedError as exc:
         say.ok("a governed set passes the check, and binding is still blocked")
         say.field("message", str(exc).splitlines()[0])
@@ -113,6 +158,8 @@ def act_2_binding_is_refused_then_blocked(tools: ToolSet) -> None:
 
 def main() -> None:
     tools = act_1_independent_views()
+    say.pause()
+    act_2_narrowing_and_cost(tools)
     say.pause()
     act_2_binding_is_refused_then_blocked(tools)
 

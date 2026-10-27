@@ -26,7 +26,6 @@ from donkey_kit.core.lastcall import LastCall, LastCallStatus
 from _harness import narrate as say
 from _harness import preflight
 
-MODEL = os.environ.get("DEMO_MODEL", "gpt-4o")
 # Simulator-only: replays the live-captured semantic-routing 200 ('Finance').
 SEMANTIC_SENTINEL = "donkey-sim/success-semantic"
 
@@ -90,7 +89,7 @@ async def act_1_cold_start(donkey: Donkey) -> None:
     )
 
 
-async def act_2_one_call(donkey: Donkey) -> None:
+async def act_2_one_call(donkey: Donkey, model: str) -> None:
     say.step(2, "One governed call, and the record is the success-path counterpart")
     say.code(
         """
@@ -101,7 +100,7 @@ async def act_2_one_call(donkey: Donkey) -> None:
         """
     )
     client = donkey.openai()
-    await client.responses.create(model=MODEL, input="hello")
+    await client.responses.create(model=model, input="hello")
     record = donkey.last_call
     _show(record, label="status")
     print()
@@ -245,7 +244,7 @@ async def act_4_semantic_routing(donkey: Donkey) -> None:
         say.warn("the sentinel call did not report Semantic routing")
 
 
-async def act_5_opt_in_determinism() -> None:
+async def act_5_opt_in_determinism(model: str) -> None:
     say.step(5, "Opt in, and a substitution is a hard error instead of a flag")
     say.code(
         """
@@ -265,7 +264,7 @@ async def act_5_opt_in_determinism() -> None:
     async with Donkey.from_env(on_model_substitution="raise") as donkey:
         client = donkey.openai()
         try:
-            await client.responses.create(model=MODEL, input="hello")
+            await client.responses.create(model=model, input="hello")
         except Exception as exc:  # noqa: BLE001 — OpenAI wraps the transport error
             substituted = _unwrap_substituted(exc)
             if substituted is None:
@@ -303,17 +302,17 @@ async def act_5_opt_in_determinism() -> None:
             )
 
 
-async def _main() -> None:
+async def _main(model: str) -> None:
     async with Donkey.from_env() as donkey:
         await act_1_cold_start(donkey)
         say.pause()
-        await act_2_one_call(donkey)
+        await act_2_one_call(donkey, model)
         say.pause()
         await act_3_routing_and_usage(donkey)
         say.pause()
         await act_4_semantic_routing(donkey)
         say.pause()
-        await act_5_opt_in_determinism()
+        await act_5_opt_in_determinism(model)
 
         print()
         say.section("The point")
@@ -326,7 +325,7 @@ async def _main() -> None:
 
 
 def main() -> None:
-    asyncio.run(_main())
+    asyncio.run(_main(os.environ.get("DEMO_MODEL", "gpt-4o")))
 
 
 if __name__ == "__main__":

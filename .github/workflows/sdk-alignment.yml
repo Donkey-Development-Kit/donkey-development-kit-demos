@@ -62,3 +62,26 @@ jobs:
         run: python -m pip install agent-framework-core agent-framework-openai
       - name: offline
         run: make offline
+      - name: SDK develop coverage examples
+        if: matrix.branch == 'develop'
+        run: python scripts/verify_sdk_coverage.py
+      - name: Environment loading regression
+        if: matrix.branch == 'develop'
+        run: python scripts/test_narrative_env.py
+
+  frameworks:
+    name: Native approvals and observation bridges
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.base_ref == 'develop' || github.ref_name == 'develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'develop' || '' }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install framework-only SDK extras
+        run: python -m pip install -e . "donkey-kit[llm,adk,strands] @ git+https://github.com/Donkey-Development-Kit/donkey-development-kit.git@develop#subdirectory=python"
+      - name: Native approval and observation examples
+        run: python scripts/verify_sdk_coverage.py --frameworks

@@ -34,7 +34,9 @@ async def main() -> None:
         print(result.final_output)
         print("model calls ", result.context_wrapper.usage.requests)
         print("total_tokens", result.context_wrapper.usage.total_tokens)
-        # The SDK calls the model in its own task, so last_call never reaches here.
+        # First turns and streamed runs use Runner's task; later non-streamed
+        # turns can be visible here. Use on_llm_end for first-turn observation
+        # (see 05 - governed-observations.py), not blanket caller visibility.
         print("last_call   ", donkey.last_call.status.value)
 
 
