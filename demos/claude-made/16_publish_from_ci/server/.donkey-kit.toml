@@ -1,0 +1,13 @@
+# What `donkey publish` registers in Exchange for this directory (demo 16).
+#
+# group_id is left out on purpose: it defaults to the org ID (ANYPOINT_ORG_ID),
+# which the workflow passes from a repository secret, so no org identifier is
+# committed here.
+
+[donkey.publication]
+# Exchange never overwrites a version. Change the tool, bump this.
+version = "1.0.0"
+
+[donkey.mcp_servers.ddk-demo-sku-lookup]
+transport = "streamable-http"
+endpoint = "https://sku-lookup.example.invalid/mcp"
