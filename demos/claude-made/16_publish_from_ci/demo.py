@@ -22,8 +22,11 @@ def main() -> None:
     code, plan, _ = cli("publish", SERVER)
     assert code == 0
     asset = plan["assets"][0]
-    for key in ("type", "asset_id", "version", "tools", "endpoint", "digest"):
+    for key in ("type", "asset_id", "name", "version", "tools", "endpoint", "digest"):
         say.field(key, asset[key])
+    say.field("protocol_version", asset["protocol_version"])
+    say.field("provider", asset["provider"]["organization"])
+    say.field("documentation", asset["documentation"])
     say.pause()
     say.step(2, "The existing CI workflow, inspected but not executed")
     workflow = Path(__file__).resolve().parents[3] / ".github/workflows/publish-from-ci.yml"

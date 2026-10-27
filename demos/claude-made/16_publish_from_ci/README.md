@@ -35,16 +35,21 @@ Both entrypoints provide credential-free verification without dotenv loading;
 `offline.py` runs standalone without the narrative harness. They isolate the CLI
 so it cannot resolve your local configuration. `server/app.py` declares `lookup_sku`
 with `@donkey.tool(server="ddk-demo-sku-lookup")`; its `.donkey-kit.toml` declares
-the MCP transport/endpoint and publication version. Static scanning does not
-derive a framework-owned input schema.
+the MCP transport/endpoint, the publication version, the MCP protocol version and
+provider Agent Fabric shows, and the asset's name, description and documentation
+file. `server/README.md` is that file: a publish puts it at the top of the asset's
+generated Exchange page, above the tools, connection details and provenance.
+Static scanning does not derive a framework-owned input schema.
 
 ## Asserted Coverage
 
 - Scan and dry-run JSON are byte-for-byte deterministic across repeated runs.
-- Exactly one MCP asset names `lookup_sku`, its endpoint and version.
+- Exactly one MCP asset names `lookup_sku`, its endpoint and version, and carries
+  the declared name, description, protocol version, provider and documentation.
 - A temporary import-time raising statement is never executed by scan or planning.
 - Relocating code and shifting source line numbers preserve its digest.
-- Editing the tool description changes the digest; changing only version does not.
+- Editing the tool description or the documentation file changes the digest;
+  changing only version does not.
 - The three reusable `invalid/*.toml` samples replace the declaration in temporary
   copies: invalid semver, unknown service ID and invalid endpoint each exit 1 with
   the expected issue kind. Only dry runs are invoked, including these failures.
