@@ -184,7 +184,13 @@ function Composer({
           <span>
             Prepared prompt from <b>{activeFeature.title}</b>
           </span>
-          <button className="clear" onClick={onClearFeature}>
+          <button
+            className="clear"
+            onClick={() => {
+              setText("");
+              onClearFeature();
+            }}
+          >
             clear
           </button>
         </div>
