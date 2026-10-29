@@ -312,6 +312,14 @@ export default function App() {
     setBusy(false);
   }, []);
 
+  // "clear" resets the conversation: stop any stream, empty the chat, deselect.
+  const onClear = useCallback(() => {
+    abortRef.current?.abort();
+    setBusy(false);
+    setMessages([]);
+    setSelectedId(null);
+  }, []);
+
   const logoSrc = `${import.meta.env.BASE_URL}img/ddk-logo-stacked-${
     theme === "dark" ? "white" : "black"
   }.png`;
@@ -426,7 +434,7 @@ export default function App() {
           <Chat
             messages={messages}
             activeFeature={activeFeature}
-            onClearFeature={() => setSelectedId(null)}
+            onClearFeature={onClear}
             busy={busy}
             onSend={onSend}
             onCancel={onCancel}
