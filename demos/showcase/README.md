@@ -20,11 +20,11 @@ Anypoint account, no credentials, and no OpenAI key**.
 │  Features · showcase        │  Governed agent (chat)     │
 │  ▸ Governed LLM client       │                            │
 │  ▸ Typed refusals (PII, …)   │  You: …                    │
-│  ▸ Budget & pacing           │  Agent: …                  │
-│  ▸ OTel spans + cost tags    │   └ budget bar             │
-│  ▸ Local simulator           │   └ last_call identity     │
-│  ▸ Testing & conformance     │   └ donkey.llm.chat span   │
-│  ▸ CLI & decorators          │                            │
+│  ▸ CIBA · kill · rate limit  │  Agent: …                  │
+│  ▸ Refusal reactions         │   └ refusal card / trail   │
+│  ▸ Budget & pacing           │   └ budget bar             │
+│  ▸ OTel spans + cost tags    │   └ donkey.llm.chat span   │
+│  ▸ Testing & conformance     │                            │
 │  SDK shipped (documented)…   │  [ Send ]                  │
 └────────────────────────────┴───────────────────────────┘
 ```
@@ -98,6 +98,10 @@ hand to move it too:
 
 For catalog-only changes, manually synchronize `backend/app/features.py` with
 `frontend/public/replay/features.json`; do not regenerate response recordings.
+`make check-showcase` (also run on every PR) fails on any difference between
+the two, and on any `chat` card with no `model::prompt` recording in
+`chat.json` / `compare.json` (or a pace / conformance / doctor card with no
+replay file). A new interactive card therefore needs a re-record, below.
 The live API wraps the catalog in `{"features": [...]}`; the replay file is the
 same list without that wrapper. Preserve IDs, prompts and models for existing
 interactive cards because chat/compare recordings key on `model::prompt`.
@@ -242,6 +246,9 @@ stays entirely on the in-memory exporter — no Docker required.
   leak into the shared one. Refusal events carry `disposition`
   (terminal / retryable / pending), `policy` and, where the SDK sets it,
   `retry_after`.
+- Catalog drift is guarded: `scripts/check_showcase_catalog.py` (`make
+  check-showcase`, run by the SDK alignment workflow on pull requests) needs no
+  credentials. It compares the catalog with the replay and checks recordings.
 - This demo consumes the installed `donkey-kit` package; it never modifies the
   SDK repo.
 - Docs: <https://donkey-development-kit.github.io/donkey-development-kit> ·
