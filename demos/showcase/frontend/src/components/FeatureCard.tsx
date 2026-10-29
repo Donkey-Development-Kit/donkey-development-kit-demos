@@ -33,7 +33,7 @@ export function FeatureCard({
   const [compare, setCompare] = useState<CompareResult | null>(null);
   const [comparing, setComparing] = useState(false);
 
-  const isRoadmap = feature.badge !== "live";
+  const isLive = feature.badge === "live";
   const runLabel = ACTION_LABEL[feature.action];
 
   async function runCompare() {
@@ -55,7 +55,7 @@ export function FeatureCard({
   return (
     <div
       className={`feature-card${selected ? " selected" : ""}${
-        isRoadmap ? " roadmap" : ""
+        feature.badge === "roadmap" ? " roadmap" : ""
       }`}
     >
       <button className="feature-card-head" onClick={onSelect}>
@@ -76,7 +76,7 @@ export function FeatureCard({
             {feature.watch}
           </div>
 
-          {!isRoadmap && (
+          {isLive && (
             <div className="feature-actions">
               {runLabel && (
                 <button
