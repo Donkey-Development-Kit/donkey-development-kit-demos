@@ -344,6 +344,14 @@ export default function App() {
             static replay
           </span>
         )}
+        {import.meta.env.VITE_PREVIEW && (
+          <span
+            className="sim-pill"
+            title="Preview build of the SDK develop branch. The released site is at the root URL."
+          >
+            preview: SDK develop
+          </span>
+        )}
         {budget?.limit != null && (
           <span className="sim-pill">
             budget {budget.remaining}/{budget.limit}

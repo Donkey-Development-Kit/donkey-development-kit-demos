@@ -1,11 +1,13 @@
-# Publishes the DDK feature showcase (demos/showcase) to GitHub Pages on every
-# push to main. The Pages build is the static replay: no backend, no gateway —
-# it replays responses recorded from the real backend against `donkey mock`.
+# Publishes the DDK feature showcase (demos/showcase) to GitHub Pages.
+#   /       released SDK, built from main
+#   /next/  preview of SDK develop, built from develop (VITE_PREVIEW=1)
+# The Pages build is the static replay: no backend, no gateway — it replays
+# responses recorded from the real backend against `donkey mock`.
 name: Deploy showcase
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - "demos/showcase/frontend/**"
       - ".github/workflows/pages.yml"
@@ -23,25 +25,50 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: demos/showcase/frontend
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          path: develop
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: demos/showcase/frontend/package-lock.json
-      - run: npm ci
-      - run: npm run build
+          cache-dependency-path: |
+            main/demos/showcase/frontend/package-lock.json
+            develop/demos/showcase/frontend/package-lock.json
+      - name: Build main (released) at /
+        working-directory: main/demos/showcase/frontend
+        run: |
+          npm ci
+          npm run build
         env:
           VITE_STATIC: "1"
           VITE_BASE: /donkey-development-kit-demos/
           VITE_GOATCOUNTER: ddk
+      - name: Build develop (preview) at /next/
+        working-directory: develop/demos/showcase/frontend
+        run: |
+          npm ci
+          npm run build
+        env:
+          VITE_STATIC: "1"
+          VITE_PREVIEW: "1"
+          VITE_BASE: /donkey-development-kit-demos/next/
+          VITE_GOATCOUNTER: ddk
+      - name: Assemble site
+        run: |
+          mkdir -p site
+          cp -R main/demos/showcase/frontend/dist/. site/
+          mkdir -p site/next
+          cp -R develop/demos/showcase/frontend/dist/. site/next/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: demos/showcase/frontend/dist
+          path: site
 
   deploy:
     needs: build

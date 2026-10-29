@@ -45,9 +45,16 @@ descriptive-only here (not wired); **Roadmap** means it is not on SDK `develop`.
 None of the three asserts live gateway verification; each card's *Watch* text
 states what was and was not verified.
 
-It deploys from `main` via
-[`.github/workflows/pages.yml`](../../.github/workflows/pages.yml) whenever
-anything under `demos/showcase/frontend/` changes.
+Two builds are published, from one workflow
+([`.github/workflows/pages.yml`](../../.github/workflows/pages.yml)):
+
+| URL | Content | Deploys when |
+| --- | --- | --- |
+| `/` | Released SDK, built from `main` | a push to `main` or `develop` touches `demos/showcase/frontend/**` (or the workflow), or on manual dispatch |
+| `/next/` | Preview of SDK `develop`, built from `develop`; header shows a `preview: SDK develop` pill | same triggers |
+
+Each run rebuilds both from the current tip of each branch, so a push to either
+branch refreshes the whole site. Preview analytics events are prefixed `next-`.
 
 ### Usage stats
 
