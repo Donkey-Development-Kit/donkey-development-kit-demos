@@ -657,7 +657,7 @@ except GatewayApprovalDenied as e:
         "icon": "👤",
         "title": "On-behalf-of user token",
         "badge": "shipped",
-        "blurb": "donkey.as_user(id_token=...) puts the user's token, unchanged, on "
+        "blurb": "donkey.as_user(token=...) puts the user's token, unchanged, on "
         "every governed model call in the block and on every MCP ToolSet bound in it. "
         "The gateway's OBO policy does the token exchange; the SDK does none. A "
         "missing or empty token raises AuthError, never a silent fallback.",
@@ -675,7 +675,7 @@ except GatewayApprovalDenied as e:
         "without": """# Thread the user's token through every call by hand,
 # or quietly fall back to the service identity.""",
         "with": """# SDK shipped; descriptive example, not executed by this card.
-async with donkey.as_user(id_token=user_token):  # aud = the gateway instance
+async with donkey.as_user(token=user_token):     # aud = the gateway instance
     reply = await model.ainvoke(messages)       # user token as the Bearer header
     tools = await hr.langgraph()                # MCP bindings carry it too""",
     },
