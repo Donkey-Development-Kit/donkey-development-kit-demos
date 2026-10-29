@@ -14,7 +14,7 @@ headers = {"client_id": cfg.llm_proxy_client_id, "client_secret": cfg.llm_proxy_
 bad = httpx.post(
     f"{cfg.llm_proxy_url}/chat/completions",
     headers=headers,
-    json={"model": "gemini-2.5-flash", "messages": [{"role": "user", "content": "hello"}]},
+    json={"model": "gemini-3.8-flash", "messages": [{"role": "user", "content": "hello"}]},
     timeout=60,
 )
 error = classify(bad)
