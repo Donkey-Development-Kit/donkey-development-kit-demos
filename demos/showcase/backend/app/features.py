@@ -473,7 +473,8 @@ try:
 except BadRequestError:
     reply = await model.ainvoke(sanitise(messages))   # unbounded, untyped""",
         "with": """# With DDK — declare the reaction once; every governed call gets it.
-from donkey_kit import PromptInjectionBlocked, RefusalContext
+from donkey_kit import PromptInjectionBlocked
+from donkey_kit.core import RefusalContext
 
 def strip_injection(ctx: RefusalContext) -> None:
     body = ctx.body                       # a copy of the refused request
@@ -696,8 +697,8 @@ async with donkey.as_user(token=user_token):     # aud = the gateway instance
         "watch": "Not interactive here. verified-apis §9: VERIFIED (LIVE). On "
         "2026-10-28, discover() plus every ToolSet binding ran through governed "
         "gateway instances, and on 2026-10-29 the same ran against a Mule-hosted MCP "
-        "server. Limits: governed defaults to None (unfiltered), but a binding still "
-        "refuses an ungoverned server. domain= and locked=True raise "
+        "server. Limits: governed defaults to True (governed servers only; pass "
+        "governed=None for all), and a binding still refuses an ungoverned server. domain= and locked=True raise "
         "NotImplementedError. An audience-scoped token works for one instance only, "
         "so narrow with filter(servers=[...]). Tool results come back in a different "
         "shape per framework.",
@@ -764,9 +765,9 @@ print(server.endpoint_url, report.governed, report.reasons_failed())""",
         "without": """# Without DDK: the consumer's gateway credential goes to any MCP URL you
 # configure, governed or not, and a refund tool runs on the model's say-so.""",
         "with": """# SDK shipped; descriptive example, not executed by this card.
-from donkey_kit.experimental import UngovernedMcpServer
+from donkey_kit import UngovernedMcpServer
 
-tools = await donkey.tools.discover()   # unfiltered: lists ungoverned servers too
+tools = await donkey.tools.discover(governed=None)  # every server, ungoverned too
 gated = tools.require_approval(tools=["issue_refund"], risk="financial")
 try:
     bound = await gated.langgraph()     # gated call: interrupt() / ApprovalRequired
@@ -801,7 +802,8 @@ async def lookup_sku(sku: str) -> dict: ...""",
 # success. The real signal is a JSON-RPC -32008 "Unable to access" buried
 # in an ExceptionGroup, easily mistaken for a flaky tool and retried.""",
         "with": """# SDK shipped; descriptive example, not executed by this card.
-from donkey_kit.experimental import ToolNotInProfile, tool_access_denial
+from donkey_kit import ToolNotInProfile
+from donkey_kit.experimental import tool_access_denial
 
 try:
     await lookup_proxy.ainvoke({"name": "orders"})   # a ToolSet.langgraph() tool
