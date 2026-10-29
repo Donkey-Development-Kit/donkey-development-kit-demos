@@ -397,6 +397,79 @@ tools = await donkey.tools.discover(governed=True)
 hr = tools.filter(servers=["hr-mcp"]).filter(allow=["get_*"])
 agent = create_react_agent(model, tools=await hr.langgraph())""",
     },
+    {
+        "id": "mcp-ungoverned-approval",
+        "group": "Governance",
+        "icon": "🚧",
+        "title": "Ungoverned MCP refusal & discovered-tool approvals",
+        "badge": "shipped",
+        "blurb": "Every ToolSet binding refuses a server the gateway does not front "
+        "with UngovernedMcpServer, before any credential is sent, and there is no "
+        "opt-out. require_approval() gates named discovered tools the way "
+        "@donkey.tool(approval=...) gates local ones. @donkey.tool(server=) ties a "
+        "local tool to its MCP server's service ID.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not interactive here. The refusal is a local check on each server's "
+        "registry.explain() verdict. discover(governed=True) leaving out an "
+        "ungoverned asset was observed live (verified-apis §9). require_approval() is "
+        "VERIFIED (local round-trip) on the LangGraph, LlamaIndex and Anthropic "
+        "bindings only; the whole-server bindings refuse it, and it was not re-run "
+        "through the gateway. Approval is client-side and advisory. server= is "
+        "attribution metadata: donkey scan reports a tool without it as unattributed, "
+        "never guessed.",
+        "without": """# Without DDK: the consumer's gateway credential goes to any MCP URL you
+# configure, governed or not, and a refund tool runs on the model's say-so.""",
+        "with": """# SDK shipped; descriptive example, not executed by this card.
+from donkey_kit.experimental import UngovernedMcpServer
+
+tools = await donkey.tools.discover()   # unfiltered: lists ungoverned servers too
+gated = tools.require_approval(tools=["issue_refund"], risk="financial")
+try:
+    bound = await gated.langgraph()     # gated call: interrupt() / ApprovalRequired
+except UngovernedMcpServer as e:
+    print(e.servers, e.reasons)         # refused locally; no credentials sent
+
+@donkey.tool(server="sku-manager")      # attribute a local tool to its MCP server
+async def lookup_sku(sku: str) -> dict: ...""",
+    },
+    {
+        "id": "tool-not-in-profile",
+        "group": "Governance",
+        "icon": "🚫",
+        "title": "Typed refusal — tool not in access profile",
+        "badge": "shipped",
+        "blurb": "When the gateway's MCP Global Access or Attribute-Based Access "
+        "Control policy refuses a tools/call, the response is HTTP 200 with JSON-RPC "
+        "error -32008, not an HTTP error. DDK raises ToolNotInProfile naming the tool "
+        "and server. It is a configuration problem and is never retried.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not interactive here. The denial shape is VERIFIED (LIVE) for both "
+        "policies on framework-built and Mule-hosted servers (verified-apis §9), "
+        "byte-identical across them. How each framework surfaces it is VERIFIED "
+        "(local round-trip). Only the LangGraph, LlamaIndex and Anthropic bindings "
+        "raise the typed error. For other frameworks that raise the mcp error, "
+        "tool_access_denial(exc) converts it. ADK and Strands return text, which the "
+        "SDK does not classify. e.profile is always None, because the gateway names "
+        "no rule.",
+        "without": """# Without DDK: a denied tools/call is HTTP 200, so a status check sees
+# success. The real signal is a JSON-RPC -32008 "Unable to access" buried
+# in an ExceptionGroup, easily mistaken for a flaky tool and retried.""",
+        "with": """# SDK shipped; descriptive example, not executed by this card.
+from donkey_kit.experimental import ToolNotInProfile, tool_access_denial
+
+try:
+    await lookup_proxy.ainvoke({"name": "orders"})   # a ToolSet.langgraph() tool
+except ToolNotInProfile as e:
+    print(e.tool_name, e.server)   # e.profile is None
+    print(e.remediation)           # grant the tool in API Manager; not retried
+
+# whole-server bindings surface the mcp error; convert it yourself:
+#   if (denied := tool_access_denial(exc)) is not None: raise denied from exc""",
+    },
     # ------------------------------------------------------------ Observability
     {
         "id": "otel-spans",
@@ -676,13 +749,82 @@ await derive_descriptor("tools:TOOLS", mode="auto:check", against="descriptor.js
         "(verified-apis §9, 2026-10-28), and it drops servers before any tool is "
         "listed. A name that matches no tool raises ConfigError once descriptors are "
         "known. The estimate is about four JSON characters per token, not a bill, and "
-        "an unlisted server counts as zero. Filtering is not gateway authorization.",
+        "an unlisted server counts as zero. Filtering is not gateway authorization. "
+        "Each bind also logs this estimate and warns above 20 tools or 10,000 tokens "
+        "(see the descriptor cost warning card).",
         "without": "# Expose every descriptor and guess its model prompt cost.",
         "with": """# SDK shipped; descriptive example, not executed by this card.
 found = await donkey.tools.discover(governed=True)
 tools = await found.describe()          # tools/list on each server
 narrow = tools.filter(allow=["get_*"]).filter(deny=["get_ssn"])
 estimate = narrow.descriptor_tokens()   # ~4 JSON chars/token""",
+    },
+    {
+        "id": "mcp-bindings",
+        "group": "Developer tooling",
+        "icon": "🔌",
+        "title": "Framework-native MCP bindings & discovery warm-up",
+        "badge": "shipped",
+        "blurb": "One discovered ToolSet binds to LangGraph, LlamaIndex, Anthropic, "
+        "ADK, Strands, OpenAI Agents, Agent Framework or CrewAI, and each returns "
+        "that framework's own tool objects. warm() fills the discovery cache at "
+        "startup, and a donkey.tools.discover span records whether a lookup was a "
+        "cache hit.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not interactive here. Binding through Omni Gateway is VERIFIED "
+        "(LIVE) for framework-built and Mule-hosted servers (verified-apis §9; ADK "
+        "was only listed in the framework-agent run). Collision renames and approval "
+        "gates were not re-run through the gateway. Whole-server bindings (ADK, "
+        "Strands, OpenAI Agents, Agent Framework, CrewAI) refuse renames. Tool "
+        "results differ per framework. domain= and locked=True are not supported. "
+        "warm() is O(N) registry reads. The headline discover() story is the "
+        "tool-access card.",
+        "without": """# Without DDK: wire each framework's MCP client by hand, server by server,
+# with no governance check, no shared filter and no record of the lookup.
+client = MultiServerMCPClient({"hr": {"transport": "streamable_http",
+    "url": HR_URL, "headers": {"client_id": ..., "client_secret": ...}}})
+tools = await client.get_tools()""",
+        "with": """# SDK shipped; descriptive example, not executed by this card.
+await donkey.tools.warm(governed=True)              # at startup: fills the cache
+tools = await donkey.tools.discover(governed=True)  # cache hit, no registry read
+hr = tools.filter(servers=["hr-mcp"])
+
+graph_tools = await hr.langgraph()                  # list[BaseTool]
+async with hr.anthropic() as bound:                 # BetaAsyncFunctionTool
+    ...
+# span donkey.tools.discover: donkey.discover.cache=hit|miss,
+#   donkey.discover.servers, donkey.discover.left_out""",
+    },
+    {
+        "id": "tool-cost-warning",
+        "group": "Developer tooling",
+        "icon": "📏",
+        "title": "Descriptor cost warning on bind",
+        "badge": "shipped",
+        "blurb": "Every ToolSet binding logs how many tool descriptors it exposes and "
+        "roughly how many prompt tokens they add to each model call. It warns once "
+        "the set passes 20 tools or 10,000 tokens, the published vendor guidance, so "
+        "a bloated tool set is caught before the model's tool selection degrades.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not interactive here. This is local logging on the bind path: a "
+        "debug line on every bind and a warning above DONKEY_TOOL_WARN_COUNT / "
+        "DONKEY_TOOL_WARN_TOKENS (0 turns one off). Token figures come from "
+        "descriptor_tokens(), about four JSON characters per token and not a bill. A "
+        "server whose descriptors are unknown counts as zero. To narrow the set, see "
+        "the tool-filter-tokens card.",
+        "without": """# Without DDK: bind every tool the servers expose and find out from the
+# bill, or from a model picking the wrong tool, that 46 descriptors ride along.""",
+        "with": """# SDK shipped; descriptive example, not executed by this card.
+# DONKEY_TOOL_WARN_COUNT=20, DONKEY_TOOL_WARN_TOKENS=10000 (0 turns one off)
+bound = await tools.langgraph()
+# WARNING langgraph() binds 46 tool descriptors, about 13200 descriptor
+#   tokens per model call (more than tool_warn_count=20, more than
+#   tool_warn_tokens=10000). ... narrow the set with filter() ...
+narrow = tools.filter(allow=["get_*"])   # see tool-filter-tokens""",
     },
 ]
 
