@@ -53,6 +53,8 @@ jobs:
           python-version: "3.12"
       - name: pin
         run: python scripts/check_sdk_alignment.py --branch "$DEMOS_BRANCH"
+      - name: showcase catalog and replay in sync
+        run: python scripts/check_showcase_catalog.py
       - name: install .[full]
         run: python -m pip install -e ".[full]"
       # Demo 08 act 4 runs a real Agent Framework agent when the package is

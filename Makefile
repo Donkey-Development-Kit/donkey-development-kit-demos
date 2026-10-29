@@ -2,7 +2,7 @@
 PY ?= python3
 export PYTHONPATH := $(CURDIR)
 
-.PHONY: help list offline coverage demo mock scan hooks doctor check-sdk lint clean
+.PHONY: help list offline coverage demo mock scan hooks doctor check-sdk check-showcase lint clean
 
 help: ## Show this help
 	@echo
@@ -49,6 +49,9 @@ doctor: ## Report what is installed and what each demo can therefore run
 
 check-sdk: ## Fail if [sdk]/[full] pin the wrong SDK for this branch
 	@$(PY) scripts/check_sdk_alignment.py
+
+check-showcase: ## Fail if the showcase catalog and its replay recordings drift
+	@$(PY) scripts/check_showcase_catalog.py
 
 lint: ## Ruff, if it is installed
 	@ruff check . || true

@@ -44,6 +44,47 @@ function MessageView({ msg }: { msg: Message }) {
           )}
         </div>
       );
+    case "reaction": {
+      const t = msg.trail;
+      return (
+        <div className="msg assistant" style={{ maxWidth: "100%" }}>
+          <span className="role">Refusal reaction</span>
+          <div className="gov-card retryable">
+            <div className="gov-head">
+              <span className="gov-type">donkey.on({t.on})</span>
+              <span className="pill">.{t.reaction}</span>
+            </div>
+            <div className="gov-msg">
+              1. The gateway refused the first request: <b>{t.refusal}</b>
+              {t.policy ? ` (policy=${t.policy})` : ""}.
+            </div>
+            <div className="gov-msg">
+              2. The handler removed{" "}
+              {t.removed.length ? <code>{t.removed.join(" ")}</code> : "nothing"}{" "}
+              and called <code>ctx.resend(json=...)</code>
+              {t.resent_prompt ? (
+                <>
+                  : <code>{t.resent_prompt}</code>
+                </>
+              ) : null}
+              .
+            </div>
+            <div className="gov-msg">
+              3. That is a new governed request, judged by the gateway from
+              scratch: <b>{t.outcome}</b>. {t.resends} re-send of max_times=
+              {t.max_times}; the refused request itself was never let through.
+            </div>
+            {t.decisions && t.decisions.length > 0 && (
+              <div className="gov-ids">
+                <span>
+                  <b>span decisions</b> {t.decisions.map((d) => d ?? "?").join(" → ")}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
     case "note":
       return (
         <div className="msg assistant" style={{ maxWidth: "100%" }}>

@@ -33,14 +33,20 @@ export function FeatureCard({
   const [compare, setCompare] = useState<CompareResult | null>(null);
   const [comparing, setComparing] = useState(false);
 
-  const isRoadmap = feature.badge === "roadmap";
+  const isRoadmap = feature.badge !== "live";
   const runLabel = ACTION_LABEL[feature.action];
 
   async function runCompare() {
     track(`compare-${feature.id}`, feature.title);
     setComparing(true);
     try {
-      setCompare(await api.compare({ prompt: feature.prompt, model: feature.model }));
+      setCompare(
+        await api.compare({
+          prompt: feature.prompt,
+          model: feature.model,
+          feature: feature.id,
+        }),
+      );
     } finally {
       setComparing(false);
     }

@@ -3,6 +3,7 @@
 // clickable card carrying a prepared prompt and a with/without comparison.
 import type { Feature } from "../features";
 import { FeatureCard } from "./FeatureCard";
+import { Badge } from "./bits";
 
 const GROUP_ORDER = [
   "Model access",
@@ -50,11 +51,25 @@ export function FeatureCatalog({
           «
         </button>
       </div>
+      <div className="badge-legend">
+        <span>
+          <Badge kind="live" /> wired into this showcase
+        </span>
+        <span>
+          <Badge kind="shipped" /> in the SDK, described here only
+        </span>
+        <span>
+          <Badge kind="roadmap" /> not in the SDK yet
+        </span>
+        <span className="badge-legend-note">
+          No badge asserts live gateway verification.
+        </span>
+      </div>
       <div className="catalog-scroll scroll-fade">
         {orderedGroups.map((group) => (
           <div className="catalog-group" key={group}>
             <div className="catalog-group-label">
-              {group === "Roadmap" ? "Roadmap · documented, not wired" : group}
+              {group === "Roadmap" ? "Roadmap · not in the SDK yet" : group}
             </div>
             {groups.get(group)!.map((f) => (
               <FeatureCard

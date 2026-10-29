@@ -39,6 +39,14 @@ Framework `policy_middleware()`; LangGraph live loop; `last_call` and opt-in
 **provider passthrough** — per-provider `request_id`, Gemini's list error
 envelope, and the Anthropic/Gemini ingress Formats.
 
+Browser showcase (`demos/showcase`, 44 cards): 13 live chat cards, including the
+simulator-backed kill-handling, CIBA pending/denied, regex-prompt-guard,
+request-rate-limit and refusal-reactions cards, plus descriptive-only
+`shipped` cards. The static Pages replay is guarded by `make check-showcase`
+(catalog/replay drift and missing recordings). Narrative companions are demos
+17-21; the showcase does not replace them and makes no live-gateway claim
+beyond each card's stated verification status.
+
 Coverage added for #47-59:
 
 | Story | Executable evidence | Boundary |

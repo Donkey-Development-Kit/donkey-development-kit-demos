@@ -2,11 +2,15 @@
 import { Highlight, themes } from "prism-react-renderer";
 import type { Budget } from "../features";
 
-export function Badge({ kind }: { kind: "live" | "roadmap" }) {
+const BADGE_LABEL = {
+  live: "● Live",
+  shipped: "SDK shipped",
+  roadmap: "Roadmap",
+} as const;
+
+export function Badge({ kind }: { kind: "live" | "shipped" | "roadmap" }) {
   return (
-    <span className={`badge badge-${kind}`}>
-      {kind === "live" ? "● Live" : "Roadmap"}
-    </span>
+    <span className={`badge badge-${kind}`}>{BADGE_LABEL[kind]}</span>
   );
 }
 

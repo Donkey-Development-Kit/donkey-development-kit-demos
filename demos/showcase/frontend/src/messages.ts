@@ -6,6 +6,7 @@ import type {
   ConformanceResult,
   Governance,
   LastCall,
+  ReactionTrail,
   Span,
 } from "./features";
 import type { PaceCallRow, ReserveReached } from "./components/results";
@@ -32,6 +33,7 @@ export type Message =
       inspector: Inspector | null;
     }
   | { kind: "note"; id: string; icon: string; title: string; body: string }
+  | { kind: "reaction"; id: string; trail: ReactionTrail }
   | {
       kind: "pace";
       id: string;

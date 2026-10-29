@@ -1,4 +1,4 @@
 {
  "ok": true,
- "output": "[ok] config       env (3 fields)\n[ok] gateway      reachable, responded\n[ok] credentials  client_id accepted\n[ok] model        accepted by the proxy\n[i]  budget       18,708 / 20,000 remaining, resets in 48s, observed 0s ago\n"
+ "output": "[ok] config         env (3 fields)\n[i]  llm endpoint   127.0.0.1 (env)\n[i]  control plane  anypoint.mulesoft.com (default)\n[ok] gateway        reachable, responded\n[ok] credentials    client_id accepted\n[ok] model          accepted by the proxy\n[i]  budget         18,572 / 20,000 remaining, resets in 56s, observed 0s ago\n"
 }

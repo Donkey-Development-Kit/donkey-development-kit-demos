@@ -16,7 +16,12 @@ There is also a browser demo, the **[feature showcase](demos/showcase/)**: a
 LangGraph chat on one side and a clickable catalog of DDK features on the other,
 running against `donkey mock`. Try the static replay on
 **[GitHub Pages](https://donkey-development-kit.github.io/donkey-development-kit-demos/)**,
-or run it live locally with `demos/showcase/run.sh`.
+or run it live locally with `demos/showcase/run.sh`. The catalog covers SDK
+`develop` (44 cards): live chat cards for typed refusals (including regex prompt
+guard, request rate limit, CIBA pending/denied, terminal kill handling and
+refusal reactions, all against the simulator) plus descriptive-only cards that
+state what is verified and what is not. `make check-showcase` fails if the
+catalog and its static replay drift apart.
 
 For the per-framework *reference* snippets (one `main.py` per framework,
 CI-gated), see [`python/examples/`](https://github.com/Donkey-Development-Kit/donkey-development-kit/tree/main/python/examples)

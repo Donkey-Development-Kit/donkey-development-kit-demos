@@ -14,10 +14,11 @@ export interface Feature {
   group: string;
   icon: string;
   title: string;
-  // "live" means showcase-wired, not live gateway verification. "roadmap"
-  // also covers shipped SDK surfaces whose showcase integration is planned.
+  // "live": wired into this showcase. "shipped": on SDK develop but
+  // descriptive-only here. "roadmap": not on SDK develop. None of them means
+  // live gateway verification; that is stated in each card's `watch` text.
   // Descriptive-only cards use action "info" and never invent replay outputs.
-  badge: "live" | "roadmap";
+  badge: "live" | "shipped" | "roadmap";
   blurb: string;
   action: FeatureAction;
   prompt: string;
@@ -61,6 +62,10 @@ export interface Governance {
   message: string;
   remediation: string | null;
   retryable: boolean;
+  // "terminal" (never retried), "retryable" (5xx) or "pending" (CIBA: the
+  // gateway is waiting on the user; re-send after retry_after).
+  disposition?: "terminal" | "retryable" | "pending";
+  policy?: string | null;
   correlation_id: string | null;
   call_id: string | null;
   request_id: string | null;
@@ -70,6 +75,29 @@ export interface Governance {
   code?: string | null;
   error_type?: string | null;
   base_url?: string | null;
+  // AgentKilled: whether the Budget latched (pace()/wait_for_reset() now raise it).
+  latched?: boolean;
+  // RequestRateLimitExceeded: donkey.budget.requests after the 429.
+  requests_window?: {
+    limit: number | null;
+    remaining: number | null;
+    fraction_used: number | null;
+  };
+}
+
+// What a donkey.on(...) refusal reaction did (refusal-reactions card).
+export interface ReactionTrail {
+  on: string;
+  reaction: string;
+  refusal: string;
+  policy: string | null;
+  removed: string[];
+  resent_prompt: string | null;
+  resends: number;
+  max_times: number;
+  outcome: "answered" | "refused again";
+  // donkey.policy.decision of each governed request's span, oldest first.
+  decisions?: (string | null)[];
 }
 
 export interface SimulatorInfo {
@@ -95,6 +123,7 @@ export interface CompareWith {
   governance?: Governance;
   budget?: Budget;
   note?: string;
+  reaction?: ReactionTrail;
 }
 
 export interface CompareResult {
