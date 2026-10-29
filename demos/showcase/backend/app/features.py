@@ -888,8 +888,11 @@ blocks[span.attributes[DONKEY_POLICY_PROVIDER]] += 1""",
         "action": "chat",
         "prompt": "Route this through the gateway and show me what actually served it.",
         "model": "gpt-5.1",
-        "watch": "last_call shows served_model, routing_type and the fallback flag; "
-        "the same correlation id joins your log line, the span and the gateway record.",
+        "watch": "The span shows the served model (gen_ai.response.model), "
+        "donkey.routing.type and donkey.routing.fallback, and the same correlation id "
+        "the gateway echoes on its response. The last_call panel reads UNOBSERVED here: "
+        "the demo reads it after graph.ainvoke(), outside the LangGraph node that made "
+        "the call, so its fields stay empty.",
         "without": """# Without DDK — every call is its own island: no shared run id, and no
 # record of which upstream model actually served the request.
 reply = await model.ainvoke(messages)

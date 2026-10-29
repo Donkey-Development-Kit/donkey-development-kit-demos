@@ -373,7 +373,7 @@
   "action": "chat",
   "prompt": "Route this through the gateway and show me what actually served it.",
   "model": "gpt-5.1",
-  "watch": "last_call shows served_model, routing_type and the fallback flag; the same correlation id joins your log line, the span and the gateway record.",
+  "watch": "The span shows the served model (gen_ai.response.model), donkey.routing.type and donkey.routing.fallback, and the same correlation id the gateway echoes on its response. The last_call panel reads UNOBSERVED here: the demo reads it after graph.ainvoke(), outside the LangGraph node that made the call, so its fields stay empty.",
   "without": "# Without DDK \u2014 every call is its own island: no shared run id, and no\n# record of which upstream model actually served the request.\nreply = await model.ainvoke(messages)\n# served by gpt-5.1? silently substituted for a fallback? you find out\n# from the monthly bill, not from the code.",
   "with": "# With DDK \u2014 same call, inside a named run scope.\nasync with donkey.run(id=ticket.id, team=\"support\"):\n    reply = await model.ainvoke(messages)\n    lc = donkey.last_call          # read inside the run scope\n    print(lc.served_model, lc.routing_type, lc.fallback)"
  },
