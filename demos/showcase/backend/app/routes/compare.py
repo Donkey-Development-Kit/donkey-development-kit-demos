@@ -19,7 +19,8 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from ..agent import build_graph, user_state
-from ..donkeys import DEFAULT_MODEL, budget_snapshot, get_donkey, message_text
+from ..donkeys import DEFAULT_MODEL, budget_snapshot, message_text
+from ..governed import governed_donkey, refusal_extras
 from .chat import governance_payload
 
 
@@ -51,36 +52,44 @@ def _raw_without_ddk(prompt: str, model_id: str) -> dict[str, Any]:
         return {"ok": False, "status_code": None, "body": str(exc), "note": "Could not reach the proxy."}
 
 
-async def _governed_with_ddk(prompt: str, model_id: str) -> dict[str, Any]:
-    donkey = get_donkey()
-    model = donkey.langgraph.chat_model(model_id)
-    graph = build_graph(model)
-    try:
-        async with donkey.run(id="compare", team="support", project="triage-v2"):
-            result = await graph.ainvoke(user_state(prompt))
-        return {
-            "ok": True,
-            "text": message_text(result["messages"][-1])[:600],
-            "budget": budget_snapshot(donkey),
-        }
-    except DonkeyError as exc:
-        return {
-            "ok": False,
-            "governance": governance_payload(exc),
-            "budget": budget_snapshot(donkey),
-            "note": "A typed exception you branch on — never confused, never blindly retried.",
-        }
+async def _governed_with_ddk(prompt: str, model_id: str, feature: str | None) -> dict[str, Any]:
+    async with governed_donkey(model_id, feature) as (donkey, reaction, _scratch):
+        model = donkey.langgraph.chat_model(model_id)
+        graph = build_graph(model)
+        try:
+            async with donkey.run(id="compare", team="support", project="triage-v2"):
+                result = await graph.ainvoke(user_state(prompt))
+            out: dict[str, Any] = {
+                "ok": True,
+                "text": message_text(result["messages"][-1])[:600],
+                "budget": budget_snapshot(donkey),
+            }
+        except DonkeyError as exc:
+            governance = governance_payload(exc)
+            governance.update(await refusal_extras(exc, donkey))
+            out = {
+                "ok": False,
+                "governance": governance,
+                "budget": budget_snapshot(donkey),
+                "note": "A typed exception you branch on — never confused, never blindly retried.",
+            }
+        if reaction is not None:
+            trail = reaction.event("answered" if out["ok"] else "refused again")
+            if trail is not None:
+                out["reaction"] = trail
+        return out
 
 
 async def compare(request: Request) -> JSONResponse:
     body = await request.json()
     prompt = (body.get("prompt") or "").strip()
     model_id = body.get("model") or DEFAULT_MODEL
+    feature = body.get("feature")
     return JSONResponse(
         {
             "prompt": prompt,
             "model": model_id,
             "without": _raw_without_ddk(prompt, model_id),
-            "with": await _governed_with_ddk(prompt, model_id),
+            "with": await _governed_with_ddk(prompt, model_id, feature),
         }
     )

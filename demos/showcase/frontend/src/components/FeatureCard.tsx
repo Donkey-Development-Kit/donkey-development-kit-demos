@@ -40,7 +40,13 @@ export function FeatureCard({
     track(`compare-${feature.id}`, feature.title);
     setComparing(true);
     try {
-      setCompare(await api.compare({ prompt: feature.prompt, model: feature.model }));
+      setCompare(
+        await api.compare({
+          prompt: feature.prompt,
+          model: feature.model,
+          feature: feature.id,
+        }),
+      );
     } finally {
       setComparing(false);
     }

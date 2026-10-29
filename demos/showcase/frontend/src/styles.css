@@ -968,6 +968,21 @@ pre.code .code-line {
   font-weight: 700;
 }
 
+.compare-body {
+  margin: 0.4rem 0 0;
+  padding: 0.45rem 0.55rem;
+  max-height: 11rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--af-mono);
+  font-size: 0.7rem;
+  color: var(--af-fg);
+  background: var(--af-surface-sunken);
+  border: 1px solid var(--af-border);
+  border-radius: var(--af-radius-sm);
+}
+
 .compare-outcome.err .tag {
   color: var(--af-red);
 }

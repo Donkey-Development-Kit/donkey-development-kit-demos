@@ -115,7 +115,7 @@ export const api = {
   },
 
   async chat(
-    body: { prompt: string; model?: string; run_id?: string },
+    body: { prompt: string; model?: string; run_id?: string; feature?: string },
     onEvent: (ev: SSEEvent) => void,
     signal?: AbortSignal,
   ): Promise<void> {
@@ -142,6 +142,7 @@ export const api = {
   async compare(body: {
     prompt: string;
     model?: string;
+    feature?: string;
   }): Promise<CompareResult> {
     if (STATIC) {
       const recorded = await replayJson<Record<string, CompareResult>>("compare.json");

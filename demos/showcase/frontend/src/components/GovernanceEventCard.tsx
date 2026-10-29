@@ -1,7 +1,8 @@
 // Renders a typed refusal as a first-class chat event: the exception type, the
 // human message, its remediation, any shape-specific fields (PII entities,
-// content-safety categories, retry_after) and the correlation/call/request ids
-// that join the log line, the span and the gateway record.
+// content-safety categories, retry_after, the policy that fired, the kill latch,
+// the request window) and the correlation/call/request ids that join the log
+// line, the span and the gateway record.
 import type { Governance } from "../features";
 
 function entityList(entities: unknown): string[] {
@@ -14,16 +15,34 @@ function entityList(entities: unknown): string[] {
   return [String(entities)];
 }
 
+function retryAfterNote(gov: Governance): string {
+  if (gov.disposition === "pending") {
+    return "the gateway's Retry-After. Re-send the same request then; it goes through once the user approves.";
+  }
+  if (gov.type === "RequestRateLimitExceeded") {
+    return "from x-ratelimit-reset. Wait for the request window, don't retry immediately.";
+  }
+  return "wait for the window, don't retry immediately.";
+}
+
 export function GovernanceEventCard({ gov }: { gov: Governance }) {
   const entities = entityList(gov.entities);
   const categories = entityList(gov.categories);
+  const disposition = gov.disposition ?? (gov.retryable ? "retryable" : "terminal");
+  const soft = disposition !== "terminal";
+  const rw = gov.requests_window;
   return (
-    <div className={`gov-card${gov.retryable ? " retryable" : ""}`}>
+    <div className={`gov-card${soft ? " retryable" : ""}`}>
       <div className="gov-head">
         <span className="gov-type">{gov.type}</span>
-        <span className={`badge ${gov.retryable ? "badge-roadmap" : "badge-neutral"}`}>
-          {gov.retryable ? "retryable" : "terminal"}
+        <span className={`badge ${soft ? "badge-roadmap" : "badge-neutral"}`}>
+          {disposition === "pending" ? "pending: not a refusal" : disposition}
         </span>
+        {gov.policy && (
+          <span className="pill" title="e.policy">
+            policy={gov.policy}
+          </span>
+        )}
       </div>
 
       <div className="gov-msg">{gov.message}</div>
@@ -67,8 +86,24 @@ export function GovernanceEventCard({ gov }: { gov: Governance }) {
 
       {gov.retry_after != null && (
         <div className="gov-msg">
-          <b>retry_after:</b> {gov.retry_after}s — wait for the window, don't
-          retry immediately.
+          <b>retry_after:</b> {gov.retry_after}s, {retryAfterNote(gov)}
+        </div>
+      )}
+
+      {rw && rw.limit != null && (
+        <div className="gov-msg">
+          <b>donkey.budget.requests:</b> {rw.remaining ?? "?"} of {rw.limit}{" "}
+          requests left ({((rw.fraction_used ?? 0) * 100).toFixed(0)}% used). A
+          request-count window, separate from the token budget.
+        </div>
+      )}
+
+      {gov.latched && (
+        <div className="gov-msg">
+          <b>Budget latched:</b> <code>pace()</code> and{" "}
+          <code>wait_for_reset()</code> on this Donkey now raise AgentKilled
+          too, so paced work stops. No <code>donkey.on(...)</code> reaction
+          can be registered for it.
         </div>
       )}
 

@@ -10,6 +10,7 @@ import type {
   Feature,
   Governance,
   LastCall,
+  ReactionTrail,
   SimulatorInfo,
   Span,
 } from "./features";
@@ -78,7 +79,7 @@ export default function App() {
   // ---- chat ------------------------------------------------------------
 
   const runChat = useCallback(
-    async (prompt: string, model: string) => {
+    async (prompt: string, model: string, feature?: string) => {
       const userId = newId();
       const asstId = newId();
       setMessages((prev) => [
@@ -99,6 +100,20 @@ export default function App() {
                 ? { ...m, text: m.text + String(d.text ?? "") }
                 : m,
             );
+            break;
+          case "reaction":
+            // The reaction ran before the final outcome: show it above it.
+            setMessages((prev) => {
+              const at = prev.findIndex((m) => m.id === asstId);
+              const trail: Message = {
+                kind: "reaction",
+                id: newId(),
+                trail: ev.data as ReactionTrail,
+              };
+              return at < 0
+                ? [...prev, trail]
+                : [...prev.slice(0, at), trail, ...prev.slice(at)];
+            });
             break;
           case "governance":
             patch(asstId, (m) => ({
@@ -125,7 +140,7 @@ export default function App() {
       };
 
       try {
-        await api.chat({ prompt, model }, onEvent, ctrl.signal);
+        await api.chat({ prompt, model, feature }, onEvent, ctrl.signal);
       } catch (err) {
         if (!ctrl.signal.aborted) {
           patch(asstId, (m) =>
@@ -248,7 +263,7 @@ export default function App() {
       track(`run-${f.id}`, f.title);
       switch (f.action) {
         case "chat":
-          runChat(f.prompt, f.model);
+          runChat(f.prompt, f.model, f.id);
           break;
         case "pace":
           runPace();
@@ -283,7 +298,11 @@ export default function App() {
           ? activeFeature.model
           : "gpt-5.1";
       track("chat-freeform");
-      runChat(text, model);
+      runChat(
+        text,
+        model,
+        activeFeature && activeFeature.action === "chat" ? activeFeature.id : undefined,
+      );
     },
     [activeFeature, runChat],
   );

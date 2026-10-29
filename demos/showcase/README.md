@@ -129,8 +129,8 @@ VITE_BASE=/donkey-development-kit-demos/ npx vite preview   # http://localhost:4
 | **OpenAI Agents SDK deep adapter** | `donkey.openai_agents.model()` → native `OpenAIChatCompletionsModel` | SDK shipped, descriptive-only. The second conformance-tested adapter next to LangGraph. Model round-trip is live-verified; conformance and approvals are tested offline. The showcase chat stays on LangGraph. |
 | **Typed refusals** (PII / injection / content-safety / budget) | `PIIDetected`, `PromptInjectionBlocked`, `ContentSafetyBlocked`, `TokenBudgetExceeded` | The chat shows a typed refusal card with entities/categories/`retry_after` and a remediation — not an opaque 403/429. **Compare live** shows the raw HTTP body a non-DDK app gets. |
 | **Typed refusals — Model Armor / CrowdStrike AIDR** | `ContentSafetyBlocked` (`.provider == "google-model-armor"` / `"crowdstrike-aidr"`, `.categories`) | SDK shipped, descriptive-only; no simulator sentinel serves these shapes. Model Armor's 403 is VERIFIED (LIVE); AIDR's is read from the policy source, not live-captured. Either fail-closed 503 stays a retryable `UpstreamModelError`. |
-| **Typed refusals — regex prompt guard / request rate limit** | `PromptInjectionBlocked` (`policy="regex-prompt-guard"`), `RequestRateLimitExceeded.retry_after`, `donkey.budget.requests` | SDK shipped, descriptive-only; both shapes VERIFIED (LIVE). A deny-list match is typed and names its patterns; a request-count 429 is never confused with a token-budget 429. Simulator wiring (`donkey-sim/regex-prompt-guard`, `donkey-sim/request-rate-limit`) is planned. |
-| **Step-up approval pending / denied (CIBA)** | `GatewayApprovalPending.retry_after`, `donkey_kit.core.step_up.wait_for_approval()`, `GatewayApprovalDenied` (`policy="oauth2-obo-ciba"`) | SDK shipped, descriptive-only. The OBO policy's 401 `authorization_pending` is a wait, not an auth failure; the 403 denial is terminal and never retried. Captured live on an A2A route, not an LLM proxy route. Live wiring via `donkey-sim/ciba-pending` / `ciba-denied` is planned. |
+| **Typed refusals — regex prompt guard / request rate limit** | `PromptInjectionBlocked` (`policy="regex-prompt-guard"`), `RequestRateLimitExceeded.retry_after`, `donkey.budget.requests` | Live, through the `donkey-sim/regex-prompt-guard` and `donkey-sim/request-rate-limit` sentinels; both shapes VERIFIED (LIVE). A deny-list match is typed and names its patterns. A request-count 429 is never confused with a token-budget 429: `retry_after` comes from `x-ratelimit-reset`, and the chat shows `donkey.budget.requests` at 0 of 3. The window numbers are the capture's. The request-rate-limit card runs on a throwaway `Donkey`, so the pacing card is unaffected. Compare live shows the raw bodies. |
+| **Step-up approval pending / denied (CIBA)** | `GatewayApprovalPending.retry_after`, `donkey_kit.core.step_up.wait_for_approval()`, `GatewayApprovalDenied` (`policy="oauth2-obo-ciba"`) | Live, through `donkey-sim/ciba-pending` / `ciba-denied`. The OBO policy's 401 `authorization_pending` is shown as *pending*, with `retry_after=5`; it is not an auth failure. The card sends once, because the sentinel always answers pending. The 403 denial is terminal and never retried. Both were captured live on an A2A route, not an LLM proxy route. A pending answer sets no policy span attributes. |
 | **Budget & pacing** | `donkey.budget.pace(reserve=)`, `wait_for_reset()` | `fraction_used` climbs call by call, and `BudgetReserveReached` fires *before* the limit. Under fan-out the shared budget never moves backwards. `pace()` admits calls, it does not reserve for them, so size `reserve` to the fan-out width. |
 | **OTel spans + cost tags** | zero-config OTel GenAI spans in the `donkey.*` namespace | The exact span JSON: `gen_ai.usage.*`, `donkey.policy.decision`, `donkey.budget.remaining`, `donkey.cost.team/project`, correlation id. |
 | **Content-safety provider & categories on spans** | `donkey.policy.provider`, `donkey.policy.categories` (`DONKEY_POLICY_PROVIDER` / `DONKEY_POLICY_CATEGORIES`) | SDK shipped, descriptive-only. Refusal spans can be grouped by moderation vendor and category without parsing headers; reproducible offline with `simulate(ContentSafetyBlocked)`. |
@@ -140,8 +140,9 @@ VITE_BASE=/donkey-development-kit-demos/ npx vite preview   # http://localhost:4
 | **Local simulator** | `donkey mock` | Sentinel model `donkey-sim/<shape>` forces one exact refusal; `--scenario` fires them on a rule. |
 | **Testing & conformance** | `simulate()`, `pytest --donkey-conformance` | Grades this demo's own agent against every refusal shape → a pass/fail/exempt table. |
 | **CLI & decorators** | `donkey doctor`, `@donkey.governed` | `doctor` tells wrong URL from wrong credentials from unallowed model — one diagnosis. |
-| **Refusal reactions / custom classifier** | `donkey.on(...)`, `classify.register(...)` | SDK shipped, descriptive-only. Reactions are bounded and cannot manufacture success; custom classification is process-wide. |
-| **Terminal kill handling** | `AgentKilled`, budget pacing/reset latch | SDK shipped, descriptive-only. No recovery handler; consumes a platform decision, not a kill-switch administration API or HTTP firewall. |
+| **Refusal reactions** | `donkey.on(PromptInjectionBlocked).call(handler, max_times=1)`, `RefusalContext.resend(json=)` | Live, against the simulator's injection scenario. The demo's handler drops the injected sentence and re-sends once. The chat shows the trail and both span decisions (`refuse → allow`): the re-send is a new governed request. It runs on a throwaway `Donkey`, so the Injection Protection card is unchanged. This is client-side SDK behavior, not a gateway feature, and reactions cannot manufacture success. |
+| **Custom classifier** | `classify.register(...)` | SDK shipped, descriptive-only. Custom classification is process-wide, and no simulator shape exercises it. |
+| **Terminal kill handling** | `AgentKilled`, budget pacing/reset latch | Live, through `donkey-sim/agent-killed` (shape VERIFIED (LIVE)). The chat shows a terminal `AgentKilled` (`policy=agent-kill-switch`) and that the Budget latched, so `pace()` raises it too. It runs on a throwaway `Donkey`, so the latch does not stop the rest of the showcase. There is no recovery handler. It consumes a platform decision; it is not a kill-switch administration API or an HTTP firewall. |
 | **Native tool approvals** | `@donkey.tool(approval="required")`, LangGraph `interrupt()`, `openai_agents.function_tool`/`approve`/`reject`, Strands `ApprovalHook`, ADK `approval_plugin()` | SDK shipped, descriptive-only. Pauses live in the framework (checkpointer, `RunState`, ADK session) with no DDK expiry. Only LangGraph raises `ApprovalRejected`. The Strands hook re-raises governed tool refusals as typed errors. Advisory and client-side. Agents/Strands/ADK approvals are tested offline only. |
 | **Governed tool access (MCP)** | `donkey.tools.discover(governed=True)`, `ToolSet.<framework>()` bindings | SDK shipped, descriptive-only. Discovery plus every binding is VERIFIED (LIVE) through the governed gateway, for framework-built and Mule-hosted servers. `domain=` and `locked=True` are not supported yet. An audience-scoped token is good for one instance, so narrow with `filter(servers=[...])`. |
 | **On-behalf-of user token** | `donkey.as_user(id_token=...)` | SDK shipped, descriptive-only. The user's token is forwarded unchanged on model calls and MCP bindings (VERIFIED (LIVE) header). The gateway's OBO policy does the exchange, not the SDK, so the token must already be issued for the gateway's audience. |
@@ -226,15 +227,21 @@ stays entirely on the in-memory exporter — no Docker required.
 
 ## Notes
 
-- The wired showcase actions remain chat, pacing, conformance and doctor. New
-  SDK capabilities are descriptive-only (`action: "info"`, `badge: "shipped"`),
-  with explicit shipped status and limits. No new endpoint or recording is added.
+- The wired showcase actions remain chat, pacing, conformance and doctor.
+  SDK capabilities without a simulator shape are descriptive-only
+  (`action: "info"`, `badge: "shipped"`), with explicit shipped status and limits.
 - No card carries the Roadmap badge today: MCP tool access and on-behalf-of
   identity are on SDK `develop`. The badge and group stay for future cards.
-- The CIBA, regex-prompt-guard and request-rate-limit cards already carry a
-  `donkey-sim/<shape>` model and a prepared prompt so they can be wired later
-  by changing only `badge`/`action`. `info` cards ignore both, and the replay
-  recorder only records `chat` cards, so no recording keys change.
+- The kill-switch, CIBA, regex-prompt-guard, request-rate-limit and
+  refusal-reactions cards are `chat` cards. All but refusal reactions use a
+  `donkey-sim/<shape>` sentinel, which replays a live-captured fixture
+  verbatim. Chat and compare send the card id as `feature`. The backend
+  (`app/governed.py`) gives the `agent-killed` and `request-rate-limit`
+  sentinels, and the reactions card, a throwaway `Donkey`. Otherwise the
+  capture's kill latch and request window, or the registered reaction, would
+  leak into the shared one. Refusal events carry `disposition`
+  (terminal / retryable / pending), `policy` and, where the SDK sets it,
+  `retry_after`.
 - This demo consumes the installed `donkey-kit` package; it never modifies the
   SDK repo.
 - Docs: <https://donkey-development-kit.github.io/donkey-development-kit> ·
