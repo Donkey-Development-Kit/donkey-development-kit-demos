@@ -314,14 +314,13 @@ Good filler if you are running ahead. Pair with 07 if the room is ops-heavy.
 
 ### 12 — ToolSet.filter
 
-**Say:** "Filter shipped. Bind did not." Show two views of the same servers
+**Say:** "Filter is pure; bind is governed." Show two views of the same servers
 (`allow=` / `deny=`), the parent unchanged, colliding `get_employee` names
-prefixed. Then `tools.langgraph()` refusing the ungoverned servers
-(`UngovernedMcpServer`, no credentials sent), and the governed set raising
-`blocked on verification`.
+prefixed. Then `await tools.langgraph()` refusing the ungoverned servers
+(`UngovernedMcpServer`, no credentials sent).
 
-Do not let this become a discovery demo. Exchange and the MCP Bridge are still
-unconfirmed. `@donkey.tool` (demo 01) is a different marker.
+Do not let this become a discovery demo: it is offline. Discovery and governed
+binding run against the live gateway (`donkey.tools.discover()`), not here. `@donkey.tool` (demo 01) is a different marker.
 
 ### 13 — JWT / model-wallet auth
 
