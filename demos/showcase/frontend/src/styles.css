@@ -761,7 +761,8 @@ pre.code .code-line {
   box-shadow: var(--af-shadow);
 }
 
-.feature-card.roadmap {
+/* Dim only collapsed roadmap cards; an opened card must stay fully readable. */
+.feature-card.roadmap:not(.selected) {
   opacity: 0.72;
 }
 
