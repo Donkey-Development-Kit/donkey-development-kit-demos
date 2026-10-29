@@ -5,16 +5,17 @@ degrades it and inflates token cost. `ToolSet.filter(allow=..., deny=...,
 predicate=...)` returns a *new* ToolSet: the parent is unchanged, and two
 filtered views do not clobber each other.
 
-This is the part that is shipped and pure. Binding those tools into LangGraph /
-ADK / … first refuses any server that is not governed (`UngovernedMcpServer`,
-before a connection opens), then still raises `blocked on verification`: the
-binders' class names have not been confirmed, so the demo does not pretend
-they work.
+Filtering is pure and offline. Binding those tools into LangGraph / ADK / …
+(an async call on SDK develop) refuses any server that is not governed
+(`UngovernedMcpServer`, before a connection opens). A governed set binds for
+real against the live gateway, which this offline demo does not contact.
 
     python demos/claude-made/12_toolset_filter/demo.py
 """
 
 from __future__ import annotations
+
+import asyncio
 
 from donkey_kit import ConfigError
 from donkey_kit.registry import AssetRef, GovernanceReport, McpServerHandle
@@ -108,51 +109,41 @@ def act_2_narrowing_and_cost(tools: ToolSet) -> None:
         raise AssertionError("unknown filter pattern was accepted")
     say.note(
         "require_approval() declares an advisory gate that filters preserve. "
-        "The public binders remain blocked, so this does not execute an MCP tool. "
+        "Nothing here binds or executes an MCP tool. "
         "Descriptor tokens are roughly four JSON characters per token, not a bill."
     )
     try:
-        tools.filter(allow=[]).langgraph()
+        asyncio.run(tools.filter(allow=[]).langgraph())
     except UngovernedMcpServer:
         say.ok("Even an empty filtered view cannot bypass server governance")
     else:
         raise AssertionError("filter bypassed server governance")
 
 
-def act_2_binding_is_refused_then_blocked(tools: ToolSet) -> None:
-    say.step(3, "Binding refuses ungoverned servers, then is blocked on verification")
+def act_3_binding_refuses_ungoverned(tools: ToolSet) -> None:
+    say.step(3, "Binding refuses ungoverned servers before it connects")
     say.code(
         """
-        tools.langgraph()           # → UngovernedMcpServer (no governance verdict)
-        governed.langgraph()        # → NotImplementedError("blocked on verification")
+        await tools.langgraph()     # → UngovernedMcpServer (no governance verdict)
         """
     )
     try:
-        tools.langgraph()
+        asyncio.run(tools.langgraph())
         raise AssertionError("expected UngovernedMcpServer")
     except UngovernedMcpServer as exc:
         say.ok("refused before any connection — no gateway credentials were sent")
         say.field("servers", list(exc.servers), raw=True)
         say.field("reasons", list(exc.reasons), raw=True)
     print()
-
-    # The verdict discover(governed=True) would attach; built by hand here.
-    governed = ToolSet(_servers(GovernanceReport(governed=True, checks=[])))
-    try:
-        governed.langgraph()
-        raise AssertionError("expected blocked on verification")
-    except NotImplementedError as exc:
-        say.ok("a governed set passes the check, and binding is still blocked")
-        say.field("message", str(exc).splitlines()[0])
-    print()
     say.note(
         "The governed transport attaches your gateway credentials to every MCP "
         "request, so binding a server the gateway does not front would hand them "
         "to it. donkey.tools.discover(governed=True) attaches the verdict; a "
-        "handle built by hand has none, so it is refused. Past that check the "
-        "per-framework binders still raise, because their class names are not "
-        "confirmed. @donkey.tool (demo 01) is a different marker: it records a "
-        "Python callable, it does not discover MCP tools."
+        "handle built by hand has none, so it is refused. A governed set binds "
+        "for real (langgraph, llamaindex, anthropic, crewai, ...) against the live "
+        "gateway, which this offline demo does not contact. @donkey.tool (demo 01) "
+        "is a different marker: it records a Python callable, it does not discover "
+        "MCP tools."
     )
 
 
@@ -161,14 +152,14 @@ def main() -> None:
     say.pause()
     act_2_narrowing_and_cost(tools)
     say.pause()
-    act_2_binding_is_refused_then_blocked(tools)
+    act_3_binding_refuses_ungoverned(tools)
 
     print()
     say.section("The point")
     say.note(
         "Two filtered views of the same servers, neither mutating the parent, and "
         "a binder that refuses any server the gateway does not govern before it "
-        "opens a connection. Binding itself comes later."
+        "opens a connection."
     )
 
 

@@ -56,7 +56,7 @@ checks upgrades a surface to live-verified status.
 | 09 | [LangGraph agent](demos/claude-made/09_langgraph_agent/) | A real tool-calling loop, governed end to end | **credentials** |
 | 10 | [last_call](demos/claude-made/10_last_call/) | Gateway identity, routing/usage on a 200 (model-based and semantic); `ModelSubstituted` when you opt in | nothing |
 | 11 | [donkey init](demos/claude-made/11_cli_init/) | Commented `.donkey-kit.toml`, every gap named at once, no secrets on disk | nothing (`[cli]`) |
-| 12 | [ToolSet.filter](demos/claude-made/12_toolset_filter/) | Independent filtered views of MCP tools; binding refuses ungoverned servers, then is blocked on verification | nothing |
+| 12 | [ToolSet.filter](demos/claude-made/12_toolset_filter/) | Independent filtered views of MCP tools; binding refuses ungoverned servers before connecting | nothing |
 | 13 | [JWT / model-wallet](demos/claude-made/13_jwt_wallet/) | `llm_proxy_auth="jwt"`: `X-Client-Id` + rotating JWT, no `client_secret` | nothing (`[llm]`) |
 | 14 | [donkey doctor](demos/claude-made/14_cli_doctor/) | Wrong URL / wrong creds / model-not-allowed, against the local simulator | nothing (`[cli]` `[local]`) |
 | 15 | [provider passthrough](demos/claude-made/15_provider_passthrough/) | Vendor guardrail fields/spans, Model Armor live capture vs CrowdStrike source-derived shape, outage vs content verdict | nothing (`[llm,otel]`) |
