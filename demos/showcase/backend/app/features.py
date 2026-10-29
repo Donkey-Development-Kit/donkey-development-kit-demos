@@ -360,8 +360,12 @@ print(donkey.budget.requests.fraction_used)   # pace() guards this window too"""
         "prompt": "Run a 6-call enrichment batch under a 5% reserve.",
         "model": "gpt-5.1",
         "watch": "fraction_used climbs call by call. If the reserve is crossed, "
-        "BudgetReserveReached is raised before the request and the loop waits for "
-        "reset — no wasted spend.",
+        "BudgetReserveReached is raised before the request and this batch stops there "
+        "(production code awaits wait_for_reset()). Under a parallel fan-out the "
+        "shared Budget keeps the freshest response and never moves backwards, but "
+        "pace() is an admission check, not a reservation: tasks entering together are "
+        "admitted together, so size reserve to the fan-out width. This demo batch "
+        "runs sequentially.",
         "without": """# Without DDK — parse the ratelimit header by hand at every call site,
 # and most code skips it until the first 429 crashes the job.
 for record in batch:
@@ -369,13 +373,12 @@ for record in batch:
     hdr = reply.response_metadata["headers"].get("x-llm-proxy-ratelimit", "")
     remaining = int(re.search(r"(\\d+) tokens remaining", hdr).group(1))  # brittle""",
         "with": """# With DDK — never parse a header; pace the same loop.
-for record in batch:
-    async with donkey.budget.pace(reserve=0.05):   # raises at 95%
-        reply = await model.ainvoke(messages_for(record))
-
-# recover cleanly at the window boundary:
+try:
+    for record in batch:
+        async with donkey.budget.pace(reserve=0.05):   # raises at 95%
+            reply = await model.ainvoke(messages_for(record))
 except BudgetReserveReached:
-    await donkey.budget.wait_for_reset()""",
+    await donkey.budget.wait_for_reset()   # recover at the window boundary""",
     },
     {
         "id": "upstream-budget",
@@ -803,6 +806,74 @@ async with donkey.run(id=ticket.id, team="support"):
     reply = await model.ainvoke(messages)
     lc = donkey.last_call          # read inside the run scope
     print(lc.served_model, lc.routing_type, lc.fallback)""",
+    },
+    {
+        "id": "inbound-correlation",
+        "group": "Observability",
+        "icon": "🔗",
+        "title": "Inbound correlation across hops",
+        "badge": "shipped",
+        "blurb": "donkey.run_from_headers(request.headers) joins the caller's run. A "
+        "well-formed X-Correlation-Id is adopted, and a missing or malformed one is "
+        "replaced with a fresh id. correlation_headers() passes that id to your own "
+        "MCP or A2A client, so a supervisor and its sub-agents share one id.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not interactive here. Spans record donkey.correlation_id.source = "
+        "adopted | minted, and donkey.serve() A2A tasks use the same rule. Demo 06 "
+        "sends correlation_headers() to a stand-in HTTP hop, not a real MCP or A2A "
+        "server. Outside a run it returns {}. Whether an Omni Gateway A2A proxy "
+        "forwards the caller's id is still UNVERIFIED.",
+        "without": """# Without DDK — every hop mints its own id, so the supervisor's run and
+# the sub-agent's calls can't be joined in the trace or the gateway log.
+@app.post("/task")
+async def handle(request: Request):
+    return await agent.run(await request.json())   # a new id per hop""",
+        "with": """# SDK shipped; descriptive example, not executed by this card.
+@app.post("/task")
+async def handle(request: Request):
+    async with donkey.run_from_headers(request.headers):
+        result = await agent.run(await request.json())
+        # a hop on your own MCP / A2A client gets the id explicitly
+        await agents.post(sub_agent_url, json=task,
+                          headers=donkey.correlation_headers())
+        return result""",
+    },
+    {
+        "id": "business-group-attribution",
+        "group": "Observability",
+        "icon": "🏢",
+        "title": "Per-request business group",
+        "badge": "shipped",
+        "blurb": "donkey.attribution(business_group=...) assigns every governed call "
+        "in its block to a tenant or cost centre. You don't need a new Donkey or a "
+        "new run: one client, pool, auth cache and Budget serve every tenant, and an "
+        "invalid value raises ConfigError where you set it.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not interactive here. Demo 06 checks that two interleaved "
+        "run(business_group=...) scopes stay isolated and that each restores the "
+        "outer group on exit. The X-Anypoint-Business-Group header name is an "
+        "unverified placeholder, and nobody has verified that the gateway ingests it. "
+        "Adapters that only get a default_headers snapshot (CrewAI) keep the "
+        "configured group.",
+        "without": """# Without DDK — one client per tenant just to change one attribution value.
+clients = {t: make_client(business_group=t) for t in tenants}  # N pools, N auth caches
+reply = await clients[tenant].ainvoke(prompt)""",
+        "with": """# SDK shipped; descriptive example, not executed by this card.
+async def handle(tenant: str, prompt: str):
+    with donkey.attribution(business_group=tenant):
+        return await model.ainvoke(prompt)
+
+# one run, two cost centres; the correlation id is unchanged
+async with donkey.run(id=job.id):
+    with donkey.attribution(business_group="risk-eu"):
+        await score(job)
+    with donkey.attribution(business_group="risk-us"):
+        await score(job)
+# also: donkey.run(business_group=...), @donkey.governed(business_group=...)""",
     },
     {
         "id": "telemetry-flush",
