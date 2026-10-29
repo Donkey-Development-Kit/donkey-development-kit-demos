@@ -33,7 +33,7 @@ export function FeatureCard({
   const [compare, setCompare] = useState<CompareResult | null>(null);
   const [comparing, setComparing] = useState(false);
 
-  const isRoadmap = feature.badge === "roadmap";
+  const isRoadmap = feature.badge !== "live";
   const runLabel = ACTION_LABEL[feature.action];
 
   async function runCompare() {

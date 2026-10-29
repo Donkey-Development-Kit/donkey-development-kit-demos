@@ -39,9 +39,11 @@ interactive feature cards replay the responses the real backend returned against
 The header shows a `static replay` pill. Free-form prompts typed into the chat
 get a note pointing here instead of an answer. Run it locally for the live
 version. Descriptive-only cards have no run/compare controls and no fabricated
-recordings. The existing **Roadmap** badge means showcase integration is planned;
-titles explicitly say **SDK shipped** where the SDK already implements a surface.
-Neither **Live** nor **SDK shipped** asserts live gateway verification.
+recordings. Cards carry one of three badges: **Live** means the capability is wired into
+this showcase; **SDK shipped** means it is on SDK `develop` but the card is
+descriptive-only here (not wired); **Roadmap** means it is not on SDK `develop`.
+None of the three asserts live gateway verification; each card's *Watch* text
+states what was and was not verified.
 
 It deploys from `main` via
 [`.github/workflows/pages.yml`](../../.github/workflows/pages.yml) whenever
@@ -208,7 +210,7 @@ stays entirely on the in-memory exporter — no Docker required.
 ## Notes
 
 - The wired showcase actions remain chat, pacing, conformance and doctor. New
-  SDK capabilities are descriptive-only (`action: "info"`, `badge: "roadmap"`),
+  SDK capabilities are descriptive-only (`action: "info"`, `badge: "shipped"`),
   with explicit shipped status and limits. No new endpoint or recording is added.
 - This demo consumes the installed `donkey-kit` package; it never modifies the
   SDK repo.

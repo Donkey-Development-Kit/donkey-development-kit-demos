@@ -2,9 +2,9 @@
 
 Single source of truth for: what each card says, the prepared prompt, which
 backend action it triggers, and the *Without DDK* vs *With DDK* code the
-comparison panel shows. Live means wired into this showcase. Roadmap is the
-existing non-interactive UI treatment, including shipped SDK capabilities whose
-showcase integration is still planned; their descriptions state the limits.
+comparison panel shows. Badges: live = wired into this showcase; shipped = on
+SDK develop but descriptive-only here (not wired); roadmap = not on SDK develop.
+None implies live gateway verification; each card's `watch` states the limits.
 Static replay uses frontend/public/replay/features.json with the same metadata.
 
 `action` values the frontend understands:
@@ -353,8 +353,8 @@ async def handle_ticket(ticket): ...""",
         "id": "refusal-reactions",
         "group": "Governance",
         "icon": "\U0001f6e1\ufe0f",
-        "title": "Refusal reactions (SDK shipped)",
-        "badge": "roadmap",
+        "title": "Refusal reactions",
+        "badge": "shipped",
         "blurb": "donkey.on(...) centralizes bounded wait, resend, fallback and "
         "escalation. Only a new governed request can succeed; reactions never "
         "grant permission for the refused request.",
@@ -373,8 +373,8 @@ async def handle_ticket(ticket): ...""",
         "id": "custom-classifier",
         "group": "Governance",
         "icon": "\U0001f9e9",
-        "title": "Custom refusal classifier (SDK shipped)",
-        "badge": "roadmap",
+        "title": "Custom refusal classifier",
+        "badge": "shipped",
         "blurb": "classify.register(...) maps a customer's policy shape to a "
         "PolicyViolation subclass with its own remediation. Classification is "
         "process-wide; reactions remain per Donkey.",
@@ -393,8 +393,8 @@ async def handle_ticket(ticket): ...""",
         "id": "kill-handling",
         "group": "Governance",
         "icon": "\u26d4",
-        "title": "Terminal kill handling (SDK shipped)",
-        "badge": "roadmap",
+        "title": "Terminal kill handling",
+        "badge": "shipped",
         "blurb": "AgentKilled consumes the platform kill decision, wakes budget "
         "reset waiters and latches pacing. It is terminal: no retry or refusal "
         "reaction can lift the decision.",
@@ -414,8 +414,8 @@ async def handle_ticket(ticket): ...""",
         "id": "upstream-budget",
         "group": "Governance",
         "icon": "\U0001f4ca",
-        "title": "Observe-only upstream budget (SDK shipped)",
-        "badge": "roadmap",
+        "title": "Observe-only upstream budget",
+        "badge": "shipped",
         "blurb": "budget.upstream.requests and .tokens expose the routed provider "
         "key's shared quota separately from the gateway consumer window. Unknown "
         "values stay None, not zero.",
@@ -434,8 +434,8 @@ async def handle_ticket(ticket): ...""",
         "id": "dynamic-provider-key",
         "group": "Model access",
         "icon": "\U0001f511",
-        "title": "Dynamic provider key (SDK shipped)",
-        "badge": "roadmap",
+        "title": "Dynamic provider key",
+        "badge": "shipped",
         "blurb": "llm_proxy_key_header configures the customer route's Dynamic-key "
         "header alongside consumer authentication. There is no universal provider "
         "key header; use the name your route actually reads.",
@@ -456,8 +456,8 @@ async def handle_ticket(ticket): ...""",
         "id": "telemetry-flush",
         "group": "Observability",
         "icon": "\U0001f52d",
-        "title": "Telemetry flush ownership (SDK shipped)",
-        "badge": "roadmap",
+        "title": "Telemetry flush ownership",
+        "badge": "shipped",
         "blurb": "flush_telemetry(timeout_s=...) flushes only the process-wide "
         "DDK-owned provider before exit or serverless freeze. A host-owned OTel "
         "provider remains the host's responsibility.",
@@ -476,8 +476,8 @@ async def handle_ticket(ticket): ...""",
         "id": "conformance-server",
         "group": "Developer tooling",
         "icon": "\u2705",
-        "title": "Server-mode conformance (SDK shipped)",
-        "badge": "roadmap",
+        "title": "Server-mode conformance",
+        "badge": "shipped",
         "blurb": "--donkey-mode=server runs the public pytest conformance kit over "
         "real loopback HTTP to the local simulator, observing retries in the "
         "server request log rather than replacing the agent transport.",
@@ -496,8 +496,8 @@ async def handle_ticket(ticket): ...""",
         "id": "descriptor-fidelity",
         "group": "Developer tooling",
         "icon": "\U0001f9ea",
-        "title": "Descriptor fidelity (SDK shipped)",
-        "badge": "roadmap",
+        "title": "Descriptor fidelity",
+        "badge": "shipped",
         "blurb": "derive_descriptor() reads supported framework-owned schemas. "
         "auto:check detects drift; auto:live reads an official MCP server's "
         "tools/list through a local in-memory protocol session.",
@@ -517,8 +517,8 @@ async def handle_ticket(ticket): ...""",
         "id": "tool-filter-tokens",
         "group": "Developer tooling",
         "icon": "\U0001f527",
-        "title": "Tool filtering & token estimates (SDK shipped)",
-        "badge": "roadmap",
+        "title": "Tool filtering & token estimates",
+        "badge": "shipped",
         "blurb": "ToolSet.filter() narrows known descriptors with allow/deny globs "
         "and predicates; deny wins and chained filters cannot re-add tools. "
         "descriptor_tokens() estimates descriptor prompt cost after renaming.",
@@ -556,8 +556,8 @@ async def handle_ticket(ticket): ...""",
         "id": "a2a",
         "group": "Developer tooling",
         "icon": "🤝",
-        "title": "Local A2A serving (SDK shipped)",
-        "badge": "roadmap",
+        "title": "Local A2A serving",
+        "badge": "shipped",
         "blurb": "@donkey.agent + donkey.serve(handler) use the official a2a-sdk. "
         "build_app() exposes the same ASGI app; inbound tasks share correlation "
         "and parent downstream spans, with typed refusal task failures.",
@@ -592,8 +592,8 @@ async def handle_ticket(ticket): ...""",
         "id": "hitl",
         "group": "Governance",
         "icon": "✋",
-        "title": "Local tool approvals (SDK shipped)",
-        "badge": "roadmap",
+        "title": "Local tool approvals",
+        "badge": "shipped",
         "blurb": "@donkey.tool(approval='required') gates local effects. Base "
         "ApprovalRequired calls resolve/reject through donkey.approvals; "
         "LangGraph uses native checkpoint interrupts and resume decisions.",
@@ -614,8 +614,8 @@ async def handle_ticket(ticket): ...""",
         "id": "publishing",
         "group": "Developer tooling",
         "icon": "📤",
-        "title": "Scan & MCP publication (SDK shipped)",
-        "badge": "roadmap",
+        "title": "Scan & MCP publication",
+        "badge": "shipped",
         "blurb": "donkey scan inventories code without imports; publish --dry-run "
         "plans declared assets without network. MCP publication is implemented "
         "with content digests and --if-changed; agent publication is skipped.",

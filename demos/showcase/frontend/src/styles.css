@@ -841,6 +841,28 @@ pre.code .code-line {
   border-color: var(--af-amber-soft);
 }
 
+.badge-shipped {
+  color: var(--af-accent);
+  background: var(--af-surface-sunken);
+  border-color: var(--af-accent-border);
+}
+
+.badge-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  align-items: center;
+  padding: 0.5rem 0.95rem;
+  font-size: 0.72rem;
+  color: var(--af-fg-muted);
+  border-bottom: 1px solid var(--af-border);
+}
+
+.badge-legend-note {
+  flex-basis: 100%;
+  font-style: italic;
+}
+
 .badge-neutral {
   color: var(--af-fg-muted);
   background: var(--af-surface-sunken);

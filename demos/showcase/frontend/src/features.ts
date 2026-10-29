@@ -14,10 +14,11 @@ export interface Feature {
   group: string;
   icon: string;
   title: string;
-  // "live" means showcase-wired, not live gateway verification. "roadmap"
-  // also covers shipped SDK surfaces whose showcase integration is planned.
+  // "live": wired into this showcase. "shipped": on SDK develop but
+  // descriptive-only here. "roadmap": not on SDK develop. None of them means
+  // live gateway verification; that is stated in each card's `watch` text.
   // Descriptive-only cards use action "info" and never invent replay outputs.
-  badge: "live" | "roadmap";
+  badge: "live" | "shipped" | "roadmap";
   blurb: string;
   action: FeatureAction;
   prompt: string;
