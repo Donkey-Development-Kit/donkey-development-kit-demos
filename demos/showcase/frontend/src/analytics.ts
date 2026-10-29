@@ -23,8 +23,12 @@ export function loadAnalytics(): void {
   document.head.appendChild(s);
 }
 
+// The /next/ develop preview (VITE_PREVIEW) prefixes event names so its usage
+// never mixes with the released site's counts.
+const PREFIX = import.meta.env.VITE_PREVIEW ? "next-" : "";
+
 export function track(path: string, title?: string): void {
-  window.goatcounter?.count({ path, title, event: true });
+  window.goatcounter?.count({ path: PREFIX + path, title, event: true });
 }
 
 export class CounterError extends Error {

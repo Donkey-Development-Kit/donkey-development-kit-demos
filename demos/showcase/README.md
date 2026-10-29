@@ -43,9 +43,16 @@ recordings. The existing **Roadmap** badge means showcase integration is planned
 titles explicitly say **SDK shipped** where the SDK already implements a surface.
 Neither **Live** nor **SDK shipped** asserts live gateway verification.
 
-It deploys from `main` via
-[`.github/workflows/pages.yml`](../../.github/workflows/pages.yml) whenever
-anything under `demos/showcase/frontend/` changes.
+Two builds are published, from one workflow
+([`.github/workflows/pages.yml`](../../.github/workflows/pages.yml)):
+
+| URL | Content | Deploys when |
+| --- | --- | --- |
+| `/` | Released SDK, built from `main` | a push to `main` or `develop` touches `demos/showcase/frontend/**` (or the workflow), or on manual dispatch |
+| `/next/` | Preview of SDK `develop`, built from `develop`; header shows a `preview: SDK develop` pill | same triggers |
+
+Each run rebuilds both from the current tip of each branch, so a push to either
+branch refreshes the whole site. Preview analytics events are prefixed `next-`.
 
 ### Usage stats
 
