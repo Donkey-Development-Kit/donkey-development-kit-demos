@@ -136,13 +136,14 @@ VITE_BASE=/donkey-development-kit-demos/ npx vite preview   # http://localhost:4
 | **Refusal reactions / custom classifier** | `donkey.on(...)`, `classify.register(...)` | SDK shipped, descriptive-only. Reactions are bounded and cannot manufacture success; custom classification is process-wide. |
 | **Terminal kill handling** | `AgentKilled`, budget pacing/reset latch | SDK shipped, descriptive-only. No recovery handler; consumes a platform decision, not a kill-switch administration API or HTTP firewall. |
 | **Local tool approvals** | `@donkey.tool(approval="required")`, `donkey.approvals`, native LangGraph interrupts | SDK shipped, descriptive-only. Base approvals are process-global memory; native pauses use the framework checkpointer with no DDK expiry. Advisory, not a platform queue/UI/step-up service. |
-| **Local A2A serving** | `@donkey.agent`, `donkey.serve(handler)`, `build_app()` | SDK shipped, descriptive-only. Official A2A app; demo evidence is in-process ASGI/lifespan, not a tested TCP launcher or gateway exposure. |
-| **Scan & MCP publication** | `donkey scan`, `publish --dry-run`, `--if-changed` | SDK shipped, descriptive-only. Offline plans are not publication outcomes; agents are skipped and connected-app publication authentication is unconfirmed live. |
-| **Descriptor fidelity / tool filtering** | `derive_descriptor()`, `ToolSet.filter()`, `descriptor_tokens()` | SDK shipped, descriptive-only. Auto modes execute imports/factories; local protocol/schema fidelity does not unblock remote discovery/bind. Token cost is an estimate, not a bill. |
+| **Governed tool access (MCP)** | `donkey.tools.discover(governed=True)`, `ToolSet.<framework>()` bindings | SDK shipped, descriptive-only. Discovery plus every binding is VERIFIED (LIVE) through the governed gateway, for framework-built and Mule-hosted servers. `domain=` and `locked=True` are not supported yet. An audience-scoped token is good for one instance, so narrow with `filter(servers=[...])`. |
+| **On-behalf-of user token** | `donkey.as_user(id_token=...)` | SDK shipped, descriptive-only. The user's token is forwarded unchanged on model calls and MCP bindings (VERIFIED (LIVE) header). The gateway's OBO policy does the exchange, not the SDK, so the token must already be issued for the gateway's audience. |
+| **A2A serving, dev & expose** | `@donkey.agent`, `donkey.serve()`, `build_app()`, `donkey dev`, `donkey preflight`/`expose` | SDK shipped, descriptive-only. `expose`/`preflight` are VERIFIED (LIVE). `serve`/`dev` are local round-trips, and the `dev` ingress is simulated. No streaming. Gateway forwarding of the inbound correlation id is UNVERIFIED. |
+| **Scan & publication** | `donkey scan`, `donkey publish --dry-run`, `--if-changed` | SDK shipped, descriptive-only. MCP and agent publish, the Exchange page and the connected-app `manage:exchange` scope are VERIFIED (LIVE). The card shows only offline dry-run plans and publishes nothing. Changed content needs a new version. |
+| **Descriptor fidelity / tool filtering** | `derive_descriptor()`, `ToolSet.filter()`, `describe()`, `descriptor_tokens()` | SDK shipped, descriptive-only. Descriptor reads are local captures. The auto modes run imports and factories, and `auto:static` is unsupported. `filter(servers=)` was used in the live gateway binds. The token count is an estimate, not a bill. |
 | **Server-mode conformance** | `--donkey-mode=server` | SDK shipped, descriptive-only. Real loopback HTTP; uncaptured custom shapes require in-process mode. The existing showcase button is unchanged. |
 | **Telemetry flush** | `flush_telemetry(timeout_s=...)` | SDK shipped, descriptive-only. Flushes DDK-owned spans only; host providers need host flush/shutdown. `True` can be a no-op; `False` is timeout/failure. |
 | **Upstream budget / dynamic key** | `budget.upstream`, `llm_proxy_key_header` | SDK shipped, descriptive-only. Provider quota is observe-only; dynamic header names belong to customer routes, not a universal gateway contract. |
-| **Verification gates / roadmap** | remote MCP discovery/bind, A2A expose/dev, agent publication, on-behalf-of identity | **Not** wired. Remote MCP discovery/bind remain verification-blocked; expose/dev are outside implemented scope and agents are skipped on publication. |
 
 ### Narrative Companions
 
@@ -212,6 +213,8 @@ stays entirely on the in-memory exporter — no Docker required.
 - The wired showcase actions remain chat, pacing, conformance and doctor. New
   SDK capabilities are descriptive-only (`action: "info"`, `badge: "shipped"`),
   with explicit shipped status and limits. No new endpoint or recording is added.
+- No card carries the Roadmap badge today: MCP tool access and on-behalf-of
+  identity are on SDK `develop`. The badge and group stay for future cards.
 - This demo consumes the installed `donkey-kit` package; it never modifies the
   SDK repo.
 - Docs: <https://donkey-development-kit.github.io/donkey-development-kit> ·
