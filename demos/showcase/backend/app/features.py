@@ -58,6 +58,48 @@ async with donkey.run(id=ticket.id):
 print(donkey.budget.remaining)   # updated in-band from the response""",
     },
     {
+        "id": "openai-agents-deep",
+        "group": "Model access",
+        "icon": "🧭",
+        "title": "OpenAI Agents SDK deep adapter",
+        "badge": "shipped",
+        "blurb": "The second deep adapter, next to LangGraph: "
+        "donkey.openai_agents.model() returns a native OpenAIChatCompletionsModel on "
+        "a governed AsyncOpenAI. Both adapters run the full conformance suite in CI; "
+        "the other six adapters are connection_kwargs()-only.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not wired here: the showcase chat runs on LangGraph. The model "
+        "round-trip is live-verified. Conformance, correlation into tools and "
+        "needs_approval pauses are tested offline against the simulator. The model is "
+        "Chat Completions only, so namespaced/deferred tools need a Responses model "
+        "you build yourself. Shallow adapters keep native hooks too, e.g. ADK "
+        "last_call_bridged(LiteLlm) carries donkey.last_call into a hand-built "
+        "model's after_model_callback.",
+        "without": """# Without DDK — you hand-wire the client, and the agent run is ungoverned.
+from agents import Agent, OpenAIChatCompletionsModel
+from openai import AsyncOpenAI
+
+client = AsyncOpenAI(
+    base_url=os.environ["DONKEY_LLM_PROXY_URL"],
+    api_key=os.environ["GATEWAY_TOKEN"],
+)
+agent = Agent(name="triage", model=OpenAIChatCompletionsModel("gpt-5.1", openai_client=client))
+# Tool errors become strings; a refusal never reaches your code typed.""",
+        "with": """# SDK shipped; run separately with donkey-kit[openai-agents].
+from agents import Agent, Runner
+from donkey_kit import Donkey
+
+donkey = Donkey.from_env(team="support", project="triage")
+agent = Agent(name="triage", model=donkey.openai_agents.model("gpt-5.1"))
+
+async with donkey.run(id=ticket.id):
+    result = await Runner.run(agent, ticket.text)   # refusals raise typed
+
+$ pytest --donkey-conformance --donkey-agent=my_app:build""",
+    },
+    {
         "id": "dynamic-provider-key",
         "group": "Model access",
         "icon": "\U0001f511",
@@ -465,23 +507,35 @@ except BudgetReserveReached:
         "id": "hitl",
         "group": "Governance",
         "icon": "✋",
-        "title": "Local tool approvals",
+        "title": "Native tool approvals",
         "badge": "shipped",
-        "blurb": "@donkey.tool(approval='required') gates local effects. Base "
-        "ApprovalRequired calls resolve/reject through donkey.approvals; "
-        "LangGraph uses native checkpoint interrupts and resume decisions.",
+        "blurb": "@donkey.tool(approval='required') pauses with each framework's own "
+        "mechanism: LangGraph interrupt(), Agents SDK needs_approval, Strands "
+        "interrupts (ApprovalHook) and ADK tool confirmation (approval_plugin). "
+        "Anywhere else it raises ApprovalRequired for donkey.approvals.",
         "action": "info",
         "prompt": "",
         "model": "gpt-5.1",
-        "watch": "Not interactive here. demos/claude-made/19_tool_approvals/demo.py "
-        "asserts both paths. Base approvals are process-global memory; native "
-        "LangGraph pauses use its checkpointer and have no DDK approval_timeout. "
-        "Advisory only: no platform queue/UI/step-up or governance override.",
+        "watch": "Not interactive here. demos/claude-made/19_tool_approvals and the "
+        "human-made openai-agents/strands/adk approval scripts run offline. The pause "
+        "lives in the framework (checkpointer, RunState, ADK session), so DDK's "
+        "approval_timeout does not apply. Only LangGraph raises ApprovalRejected; the "
+        "other three pass the model a rejection message. Strands' hook re-raises "
+        "governed tool refusals as typed errors. Advisory and client-side: no "
+        "platform queue, UI, step-up or governance override. Agents/Strands/ADK "
+        "approvals are tested offline only, not against a live gateway.",
         "without": "",
         "with": "# SDK shipped; descriptive local gate, not a showcase approval UI.\n"
         '@donkey.tool(approval="required", risk="financial")\n'
-        'async def issue_refund(amount: float):\n    """Issue an approved refund."""\n'
-        '    ...  # side effect only after approval',
+        "def issue_refund(ticket_id: str, amount: float) -> str:\n"
+        '    """Refund a support ticket."""\n'
+        "    ...  # side effect only after approval\n"
+        "\n"
+        '# LangGraph: graph.invoke(Command(resume={"approved": True, "by": "m.keller"}), thread)\n'
+        "# Agents:    tools=[openai_agents.function_tool(issue_refund)]\n"
+        '#            openai_agents.approve(result.to_state(), approval, by="m.keller")\n'
+        "# Strands:   Agent(..., hooks=[ApprovalHook()])\n"
+        "# ADK:       App(..., plugins=[approval_plugin()])",
     },
     {
         "id": "ciba-pending",
