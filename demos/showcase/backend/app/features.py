@@ -398,6 +398,35 @@ hr = tools.filter(servers=["hr-mcp"]).filter(allow=["get_*"])
 agent = create_react_agent(model, tools=await hr.langgraph())""",
     },
     {
+        "id": "registry-explain",
+        "group": "Governance",
+        "icon": "🔎",
+        "title": "Registry search, resolve & explain",
+        "badge": "shipped",
+        "blurb": "donkey.registry.search() queries Exchange through the Graph API. "
+        "resolve_mcp() turns an MCP asset version into its gateway URL. explain() "
+        "reports, check by check, why that version is or is not governed, and keeps "
+        "UNKNOWN visible instead of silently filtering.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not interactive here; the card makes no Exchange or API Manager "
+        "call. search(), resolve_mcp() and explain() were verified live against a "
+        "sandbox (2026-10-27/28). search(domain=, environment=, governed=) and the "
+        "a2a-agent type still raise NotImplementedError. A refused Exchange or API "
+        "Governance read is UNKNOWN, not a pass. Without read:exchange, search() "
+        "returns [] rather than an error.",
+        "without": """# Hand-join Exchange, API Manager and Gateway Manager reads, and read an
+# empty result as 'nothing governed' when it is really a missing scope.""",
+        "with": """# SDK shipped; descriptive example, not executed by this card.
+from donkey_kit.experimental import STRICT
+
+refs = await donkey.registry.search(query="sku", asset_types=["mcp"], tags=["approved"])
+server = await donkey.registry.resolve_mcp("<group-id>/sku-lookup-mcp/1.1.0")
+report = await donkey.registry.explain(server.ref, criteria=STRICT)
+print(server.endpoint_url, report.governed, report.reasons_failed())""",
+    },
+    {
         "id": "mcp-ungoverned-approval",
         "group": "Governance",
         "icon": "🚧",
@@ -649,22 +678,21 @@ async def handle_ticket(ticket): ...""",
         "id": "a2a",
         "group": "Developer tooling",
         "icon": "🤝",
-        "title": "A2A serving, dev & expose",
+        "title": "A2A serving & donkey dev",
         "badge": "shipped",
         "blurb": "@donkey.agent + donkey.serve(handler) serve an agent over the "
         "official a2a-sdk, and build_app() returns the same ASGI app. donkey dev runs "
-        "the agent behind a simulated ingress. donkey preflight and donkey expose put "
-        "an MCP server or A2A agent behind an existing gateway.",
+        "the agent behind a simulated ingress. Putting it behind a real gateway is "
+        "the Expose & preflight card.",
         "action": "info",
         "prompt": "",
         "model": "gpt-5.1",
-        "watch": "Not interactive here. Checked locally (round-trip): serve() and "
-        "donkey dev, called with curl on 127.0.0.1. verified-apis §12.5: VERIFIED "
-        "(LIVE) 2026-10-28. preflight and expose ran end to end, with a connected app "
-        "holding only the seven documented scopes. Limits: streaming is not "
-        "advertised. The ingress in donkey dev is SIMULATED and enforces no policy. "
-        "Whether a gateway proxy forwards the caller's X-Correlation-Id to the agent "
-        "is still UNVERIFIED. This card exposes nothing.",
+        "watch": "Not interactive here. Checked locally (round-trip, verified-apis "
+        "§8.5): serve() and donkey dev, called with curl on 127.0.0.1. "
+        "demos/claude-made/21_a2a_serving/demo.py asserts the app in-process. Limits: "
+        "streaming is not advertised. The ingress in donkey dev is SIMULATED and "
+        "enforces no policy. Whether a gateway proxy forwards the caller's "
+        "X-Correlation-Id to the agent is still UNVERIFIED. This card exposes nothing.",
         "without": "",
         "with": "# SDK shipped; descriptive example, not executed by this card.\n"
         '@donkey.agent(name="support-triage", skills=["triage"])\n'
@@ -673,8 +701,45 @@ async def handle_ticket(ticket): ...""",
         "    ...\n"
         "\n"
         "donkey.serve(handle)  # localhost by default; blocks until stopped\n"
-        "# $ donkey dev app:handle --scenario 'pii_block:every=5'\n"
-        "# $ donkey preflight support-triage --json   # read-only plan",
+        "# $ donkey dev app:handle --scenario 'pii_block:every=5'",
+    },
+    {
+        "id": "expose-preflight",
+        "group": "Developer tooling",
+        "icon": "🚪",
+        "title": "Expose & preflight behind a gateway",
+        "badge": "shipped",
+        "blurb": "donkey expose puts one MCP server or a2a_v1 agent behind an Omni "
+        "Gateway that already exists. It publishes the asset, creates the API Manager "
+        "instance, adds the declared policies and deploys, printing one line per "
+        "step. preflight, like --dry-run, only reads, and fails CI when a gateway, "
+        "environment or scope is missing.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not interactive; this card exposes nothing. Both commands ran live "
+        "on 2026-10-28 for an MCP server and an A2A agent (verified-apis §12.5). The "
+        "connected app held exactly seven scopes: view:environment, read:servers, "
+        "read:exchange, manage:exchange, manage:api_configuration, "
+        "manage:api_policies and manage:api_proxies. The commands only add: they "
+        "never delete, edit a policy, or create the gateway or environment, and a "
+        "difference is reported, not fixed. Policies come only from the declaration.",
+        "without": """# Click through Exchange, API Manager and Runtime Manager per service, and
+# learn about a missing scope or gateway halfway through the change.""",
+        "with": """# SDK shipped; [donkey.expose] in .donkey-kit.toml (no default policies).
+[donkey.expose]
+target = "my-omni-gateway"
+[[donkey.expose.services.sku-manager.policies]]
+asset = "<policy-group-id>/mcp-support/1.1.1"
+
+$ donkey preflight sku-manager     # reads only, like expose --dry-run
+  ✓ environment         present  Sandbox (…)
+  ✓ gateway             present  my-omni-gateway, ingress port 8081
+  · registry            planned  would publish <group-id>:sku-manager:1.0.0
+  · instance            planned  would create sku-manager on my-omni-gateway
+  · policy mcp-support  planned  would apply inbound mcp-support 1.1.1
+  · deployment          planned  would deploy to my-omni-gateway
+would expose MCP server sku-manager (dry run: nothing was changed)""",
     },
     {
         "id": "publishing",
@@ -684,23 +749,92 @@ async def handle_ticket(ticket): ...""",
         "badge": "shipped",
         "blurb": "donkey scan inventories @donkey.agent and @donkey.tool markers "
         "without importing code. donkey publish sends MCP servers and agents to "
-        "Exchange with a content digest (--if-changed by default), plus a Home page "
-        "that lists tool governance and what changed. --dry-run makes no network call.",
+        "Exchange with a content digest and skips unchanged ones (--if-changed is the "
+        "default). --dry-run makes no network call. CI and the Exchange page are on "
+        "the Publish from CI card.",
         "action": "info",
         "prompt": "",
         "model": "gpt-5.1",
         "watch": "Not interactive here. demos/claude-made/16_publish_from_ci asserts "
         "only the offline scan and dry-run plans. verified-apis §7/§12.3: VERIFIED "
-        "(LIVE). MCP publish was checked 2026-10-26, agent publish and the Exchange "
-        "page 2026-10-27, and connected-app manage:exchange 2026-10-28. Limits: "
-        "changed content needs a new version, since republishing a version is a 409. "
-        "The 'Changes since' read is live, but its use inside publish was only tested "
-        "offline. This card publishes nothing.",
+        "(LIVE). MCP publish was checked 2026-10-26 and agent publish 2026-10-27. "
+        "Limits: changed content needs a new version, since republishing a version is "
+        "a 409. This card publishes nothing.",
         "without": "",
         "with": """# SDK shipped; dry runs only, nothing is sent.
 $ donkey scan demos/claude-made/16_publish_from_ci/server --json
 $ donkey publish demos/claude-made/16_publish_from_ci/server --dry-run --json
 # A real publish runs in CI with a connected app holding manage:exchange.""",
+    },
+    {
+        "id": "publish-exchange-ci",
+        "group": "Developer tooling",
+        "icon": "📚",
+        "title": "Publish MCP servers & agents from CI",
+        "badge": "shipped",
+        "blurb": "donkey publish registers each MCP server (type mcp) and "
+        "@donkey.agent (type agent) in Exchange. Every new version gets a generated "
+        'Home page: an Overview, tools with their approval/risk, and "Changes since" '
+        "the previous version. --json drives the GitHub Action, and the docs include "
+        "GitLab CI and Bitbucket recipes.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not interactive; this card publishes nothing. Publishing MCP and "
+        "agent assets was verified live with a connected app holding manage:exchange "
+        '(2026-10-28). The "Changes since" section was tested offline against '
+        "captured fixtures only. The GitLab and Bitbucket YAML passes their schemas "
+        "but has not run on those platforms, and pages published outside GitHub "
+        "Actions have no commit or run links. Exchange never overwrites a version, so "
+        "changed content needs a version bump.",
+        "without": """# Hand-upload assets to Exchange, write the page by hand, and find out a
+# version already exists from a 409 in the middle of the release.""",
+        "with": """# SDK shipped; dry run only: no network call, no credentials needed.
+$ donkey --json publish . --dry-run      # abridged
+{"assets": [{"type": "mcp", "asset_id": "ddk-demo-sku-lookup",
+  "version": "1.1.0", "tools": ["lookup_sku"], "digest": "sha256:…"}],
+ "issues": [], "plan_format": 1}
+
+# .github/workflows/publish.yml (pin <ref> to a tag or SHA)
+- uses: Donkey-Development-Kit/donkey-development-kit/action@<ref>
+  with:
+    dry-run: ${{ github.event_name == 'pull_request' }}""",
+    },
+    {
+        "id": "publication-verify",
+        "group": "Developer tooling",
+        "icon": "🔁",
+        "title": "Verify published vs live",
+        "badge": "shipped",
+        "blurb": "donkey verify and Publication.verify() compare what a version was "
+        "published with against what is live: an MCP server's tools/list, or the card "
+        "an a2a_v1 agent serves, read through its governed gateway instance. "
+        "Read-only. Drift warns by default; raise_on_drift=True raises "
+        "PublicationDrift instead.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not interactive; this card reads nothing. The reads it depends on "
+        "were verified live: the Exchange read-backs of mcp-metadata tools and agent "
+        "cards, and the agent's card through the gateway (2026-10-29), plus the "
+        "governed MCP binding (2026-10-28). Parameter types are not compared, and "
+        "neither are card fields that describe the deployment (url, version, "
+        "security). Agents with protocol other are skipped, and API publications "
+        "raise NotImplementedError.",
+        "without": """# A server changes after release and Exchange keeps advertising the old
+# tools; nobody notices until an agent calls a tool that no longer exists.""",
+        "with": """# SDK shipped; reads Exchange and the gateway, so not run by this card.
+$ donkey --json verify .
+#   each asset: "status": match | drift | error | skipped, "differences": [...]
+#   e.g. "tool lookup_sku: the description changed"
+
+from donkey_kit.experimental import Publication, PublicationAssetType
+
+pub = Publication(asset_type=PublicationAssetType.MCP_SERVER, group_id="<group-id>",
+                  asset_id="ddk-demo-sku-lookup", version="1.1.0",
+                  name="SKU Lookup MCP Server", description="Looks up a SKU.")
+drift = await pub.verify(donkey)                 # warns, returns the differences
+await pub.verify(donkey, raise_on_drift=True)    # raises PublicationDrift""",
     },
     {
         "id": "descriptor-fidelity",
