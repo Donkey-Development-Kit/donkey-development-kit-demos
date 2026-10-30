@@ -19,7 +19,7 @@ set -a; source .env.local; set +a
 export DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/ddk-gemini-inbound/   # overrides the file
 ```
 
-The model is `gemini-2.5-flash` (the `MODEL` constant).
+The model is `gemini-3.8-flash` (the `MODEL` constant).
 
 ## Scripts
 
