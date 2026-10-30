@@ -21,6 +21,9 @@
 .donkey-kit.*.toml
 **/.donkey-kit.toml
 **/.donkey-kit.*.toml
+# Demo 16 publishes from this one: it holds the publication version and a
+# fake endpoint, no credentials (they come from repository secrets).
+!demos/claude-made/16_publish_from_ci/server/.donkey-kit.toml
 donkey.lock
 donkey.lock.local
 
@@ -83,6 +86,7 @@ __pycache__/
 build/
 dist/
 .venv/
+.venv-*/
 venv/
 env/
 .mypy_cache/

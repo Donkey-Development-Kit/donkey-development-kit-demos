@@ -761,7 +761,8 @@ pre.code .code-line {
   box-shadow: var(--af-shadow);
 }
 
-.feature-card.roadmap {
+/* Dim only collapsed roadmap cards; an opened card must stay fully readable. */
+.feature-card.roadmap:not(.selected) {
   opacity: 0.72;
 }
 
@@ -839,6 +840,28 @@ pre.code .code-line {
   color: var(--af-amber);
   background: var(--af-amber-soft);
   border-color: var(--af-amber-soft);
+}
+
+.badge-shipped {
+  color: var(--af-accent);
+  background: var(--af-surface-sunken);
+  border-color: var(--af-accent-border);
+}
+
+.badge-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  align-items: center;
+  padding: 0.5rem 0.95rem;
+  font-size: 0.72rem;
+  color: var(--af-fg-muted);
+  border-bottom: 1px solid var(--af-border);
+}
+
+.badge-legend-note {
+  flex-basis: 100%;
+  font-style: italic;
 }
 
 .badge-neutral {
@@ -944,6 +967,21 @@ pre.code .code-line {
 
 .compare-outcome .tag {
   font-weight: 700;
+}
+
+.compare-body {
+  margin: 0.4rem 0 0;
+  padding: 0.45rem 0.55rem;
+  max-height: 11rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--af-mono);
+  font-size: 0.7rem;
+  color: var(--af-fg);
+  background: var(--af-surface-sunken);
+  border: 1px solid var(--af-border);
+  border-radius: var(--af-radius-sm);
 }
 
 .compare-outcome.err .tag {

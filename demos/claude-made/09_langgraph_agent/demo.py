@@ -6,8 +6,8 @@ two tools, the tools return, the model composes an answer. Every model call in
 that loop goes through the governed proxy, and the object driving it is
 LangChain's own `ChatOpenAI` — not a wrapper the SDK invented.
 
-This is the deep, conformance-gated adapter. The other seven frameworks are
-supported at `connection_kwargs()` (demo 08).
+This is the first deep, conformance-gated adapter (the OpenAI Agents SDK is the
+second). The other six frameworks are supported at `connection_kwargs()` (demo 08).
 
 **Live only.** This is a real multi-step tool-calling loop, so it needs a model
 that can actually decide to call tools. The local simulator replays a captured
@@ -37,9 +37,6 @@ from langchain_core.tools import tool
 from _harness import narrate as say
 from _harness import preflight, redact
 
-MODEL = os.environ.get("DEMO_MODEL", "gpt-4o-mini")
-# `responses` opts into `/responses`, on an OpenAI-routed proxy only.
-API = os.environ.get("DEMO_LANGGRAPH_API", "chat")
 QUESTION = "Can I ship SKU AF-1001 today, and what does it cost?"
 
 INVENTORY = {"AF-1001": "42 units in Amsterdam", "AF-2002": "0 units"}
@@ -70,7 +67,7 @@ def _text(message: object) -> str:
     )
 
 
-async def _main() -> None:
+async def _main(model_id: str, api: str) -> None:
     # Deferred so a missing `langchain` reaches preflight's install hint, not a traceback.
     from langchain.agents import create_agent
 
@@ -84,12 +81,12 @@ async def _main() -> None:
         )
 
         # No `temperature`: reasoning models (gpt-5, o-series) reject it with a 400.
-        if API == "responses":
-            model = donkey.langgraph.chat_model(MODEL, use_responses_api=True)
+        if api == "responses":
+            model = donkey.langgraph.chat_model(model_id, use_responses_api=True)
         else:
-            model = donkey.langgraph.chat_model(MODEL)
+            model = donkey.langgraph.chat_model(model_id)
         say.field("type", f"{type(model).__module__}.{type(model).__name__}")
-        say.field("route", "/responses" if API == "responses" else "/chat/completions")
+        say.field("route", "/responses" if api == "responses" else "/chat/completions")
         say.field(
             "governed via",
             ", ".join(sorted(donkey.langgraph.connection_kwargs())),
@@ -195,7 +192,13 @@ async def _main() -> None:
 
 
 def main() -> None:
-    asyncio.run(_main())
+    # `responses` opts into `/responses`, on an OpenAI-routed proxy only.
+    asyncio.run(
+        _main(
+            os.environ.get("DEMO_MODEL", "gpt-4o-mini"),
+            os.environ.get("DEMO_LANGGRAPH_API", "chat"),
+        )
+    )
 
 
 if __name__ == "__main__":

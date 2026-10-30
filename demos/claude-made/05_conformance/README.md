@@ -1,72 +1,55 @@
-# 05 — the conformance suite
+# 05 - Conformance In Two Modes
 
-**Claim:** four questions a team usually cannot answer about its own agent,
-answered without reading its code.
+Four behavioral questions, answered without reading the agent's code: does it
+retry a terminal budget refusal, lose the PII refusal type, lose the correlation
+ID in logs, or fail when budget headers are absent?
 
-```bash
-make demo N=05
-```
+## Run
 
-**Needs:** nothing (`[test]` + `[llm]`).
-
-**What it grades.** Does the agent retry a budget refusal (it must not)? Does a
-typed refusal survive its error handling? Does the run's correlation id reach its
-logs? Does it still work when the gateway sends no budget headers? It answers by
-swapping a fixture-serving transport underneath, calling `agent.run(...)`, and
-watching the wire and the logs — so it grades behaviour, in any framework.
-
-**Files here.** `shipping_agent.py` holds `NaiveAgent` (written the way people
-actually write them) and `GovernedAgent` (the same agent after the findings).
-`exemptions.py` holds one real exemption and two deliberately broken ones.
-
-**Four acts.** Three failures against the naive agent; what each finding means;
-four passes against the fixed one; then exemptions — one asserted correctly, then
-a typo'd scenario name and an empty reason, both of which fail the run at
-collection time.
-
-**Point at:** an exemption is an asserted claim with a published reason, never a
-silent skip. There is deliberately no `KNOWN_LIMITATIONS` in `shipping_agent.py`,
-because the plugin auto-discovers one next to the factory and it would have
-quietly excused a scenario the demo needs to fail.
-
-**This is the deliverable** — the internal adapter matrix is ours, this suite is
-theirs, and it runs in their CI. `donkey test --agent=my_app.agent:build` is
-the same front-end: it execs `pytest --donkey-conformance` and returns pytest's
-exit code. For an agent that never imports `donkey_kit`, the `gateway` fixture
-in demo 04 is the other entry point.
-
-## How to run
-
-**Offline.** No gateway, no simulator, no credentials. `--target` is ignored.
-
-**1. Set up once** (from the repo root):
+Needs SDK develop with `donkey-kit[llm,test,local]`. From the demos root:
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-python -m pip install -e .
-python -m pip install -e "../donkey-development-kit/python[llm,test]"   # or: python -m pip install -e ".[sdk]"
-make doctor                    # what is installed; prints no secrets
+.venv/bin/python demos/claude-made/05_conformance/demo.py
+.venv/bin/python run.py 05
 ```
 
-**2. Run it:**
+No credentials or external network. Each pytest subprocess gets an empty HOME,
+XDG config and working directory, without ambient SDK, Anypoint or telemetry
+configuration. The entrypoint deliberately bypasses the demo harness's implicit
+dotenv loading. The public pytest plugin must be registered by the SDK install.
 
-```bash
-make demo N=05
-python run.py 05                           # same thing without make
-```
+## What Is Asserted
 
-**3. What you should see:**
+`shipping_agent.py` defines `NaiveAgent` and the corrected `GovernedAgent`.
+The demo invokes the real public plugin in **both** modes and asserts:
 
-1. Three conformance failures against `NaiveAgent` (budget retry, swallowed refusal, lost correlation id).
-2. `What each failure actually means`.
-3. Four passes against `GovernedAgent`.
-4. Exemptions: one asserted correctly, then a typo'd scenario and an empty reason both failing at collection.
+- Naive: one pass, three failures; pytest exit 1.
+- Corrected: four passes, zero failures; pytest exit 0.
+- The four scenario verdicts and their detail strings match across modes.
+- The asserted exemption produces one pass, two failures, one exempt; exit 1.
+- A misspelled exemption or empty reason produces a collection usage error; exit 4.
 
-**4. If something goes wrong:**
+`exemptions.py` supplies the illustrative asserted limitation and invalid examples.
+The actual agents deliberately declare no auto-discovered `KNOWN_LIMITATIONS`.
+The script exits nonzero if a count, exit status, row or cross-mode comparison
+does not match. Expected naive pytest failures do not fail the enclosing demo.
 
-- A warning about the `pytest11` entry point is harmless: the demo loads the plugin by module. Reinstall the SDK editable to clear it.
-- `Missing prerequisites` — the demo names the module and the `pip install` line; it exits 0 without running anything.
-- `The demo raised` — re-run with `DEMO_TRACEBACK=1` for the full, still-masked traceback.
-- Presenting? `DEMO_PAUSE=1` waits for Enter between acts. Leave `DEMO_REDACT` unset (masking on) when recording.
+## Observation Boundary
 
-Build guide: `BG §1.5`. See [PRESENTING.md](../../../PRESENTING.md#05--conformance).
+In-process mode replaces the Donkey transport with a counting fixture responder.
+Server mode leaves the SDK transport untouched, starts the local simulator on an
+ephemeral `127.0.0.1` port and uses real loopback HTTP. Retry observation comes
+from the simulator request log, not an in-process transport counter. The harness
+closes the server in `finally`, including failed runs; scenario state is reset.
+These captured, simulator-stamped responses are not live gateway verification or
+client-side policy enforcement.
+
+Custom `classify.register()` refusal shapes **without simulator captures require
+in-process mode**. Server mode cannot replay an uncaptured custom shape.
+
+For a small standalone agent, the exact
+`pytest --donkey-conformance --donkey-mode=server` command, ordinary pytest
+assertions on the server log and port cleanup, see
+[`../../human-made/conformance`](../../human-made/conformance/README.md).
+
+Build guide: `BG §1.5`.

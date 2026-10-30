@@ -2,7 +2,7 @@
 
 `donkey.langgraph("…")` returns a real `langchain_openai.ChatOpenAI`
 with `use_responses_api=False`, so calls go to `/chat/completions`, the one
-route every upstream behind an OpenAI-format proxy serves. This is the one deep, conformance-gated adapter.
+route every upstream behind an OpenAI-format proxy serves. This is the first deep, conformance-gated adapter; the OpenAI Agents SDK is the second.
 
 ## Install
 
@@ -41,6 +41,7 @@ bypass governance.
 | 07 | `streaming.py` | live only | — |
 | 08 | `gateway-unavailable.py` | none (closed port) | — |
 | 09 | `start-gateway.py` | local simulator | `[local]`, `langchain>=1.0` |
+| 10 | `tool-approvals.py` | none (native graph) | `[langgraph]`; no model/proxy variables |
 
 ### 01 — basic-no-gw
 
@@ -136,6 +137,25 @@ python "demos/human-made/langgraph/09 - start-gateway.py"
 `start_gateway()` with `pii_block:every=2`, driving a `create_agent` loop over
 two tickets. **You should see:** `ok …` for the first, `refused PIIDetected
 ['Email']` for the second, then `requests 2`.
+
+### 10 - tool-approvals
+
+```bash
+python "demos/human-made/langgraph/10 - tool-approvals.py"
+```
+
+A deterministic real `StateGraph` reaches the SDK hook for
+`@donkey.tool(approval="required", risk="financial")`. A native interrupt is
+checkpointed before the in-memory refund effect; the base registry stays empty.
+Recompile against the same `MemorySaver`, then `Command(resume=...)`: approval
+executes once, rejection raises `ApprovalRejected` without another effect.
+
+Approval is advisory, not gateway authorization. Native pauses have no DDK
+expiry even with `approval_timeout`. `MemorySaver` is not restart-durable; use a
+durable checkpointer when needed and protect arguments in interrupt/checkpoint
+payloads. Nodes replay on resume: put effects after the gate or make them
+idempotent. [Narrative 19](../../claude-made/19_tool_approvals/) adds base expiry,
+audit spans and a governed refusal after approval.
 
 ## If something goes wrong
 

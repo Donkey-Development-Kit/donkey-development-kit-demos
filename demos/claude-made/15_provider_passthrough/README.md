@@ -8,15 +8,23 @@ answer differs per provider. The SDK absorbs that: one `request_id`, one
 make demo N=15
 ```
 
-**Needs:** nothing (`[llm]`; act 4 uses `[anthropic]` if installed). Shapes the
+**Needs:** `donkey-kit[llm,otel]`; act 4 uses `[anthropic]` if installed. Shapes the
 SDK packages load from `donkey_kit.simulator.fixtures`; the Bedrock and Gemini
 shapes are rebuilt inline from their live captures, discriminating headers only.
-Nothing is vendored.
+Model Armor and CrowdStrike load sibling classifier-contract bytes directly
+from the installed SDK package. Nothing is vendored. Neither sibling is a
+registered simulator shape or vendor selector; do not pass those names to
+`donkey.simulate()` or `donkey mock`.
 
 **Four acts.** The request id arriving as `x-request-id` (OpenAI, Azure),
 `x-amzn-requestid` (Bedrock) or `apim-request-id`, and landing on one field.
-Azure Content Safety and Bedrock Guardrails rejecting with vendor-named headers,
-both classifying as `ContentSafetyBlocked`. OpenAI's object error envelope and
+Azure, Bedrock, Model Armor and CrowdStrike rejecting with vendor-named headers,
+all classifying as `ContentSafetyBlocked`. Act 2 asserts and displays `.provider`,
+`.categories`, `.policy`, and matching `donkey.policy.provider` and
+`donkey.policy.categories` attributes from actual governed transport spans.
+A policy-source-derived fail-closed 503 with `action: reject` instead classifies
+as `UpstreamModelError`: no content verdict was made during the outage.
+OpenAI's object error envelope and
 Gemini's list envelope both classifying as `UpstreamRequestError`. The three
 ingress Formats and which adapter each one pairs with.
 
@@ -35,6 +43,13 @@ is single-route — fallback stays OpenAI-only.
 **Still documented-only:** header-based Injection Protection. The
 `AsyncAnthropic` constructor signature is matrix-checked, not asserted.
 
+**Evidence provenance:** Azure and Bedrock are live-captured shapes; Google
+Model Armor is live-captured (2026-10-19). CrowdStrike AIDR is derived from
+`crowdstrike-aidr-guardrails-policy` 1.0.0, not live-captured. The 503 outage is
+also policy-source-derived. Running this demo replays those shapes offline;
+it does not live-verify any provider. Telemetry uses an in-memory exporter only,
+with ambient OTLP exporter bootstrap explicitly disabled.
+
 ## How to run
 
 **Offline.** No gateway, no simulator, no credentials. `--target` is ignored.
@@ -44,7 +59,7 @@ is single-route — fallback stays OpenAI-only.
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 python -m pip install -e .
-python -m pip install -e "../donkey-development-kit/python[llm]"   # or: python -m pip install -e ".[sdk]"
+python -m pip install -e "../donkey-development-kit/python[llm,otel]"
 make doctor                    # what is installed; prints no secrets
 ```
 
@@ -60,7 +75,7 @@ python run.py 15                           # same thing without make
 **3. What you should see:**
 
 1. Act 1: the provider's request id arriving as `x-request-id`, `x-amzn-requestid` or `apim-request-id`, landing on `request_id`.
-2. Act 2: Azure Content Safety and Bedrock Guardrails both as `ContentSafetyBlocked`, the message naming the vendor.
+2. Act 2: four `ContentSafetyBlocked` vendors with provider/categories/policy and matching memory-only span attributes; fail-closed 503 as `UpstreamModelError`.
 3. Act 3: OpenAI's error object and Gemini's list envelope both as `UpstreamRequestError`.
 4. Act 4: the three ingress Formats and which adapter each pairs with.
 5. `What is still not verified`, then `The point`.

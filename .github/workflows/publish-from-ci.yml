@@ -1,0 +1,45 @@
+name: Publish from CI (demo 16)
+
+# Demo 16: the scan-and-publish action (Donkey-Development-Kit/donkey-development-kit#219)
+# on demos/claude-made/16_publish_from_ci/server. A PR gets a dry run: the plan
+# in the job summary, nothing sent. A push to develop publishes for real to
+# Exchange, and only what changed (--if-changed). The action is pinned to the
+# commit of an SDK release tag; move the SHA and its tag comment together.
+
+on:
+  pull_request:
+    paths:
+      - "demos/claude-made/16_publish_from_ci/server/**"
+      - ".github/workflows/publish-from-ci.yml"
+  push:
+    branches: [develop]
+    paths:
+      - "demos/claude-made/16_publish_from_ci/server/**"
+      - ".github/workflows/publish-from-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One publish at a time; a newer push waits rather than racing it.
+concurrency:
+  group: publish-from-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Fork PRs get no secrets, and the plan needs the org ID as its group.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: Donkey-Development-Kit/donkey-development-kit/action@882f51dbd8da413ab0f2cf6c77ad58bdc25f2616 # v0.2.0
+        with:
+          path: demos/claude-made/16_publish_from_ci/server
+          dry-run: ${{ github.event_name == 'pull_request' }}
+          client-id: ${{ secrets.ANYPOINT_CLIENT_ID }}
+          client-secret: ${{ secrets.ANYPOINT_CLIENT_SECRET }}
+          org-id: ${{ secrets.ANYPOINT_ORG_ID }}

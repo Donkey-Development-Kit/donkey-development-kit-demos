@@ -2,7 +2,7 @@
 PY ?= python3
 export PYTHONPATH := $(CURDIR)
 
-.PHONY: help list offline demo mock scan hooks doctor check-sdk lint clean
+.PHONY: help list offline coverage demo mock scan hooks doctor check-sdk check-showcase lint clean
 
 help: ## Show this help
 	@echo
@@ -21,6 +21,9 @@ list: ## List the demos and what each one needs
 
 offline: ## Run every demo that needs no credentials
 	@$(PY) run.py --offline
+
+coverage: ## Verify the new straight-line SDK examples (no credentials)
+	@$(PY) scripts/verify_sdk_coverage.py
 
 # Flags for the demo itself go in ARGS. They cannot be trailing words on the
 # make command line: make would eat `--` as its own end-of-options marker and
@@ -46,6 +49,9 @@ doctor: ## Report what is installed and what each demo can therefore run
 
 check-sdk: ## Fail if [sdk]/[full] pin the wrong SDK for this branch
 	@$(PY) scripts/check_sdk_alignment.py
+
+check-showcase: ## Fail if the showcase catalog and its replay recordings drift
+	@$(PY) scripts/check_showcase_catalog.py
 
 lint: ## Ruff, if it is installed
 	@ruff check . || true

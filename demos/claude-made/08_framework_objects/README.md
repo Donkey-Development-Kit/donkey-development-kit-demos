@@ -12,17 +12,17 @@ it supplies obviously-fake config rather than reading credentials or booting a
 simulator it would never send a request to. Frameworks that are not installed are
 reported with their exact `pip install` line.
 
-**The roster is deliberately uneven.** LangGraph is the one deep,
-conformance-gated adapter. The other seven are supported at `connection_kwargs()`
+**The roster is deliberately uneven.** LangGraph and the OpenAI Agents SDK are
+the deep, conformance-gated adapters. The other six are supported at `connection_kwargs()`
 — the SDK gives you base URL, headers and client configuration, and you pass them
 to the framework's own constructor. Name that first; it is much easier to defend
 as a decision than to explain as a gap.
 
-**Point at:** `connection_kwargs()` is the *entire supported surface* for seven
+**Point at:** `connection_kwargs()` is the *entire supported surface* for six
 of the eight, which makes it the most load-bearing method here, not the least.
-LangGraph is the only adapter held to the conformance bar, and it keeps
+LangGraph and the Agents SDK are the adapters held to the conformance bar; LangGraph keeps
 `ChatOpenAI` on `/chat/completions` (`use_responses_api=False`), the one route
-every upstream behind an OpenAI-format proxy serves. The Agents SDK is the exception that proves the rule: it takes a
+every upstream behind an OpenAI-format proxy serves. The Agents SDK shows why `connection_kwargs()` is shaped per framework: it takes a
 pre-built `AsyncOpenAI`, so `donkey.openai_agents.connection_kwargs()` is one
 key — `openai_client` — not "no connection_kwargs()". Agent Framework's
 `chat_client()` builds an `OpenAIChatCompletionClient` (`api="responses"` opts
@@ -36,7 +36,7 @@ The middleware protocol is confirmed offline against 1.19.0. Act 4 needs
 this adapter.
 
 **What is verified, and how** (the SDK's `docs/verified-apis.md` §8): the raw
-client and LangGraph are conformance-tested against the simulator. Every other
+client, LangGraph and the OpenAI Agents SDK are conformance-tested against the simulator. Every other
 adapter, ADK's `model()` included, is signature-confirmed offline by the SDK's
 `python scripts/verify_frameworks.py`, which is how Agent Framework's `model=`
 kwarg is confirmed against 1.19.0. ADK's `gemini()` is live-verified through a

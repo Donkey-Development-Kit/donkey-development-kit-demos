@@ -62,6 +62,8 @@ HOST_ALLOWLIST = (
     "localhost",
     "0.0.0.0",
     "github.com",
+    "raw.githubusercontent.com",
+    "docs.donkey-kit.dev",
     "donkey-development-kit.github.io",
     "opentelemetry.io",
     "pypi.org",

@@ -1,0 +1,9 @@
+[donkey.publication]
+version = "1.0.0"
+
+[donkey.publication.assets.not-a-real-service]
+name = "No corresponding service"
+
+[donkey.mcp_servers.ddk-demo-sku-lookup]
+transport = "streamable-http"
+endpoint = "https://sku-lookup.example.invalid/mcp"

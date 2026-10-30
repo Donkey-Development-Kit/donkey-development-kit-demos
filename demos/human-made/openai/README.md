@@ -42,6 +42,8 @@ route `gpt-5-mini`). See [the human-made README](../README.md) for details.
 | 14 | `jwt-wallet.py` | live, wallet proxy | IdP JWT |
 | 15 | `start-gateway.py` | local simulator | `[local]` |
 | 16 | `bedrock-guardrails.py` | live | Bedrock Guardrails policy |
+| 17 | `refusal-handlers.py` | none (in-process) | `[llm,local]`; no config reads |
+| 18 | `dynamic-provider-key.py` | none (MockTransport) | `[llm]`; synthetic credentials |
 
 ### 01 — basic-responses-no-gw
 
@@ -263,6 +265,32 @@ python "demos/human-made/openai/16 - bedrock-guardrails.py"
 `ddk-bedrock-guardrails`). **You should see:** `ContentSafetyBlocked
 content-safety ['content_filter']`, the message, `x-request-id None` and a
 `request_id` — Bedrock's own id comes from `x-amzn-requestid`.
+
+### 17 - refusal-handlers
+
+```bash
+python "demos/human-made/openai/17 - refusal-handlers.py"
+```
+
+Escalation records `PIIDetected` locally but still raises. A synthetic custom
+classifier is registered process-wide; its per-Donkey reaction cannot manufacture
+success from a return value. `finally` unregisters it. No listener, real secrets
+or environment-loaded config. Bounded wait/resend/fallback are in
+[narrative 17](../../claude-made/17_refusal_reactions/); reactions never override
+gateway governance.
+
+### 18 - dynamic-provider-key
+
+```bash
+python "demos/human-made/openai/18 - dynamic-provider-key.py"
+```
+
+An actual OpenAI client uses the governed async transport with MockTransport.
+Assertions prove a customer-chosen provider-key header travels beside consumer
+authentication only to the proxy origin, is stripped at an unchecked origin,
+and is omitted in JWT wallet mode. Synthetic credentials and content are not
+printed. `X-Demo-Provider-Key` is not universal: configure the header the customer
+route's Dynamic-key expression reads. No live route is verified here.
 
 ## If something goes wrong
 

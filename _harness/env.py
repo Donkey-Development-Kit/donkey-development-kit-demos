@@ -95,8 +95,3 @@ def target_is_mock() -> bool:
     simulator rather than a real gateway."""
     url = os.environ.get("DONKEY_LLM_PROXY_URL", "")
     return any(h in url for h in ("127.0.0.1", "localhost", "0.0.0.0", "[::1]"))
-
-
-# Loading on import is intentional: a demo's first line is `from _harness import
-# demo`, and everything after it expects the environment to be populated.
-load()

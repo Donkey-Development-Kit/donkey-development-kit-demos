@@ -18,7 +18,7 @@ Run this the morning of, not five minutes before:
 
 ```bash
 make doctor
-make offline        # proves all fourteen offline demos still pass
+make offline        # runs twenty credential-free narratives; inspect skips too
 ```
 
 `make doctor` tells you what is installed and what will therefore run, without
@@ -39,10 +39,10 @@ Set up your terminal:
 export DEMO_PAUSE=1
 ```
 
-Two panes is better than one. Left pane runs demos; right pane runs
-`make mock` so the simulator's startup banner — *"this is a fixture replay, NOT
-a real gateway"* — is visible the whole time. Every demo attaches to a simulator
-that is already listening rather than starting its own.
+For gateway-replay stories, a second pane running `make mock` makes the fixture
+replay boundary visible. Local-only stories instead own their in-process
+transports, ephemeral simulator, local OTLP receiver or ASGI lifespan; they do
+not all attach to that second pane. Read each narrative README before presenting.
 
 ## The one thing to get right
 
@@ -99,8 +99,9 @@ that?" reaction that the rest of the session is trying to earn.
 
 Append demo 10 (offline, ~4 min) then demo 09 to the 30-minute track. Demo 10 is
 the success-path counterpart to typed refusals — last_call, routing, usage,
-`ModelSubstituted`. Demo 09 is the only demo where an actual model makes actual
-tool calls, and after 30 minutes of simulator output the room needs it. Budget
+`ModelSubstituted`. Demo 09 is the only narrative where a live model chooses
+tool calls. Native framework companions exercise real runners with scripted
+models offline, not live model decisions. Budget
 five minutes for 09 and have a fallback (see below), because it is the one demo
 that depends on a sandbox being up.
 
@@ -152,18 +153,19 @@ in-band, on response headers. So a new process knows nothing until its first cal
 returns — and the object says `None` rather than `0`, because `0` would be a lie
 that stops an agent that could have run."
 
-**Point at:** `BudgetReserveReached` not being a `PolicyViolation`. That is a
-deliberate taxonomy decision: a refusal is the gateway saying no and is terminal;
-this is your own client-side signal that you are expected to recover from —
-**only when `reset_at` is known**. Act 4 shows the other half: no reset header
-means `wait_for_reset()` returns immediately and a spin loop cannot make
-progress; an elapsed `reset_at` is stale and `pace` lets the next call through.
+```bash
+DEMO_PAUSE=1 make demo N=03
+```
 
-**Expect:** the demo notes that a live 200 carries the window as prose
-`x-llm-proxy-ratelimit` (live-verified) and that the simulator's decreasing
-numbers are illustrative. Do not skip it. The numeric `x-token-*` trio is
-verified on the 429. Act 3 actually calls `wait_for_reset()` (~1s sleep) so
-the recovery half is visible, not just the snippet.
+**Point at:** gateway token/request windows vs `budget.upstream.requests` and
+`.tokens`. Provider quota belongs to the routed provider key and is observe-only;
+an exhausted provider window does not drive `pace()`. Gateway reserve does.
+
+**Boundary:** offline-only synthetic parser observations, plus a simulated 429.
+OpenAI duration resets are parsed; Azure's unitless `0` remains unknown. A route
+change or partial observation must not retain stale provider fields. Waiting
+does not invent a fresh allowance; unknown reset returns immediately. Never
+present an unconditional wait/retry loop as recovery.
 
 ### 04 — simulate
 
@@ -191,7 +193,9 @@ what is wrong with it. Nothing obviously is. Retrying is a sane default; wrappin
 errors keeps stack traces out of the caller's face. Then run it.
 
 **Point at:** three failures, each phrased as a finding about the agent rather
-than an assertion error. Then the green run. Then the exemption — and stress that
+than an assertion error. Both in-process and server modes then give the corrected
+agent four passes with matching verdict details. Server mode counts real loopback
+requests without replacing the SDK transport. Then the exemption, and stress that
 an exemption is an *asserted claim with a reason*, published rather than hidden,
 never a silent skip. The last act proves the validation: a typo'd scenario name
 fails the run at collection time.
@@ -200,6 +204,10 @@ fails the run at collection time.
 ours, this suite is theirs, and it runs in their CI against their agent in
 whatever framework they picked. `donkey test --agent=…` is the same suite as a
 CLI front-end: it execs pytest and returns pytest's exit code.
+The compact [human-made example](demos/human-made/conformance/) is the customer
+starting point: `python demos/human-made/conformance/verify.py` runs isolated
+ordinary tests and both plugin modes. Uncaptured custom refusal shapes require
+in-process mode.
 
 ### 06 — telemetry
 
@@ -207,35 +215,25 @@ CLI front-end: it execs pytest and returns pytest's exit code.
 vocabulary so this lands in dashboards you already have. `donkey.*` is ours and
 is stable — renaming one of those keys is a breaking change."
 
-**Point at:** the pinned semconv version. The keys are transcribed in the SDK
-rather than imported from the semconv package, whose default drifts release to
-release, so what lands on a span changes only by a reviewable edit. Then act 1:
-`gen_ai.prompt` / `gen_ai.completion` stay off unless you opt in — spans are
-emitted upstream of the gateway's PII mask. Then act 2's cost tags: the fixed
-four dimensions, set on `from_env()` and overridable per `run()`. They live
-on `donkey.cost.*` spans; the gateway has no inbound cost-tag ingestion
-(verified-negative). `X-Correlation-Id` is the opposite — the gateway reads
-it and echoes it. Then act 3:
-a refused request produces an `ERROR` span, because a span that ends OK on a
-refusal makes a dashboard say everything is fine. Act 1 also now shows
-`gen_ai.response.model` vs `gen_ai.request.model` and `donkey.routing.*` —
-when those differ, a failover happened. Act 4 is zero-config OTLP: set
-`OTEL_EXPORTER_OTLP_ENDPOINT` and `Donkey.from_env()` exports its own spans; no
-endpoint is inert and silent; `DONKEY_TELEMETRY=false` opts out. Donkey does not
-take the process-global `TracerProvider` unless you set
-`DONKEY_TELEMETRY_INSTALL_GLOBAL=true`, and a host provider always wins, even
-one set after `Donkey()`. This demo's in-memory `TracerProvider` is the host's.
+```bash
+DEMO_PAUSE=1 make demo N=06
+```
 
-**The line that lands with platform teams** is act 2. `donkey.run(id="ticket-4417")`
-binds *your* identifier — not a uuid — and every call inside the block carries
-it. Say: "nothing was threaded through the agent." It propagates by async
-context, so a node the framework runs on a child task is in the same run without
-being told. Then act 3 closes it: the exception you catch already has
-`.correlation_id` and `.call_id` on it, because `classify()` read them back off
-the failed request. The run id answers "show me everything this ticket did"; the
-call id answers "which of those calls was this". That is the join between a line
-in your log and the gateway's own record — which is the thing the platform team
-actually came to find out.
+**Story:** adopt or mint an inbound ID with `run_from_headers()`, then explicitly
+pass `correlation_headers()` to a plain HTTP hop. Correlation travels; consumer
+credentials do not. Concurrent attribution scopes stay isolated. Cached,
+cache-write and reasoning usage are observed without logging content.
+
+**Point at:** actual protobuf spans arriving at a loopback OTLP receiver and
+`flush_telemetry()` delivering the DDK-owned queue before shutdown. A later
+host-owned provider wins, but its queue requires the host's `force_flush()` and
+`shutdown()`. Async callers offload the blocking DDK flush with `asyncio.to_thread`.
+
+**Boundary:** offline-only, fresh process, synthetic model transport and local
+collector. The business-group header remains an unverified placeholder; these
+assertions do not prove gateway attribution ingestion, authorization, remote
+collector reliability or MCP binding. Cost tags stay on spans, not an invented
+gateway ingestion API. Prompt/completion attributes remain absent.
 
 ### 07 — model handles
 
@@ -251,14 +249,14 @@ Good filler if you are running ahead; safe to cut entirely if behind.
 
 ### 08 — framework objects
 
-**Say:** "One deep adapter, seven at `connection_kwargs()`. That is a deliberate
+**Say:** "Two deep adapters, six at `connection_kwargs()`. That is a deliberate
 cut, not a roadmap gap." The uneven roster is easier to defend when you name it
 first.
 
 **Point at:** `connection_kwargs()` being the *entire supported surface* for
-seven of the eight — which makes it the most load-bearing method in the module,
-not the least. LangGraph is the only adapter held to the conformance bar, and
-it calls `/chat/completions`. And at `donkey.openai_agents`, which is the Agents SDK
+six of the eight — which makes it the most load-bearing method in the module,
+not the least. LangGraph and the Agents SDK are the adapters held to the
+conformance bar, and both call `/chat/completions`. And at `donkey.openai_agents`, which is the Agents SDK
 adapter; `donkey.openai()` is the raw client and got the good name. Then point
 at `connection_kwargs()` for the Agents SDK: one key, `openai_client`, a real
 `AsyncOpenAI`. Agent Framework's `chat_client()` builds an
@@ -282,10 +280,11 @@ one transport, all feeding the proxy's token window for this client ID. It is
 shared, not a per-run total, and only fills in on a proxy that sends the header
 (`ddk-token-rate-limit`, with `DEMO_LANGGRAPH_API=chat`).
 
-**If asked why `last_call` is `unobserved`:** that is the point. It is scoped per
-asyncio task so parallel calls never overwrite each other's record, and
-LangGraph makes each model call on its own task. Demo 10 shows it populated on a
-direct call. A run-level record of every call is DDK #613.
+**If asked why `last_call` is `unobserved`:** it is scoped per asyncio task and
+LangGraph makes model calls on its own task. Demo 10 shows a direct call. The
+Agents SDK companion 05 observes first turns in `on_llm_end`; later non-streamed
+turns may reach the caller. ADK companion 04 uses `last_call_bridged` for streamed
+callback observation. Neither observation mechanism is a typed-refusal bridge.
 
 ### 10 — last_call
 
@@ -315,12 +314,13 @@ Good filler if you are running ahead. Pair with 07 if the room is ops-heavy.
 
 ### 12 — ToolSet.filter
 
-**Say:** "Filter shipped. Bind did not." Show two views of the same servers
+**Say:** "Filter is pure; bind is governed." Show two views of the same servers
 (`allow=` / `deny=`), the parent unchanged, colliding `get_employee` names
-prefixed. Then `tools.langgraph()` raising `blocked on verification`.
+prefixed. Then `await tools.langgraph()` refusing the ungoverned servers
+(`UngovernedMcpServer`, no credentials sent).
 
-Do not let this become a discovery demo. Exchange and the MCP Bridge are still
-unconfirmed. `@donkey.tool` (demo 01) is a different marker.
+Do not let this become a discovery demo: it is offline. Discovery and governed
+binding run against the live gateway (`donkey.tools.discover()`), not here. `@donkey.tool` (demo 01) is a different marker.
 
 ### 13 — JWT / model-wallet auth
 
@@ -348,11 +348,111 @@ question has a different wire answer on OpenAI, Bedrock and Gemini."
 
 **Point at:** act 1's Bedrock row — `headers.get("x-request-id")` is `None`,
 `request_id` is not. That id is the provider's; the gateway join key is
-`correlation_id`. Act 2: Azure and Bedrock are two reject headers, one
-`ContentSafetyBlocked`. Act 3: Gemini's list-shaped 400 is an
+`correlation_id`. Act 2: Azure, Bedrock, Model Armor and CrowdStrike share
+`ContentSafetyBlocked`, with vendor/categories/policy on the error and spans.
+Model Armor is live-captured; CrowdStrike AIDR is policy-source-derived, not
+live-captured. A fail-closed 503 is `UpstreamModelError`, not a content verdict.
+Neither sibling shape is a simulator vendor selector. Act 3: Gemini's list-shaped 400 is an
 `UpstreamRequestError` — before dev9 it fell through as a policy refusal that
 never happened. Act 4: Format is fixed per proxy; `donkey.anthropic` needs a
 `Format=Anthropic` proxy, and Gemini-native has no adapter on purpose.
+
+### 16 — publish from CI
+
+```bash
+DEMO_PAUSE=1 make demo N=16
+```
+
+**Story:** registration, not deployment. Static `donkey scan` and publication
+dry-run never import the sample project. Repeated plans are deterministic;
+relocation preserves the digest, a description edit changes it, version alone
+does not. Invalid semver, service ID and endpoint fail explicitly.
+
+**Boundary:** the existing CI workflow is a separate publication path. The local
+story proves planning inputs, not remote `unchanged` outcomes or authentication.
+Exchange versions are immutable; changed content needs a version bump.
+Connected-app publication auth remains unconfirmed live; agent publication is
+skipped by the SDK.
+
+### 17 - Refusal reactions
+
+```bash
+DEMO_PAUSE=1 make demo N=17
+```
+
+**Story:** centralize bounded wait, resend, model fallback and escalation with
+`donkey.on(...)`. A revised request retains correlation but gets a fresh call ID.
+**Talking point:** only a new governed request can succeed; a fabricated handler
+response never lifts a refusal. Custom classifiers are process-wide, reactions
+per Donkey, and temporary registrations are removed. Reset overrides and custom
+policy shapes are synthetic; escalation records locally, not to a real service.
+
+### 18 - Terminal kill handling
+
+```bash
+DEMO_PAUSE=1 make demo N=18
+```
+
+**Story:** a simulated `AgentKilled` wakes a budget waiter, latches subsequent
+pacing/reset waits and leaves batch effects empty. Generic reactions never
+receive it and a kill-specific recovery handler cannot be registered.
+**Talking point:** consume the platform decision, do not administer or override
+it. This is not a network firewall or live control-plane kill test.
+
+### 19 - Tool approvals
+
+```bash
+DEMO_PAUSE=1 make demo N=19
+python "demos/human-made/langgraph/10 - tool-approvals.py"
+```
+
+**Story:** no side effect before approval; base resolve/reject/expiry and native
+LangGraph checkpoint resume; approved downstream work can still be refused.
+Approval spans omit arguments, but approval/checkpoint payloads contain them.
+**Talking point:** advisory local approval is not gateway authorization.
+The base registry is process-global memory; native pauses use framework storage
+and have no DDK timeout. `MemorySaver` recompilation is not restart durability.
+
+For native Runner stories:
+
+```bash
+python "demos/human-made/openai-agents/04 - approvals.py"
+# In the separate Python 3.12 environments documented by each folder:
+python "demos/human-made/strands/05 - approvals.py"
+python "demos/human-made/adk/03 - approvals.py"
+```
+
+They run real frameworks with scripted models. Agents serializes `RunState`;
+Strands resumes an interrupt; ADK confirms and checks replay protection.
+Rejection is respectively a function-call output, an error tool result or a
+confirmation error response. Strands/ADK need separate Python 3.12 environments.
+
+### 20 - Descriptor fidelity
+
+```bash
+DEMO_PAUSE=1 make demo N=20
+```
+
+**Story:** static scan inventories without imports; descriptor derivation reads
+the framework's own model-facing schema. `auto:check` catches committed-schema
+drift; `auto:live` reads an official MCP server's `tools/list` in memory.
+**Talking point:** local protocol fidelity is not Exchange discovery or governed
+binding. Auto modes execute imports/factories; choose import-safe entrypoints.
+There is no `auto:static` mode. Install the official `mcp` package.
+
+### 21 - Local A2A serving
+
+```bash
+DEMO_PAUSE=1 make demo N=21
+```
+
+**Story:** an `@donkey.agent` handler builds the official A2A SDK app. Fetch its
+card, send success/refusal/success within one ASGI lifespan, and join SERVER task
+spans to downstream model spans. Failed tasks expose typed IDs, not internal
+messages or tracebacks; cleanup asserts no worker leaks.
+**Talking point:** this proves the local app path used by `Donkey.serve()`, not
+its blocking uvicorn launcher, a listening port, streaming delivery or gateway
+exposure. Official dispatcher shutdown warnings are visible, not suppressed.
 
 ## Screen-recording safety
 
@@ -398,7 +498,7 @@ DEMO_REDACT=0 python run.py 01     # never `export DEMO_REDACT=0`
 | Output wraps badly | Terminal under 100 columns | Widen, or reduce font one step |
 | A demo raises | Anything | The traceback is suppressed and masked by default; `DEMO_TRACEBACK=1` shows it, still masked |
 
-The general rule: **fourteen of the fifteen demos need nothing**. If live access is
+The general rule: **twenty of twenty-one narratives need no credentials**. If live access is
 down, you have lost one demo, not the session. Say so plainly and move on —
 trying to fix a sandbox in front of a room costs more than the demo was worth.
 
@@ -424,16 +524,18 @@ verified is stated in the demos as they run: the simulator's illustrative
 happy-path budget numbers, header-based injection-protection (typed from
 docs), the unnamed leftover content-moderation 4xx,
 gateway cost-tag ingestion (verified-negative — tags live on spans), and the
-framework adapters themselves: the raw client and LangGraph are
-conformance-tested against the simulator, the other constructors are
-signature-confirmed offline, and only ADK's `gemini()` has had a live
-round-trip.
+framework adapters themselves: local conformance and native runner scripts are
+not live round-trips. The new stories use synthetic budgets, transports,
+scripted models and local protocols where stated. Model Armor is live-captured;
+CrowdStrike and the fail-closed outage are source-derived. Only ADK's `gemini()`
+has the stated live adapter round-trip.
 
 **"What about tool discovery / provisioning?"**
-Not built, and deliberately not demoed. Those code paths raise
-`NotImplementedError("blocked on verification")` because the Exchange and MCP
-Bridge APIs have not been confirmed against a real sandbox. Offer to show the
-error — an SDK that refuses to guess an endpoint is the point, not an apology.
+Exchange discovery and governed MCP binding remain verification-blocked. Demo
+16 shows static registration/dry-run, not provisioning; demo 20 shows local schema
+fidelity, not remote discovery. Local A2A is demoed in 21, but gateway exposure,
+`donkey expose` and `donkey dev` remain outside implemented scope. Connected-app
+publication auth is still unverified live.
 
 **"Does this lock us into your framework?"**
 Every adapter returns the framework's own object. Demo 08 prints the concrete

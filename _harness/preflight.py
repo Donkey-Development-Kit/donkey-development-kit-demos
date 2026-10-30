@@ -44,6 +44,8 @@ _EXTRA_FOR_MODULE = {
     "uvicorn": "local",
     "pytest": "test",
     "opentelemetry.sdk": "otel",
+    "opentelemetry.exporter.otlp.proto.http.trace_exporter": "otel",
+    "a2a": "a2a",
     "anthropic": "anthropic",
     "crewai": "crewai",
     "llama_index": "llamaindex",
@@ -57,6 +59,8 @@ _EXTRA_FOR_MODULE = {
 # Needed by a demo but not shipped in any donkey-kit extra.
 _PACKAGE_FOR_MODULE = {
     "langchain": "langchain>=1.0",
+    "langchain_core": "langchain-core>=0.3.45",
+    "mcp": "mcp>=1.19.0",
 }
 
 
@@ -78,7 +82,9 @@ def _missing_extras(modules: Sequence[str]) -> list[tuple[str, str]]:
 
 
 def _parse_args(default_target: Target, argv: Sequence[str] | None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(add_help=True, description="Donkey Development Kit (DDK) demo")
+    parser = argparse.ArgumentParser(
+        add_help=True, description="Donkey Development Kit (DDK) demo"
+    )
     parser.add_argument(
         "--target",
         choices=("mock", "live"),
@@ -165,6 +171,8 @@ def run(
             print()
             narrate.warn(warning)
         return _invoke(main)
+
+    env.load()
 
     if target == "live" and args.target == "mock":
         # The demo cannot be faked; say so rather than silently doing something else.

@@ -1,6 +1,6 @@
 """The demo agent — a minimal LangGraph graph over a DDK-governed model.
 
-This is the one deep, conformance-tested surface: ``donkey.langgraph.chat_model``
+LangGraph is a deep, conformance-tested surface: ``donkey.langgraph.chat_model``
 returns a native ``langchain_openai.ChatOpenAI`` pointed at the governed proxy.
 The ``call_model`` node runs inside the LangGraph adapter's ``typed_refusals()``
 so a gateway refusal raised inside the node propagates out of ``graph.ainvoke``

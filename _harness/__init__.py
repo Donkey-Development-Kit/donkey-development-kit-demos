@@ -1,7 +1,7 @@
 """Shared plumbing for the demos. Not part of the Donkey Development Kit (DDK).
 
-Importing this package loads `.env.local` / `.env` into the environment, so a
-demo's first statement can assume configuration is present.
+Non-offline preflight loads `.env.local` / `.env` into the environment before
+invoking a demo. Importing the harness and running offline never reads dotenv.
 
 A demo is expected to look like this, and nothing more:
 
@@ -21,7 +21,7 @@ only through `narrate` or `redact`** — see `redact.py` for why.
 
 from __future__ import annotations
 
-from . import env as env  # noqa: F401 — imported for its load-on-import side effect
+from . import env as env
 from . import mock as mock
 from . import narrate as narrate
 from . import preflight as preflight

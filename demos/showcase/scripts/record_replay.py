@@ -61,8 +61,11 @@ for f in features:
     if f["action"] != "chat":
         continue
     key = f"{f['model']}::{f['prompt']}"
-    chats[key] = sse(call("/api/chat", {"prompt": f["prompt"], "model": f["model"]}))
-    compares[key] = json.loads(call("/api/compare", {"prompt": f["prompt"], "model": f["model"]}))
+    # The UI sends the card id as `feature` (it selects the refusal-reactions
+    # Donkey), so record with it too.
+    body = {"prompt": f["prompt"], "model": f["model"], "feature": f["id"]}
+    chats[key] = sse(call("/api/chat", body))
+    compares[key] = json.loads(call("/api/compare", body))
     print("recorded", f["id"])
 save("chat.json", chats)
 save("compare.json", compares)

@@ -5,13 +5,13 @@ real `langchain_openai.ChatOpenAI`, so everything LangChain can do with a chat
 model still works, and nothing new appears in your stack traces.
 
 The roster is deliberately uneven, and it is worth saying why rather than
-implying eight equal integrations. One framework — LangGraph — is the deep,
-conformance-gated adapter. The other seven are supported at the
-`connection_kwargs()` level. Most get base URL, headers and client configuration
-to spread onto the framework's own constructor. The Agents SDK is the exception
-that proves the rule: it takes a pre-built `AsyncOpenAI`, so
-`connection_kwargs()` is one key — `openai_client` — carrying header *and*
-transport injection as a single object.
+implying eight equal integrations. Two frameworks — LangGraph and the OpenAI
+Agents SDK — are the deep, conformance-gated adapters. The other six are
+supported at the `connection_kwargs()` level, where most get base URL, headers
+and client configuration to spread onto the framework's own constructor. The
+Agents SDK's `connection_kwargs()` shows why the accessor is shaped per
+framework: it takes a pre-built `AsyncOpenAI`, so it is one key —
+`openai_client` — carrying header *and* transport injection as a single object.
 
 No network calls are made. Objects are constructed, and act 4 runs one
 Agent Framework turn against a simulated refusal that never leaves the process.
@@ -46,11 +46,11 @@ DEMO_CONFIG = DonkeyConfig(
 # pre-built governed AsyncOpenAI — the Agents SDK takes a ready-made client,
 # not loose URL/header kwargs.
 ROSTER = [
-    ("langgraph", "chat_model", True, "deep — the conformance-gated adapter"),
+    ("langgraph", "chat_model", True, "deep — conformance-gated"),
     ("adk", "model", True, "connection_kwargs()"),
     ("strands", "model", True, "connection_kwargs()"),
     ("agent_framework", "chat_client", True, "connection_kwargs() + policy_middleware(); model="),
-    ("openai_agents", "model", True, "connection_kwargs() → {openai_client}"),
+    ("openai_agents", "model", True, "deep; connection_kwargs() → {openai_client}"),
     ("anthropic", "client", False, "connection_kwargs(); native route needs Format=Anthropic"),
     ("crewai", "llm", True, "connection_kwargs()"),
     ("llamaindex", "llm", True, "connection_kwargs()"),
@@ -143,8 +143,8 @@ def act_2_connection_kwargs(donkey: Donkey) -> None:
         "the supported surface."
     )
     say.note(
-        "LangGraph is the only adapter held to the conformance bar. It keeps "
-        "ChatOpenAI on /chat/completions (use_responses_api=False), the one route "
+        "LangGraph and the Agents SDK are the adapters held to the conformance "
+        "bar. LangGraph keeps ChatOpenAI on /chat/completions (use_responses_api=False), the one route "
         "every upstream behind an OpenAI-format proxy serves; pass "
         "use_responses_api=True to opt into /responses on an OpenAI-routed proxy."
     )
@@ -273,7 +273,10 @@ def act_5_honesty() -> None:
         "the base URL shape, the credential header pair, the rejection shapes. The "
         "adapters themselves are held to three bars (docs/verified-apis.md §8):"
     )
-    say.bullet("Conformance-tested against the simulator: the raw client and LangGraph.")
+    say.bullet(
+        "Conformance-tested against the simulator: the raw client, LangGraph and "
+        "the OpenAI Agents SDK."
+    )
     say.bullet(
         "Signature-confirmed offline: every other adapter, ADK's model() included. "
         "The SDK's scripts/verify_frameworks.py builds each native object against "
@@ -307,6 +310,6 @@ if __name__ == "__main__":
     preflight.cli(
         main,
         title="Demo 08 — native framework objects",
-        subtitle="One deep adapter, seven at connection_kwargs(), and no wrappers anywhere.",
+        subtitle="Two deep adapters, six at connection_kwargs(), and no wrappers anywhere.",
         target="offline",
     )

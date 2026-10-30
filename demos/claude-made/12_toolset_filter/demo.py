@@ -5,29 +5,54 @@ degrades it and inflates token cost. `ToolSet.filter(allow=..., deny=...,
 predicate=...)` returns a *new* ToolSet: the parent is unchanged, and two
 filtered views do not clobber each other.
 
-This is the part that is shipped and pure. Binding those tools into LangGraph /
-ADK / … still raises `blocked on verification` — Exchange and the MCP Bridge
-have not been confirmed against a sandbox, so the demo does not pretend they
-work.
+Filtering is pure and offline. Binding those tools into LangGraph / ADK / …
+(an async call on SDK develop) refuses any server that is not governed
+(`UngovernedMcpServer`, before a connection opens). A governed set binds for
+real against the live gateway, which this offline demo does not contact.
 
     python demos/claude-made/12_toolset_filter/demo.py
 """
 
 from __future__ import annotations
 
-from donkey_kit.registry import AssetRef, McpServerHandle
+import asyncio
+
+from donkey_kit import ConfigError
+from donkey_kit.registry import AssetRef, GovernanceReport, McpServerHandle
 from donkey_kit.tools import ToolSet
+from donkey_kit.tools.session import UngovernedMcpServer
 
 from _harness import narrate as say
 from _harness import preflight
 
 
-def _server(asset_id: str, tools: tuple[str, ...]) -> McpServerHandle:
+def _server(
+    asset_id: str, tools: tuple[str, ...], governance: GovernanceReport | None = None
+) -> McpServerHandle:
     return McpServerHandle(
         ref=AssetRef("com.acme", asset_id, "1.0.0"),
         endpoint_url=f"https://mcp.example.invalid/{asset_id}",
-        tool_descriptors=tuple({"name": name} for name in tools),
+        tool_descriptors=tuple(
+            {
+                "name": name,
+                "description": f"{name} accesses the {asset_id} employee and customer records.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"record_id": {"type": "string"}},
+                    "required": ["record_id"],
+                },
+            }
+            for name in tools
+        ),
+        governance=governance,
     )
+
+
+def _servers(governance: GovernanceReport | None = None) -> list[McpServerHandle]:
+    return [
+        _server("hr", ("get_employee", "update_salary"), governance),
+        _server("crm", ("get_employee", "create_lead"), governance),
+    ]
 
 
 def act_1_independent_views() -> ToolSet:
@@ -39,9 +64,7 @@ def act_1_independent_views() -> ToolSet:
         write_only = tools.filter(deny=["get_employee"])
         """
     )
-    hr = _server("hr", ("get_employee", "update_salary"))
-    crm = _server("crm", ("get_employee", "create_lead"))
-    tools = ToolSet([hr, crm])
+    tools = ToolSet(_servers())
     read_only = tools.filter(allow=["get_employee"])
     write_only = tools.filter(deny=["get_employee"])
 
@@ -64,39 +87,79 @@ def act_1_independent_views() -> ToolSet:
     return tools
 
 
-def act_2_binding_is_blocked(tools: ToolSet) -> None:
-    say.step(2, "Binding into a framework is still blocked on verification")
+def act_2_narrowing_and_cost(tools: ToolSet) -> None:
+    say.step(2, "Globs and chained filters narrow; descriptor estimates show the cost")
+    gated = tools.require_approval(tools=["get_employee"], risk="personal-data", timeout=30)
+    final = (
+        gated.filter(allow=["get_*"])
+        .filter(deny=["crm__*"])
+        .filter(predicate=lambda tool: bool(tool.description))
+    )
+    assert final.name_map == {"get_employee": "get_employee"}
+    assert final is not gated and len(tools.name_map) == 4
+    assert final.descriptor_tokens() < tools.descriptor_tokens()
+    say.field("parent estimate", tools.descriptor_tokens(), raw=True)
+    say.field("filtered estimate", final.descriptor_tokens(), raw=True)
+    say.ok("Each filter narrowed without mutating the parent")
+    try:
+        tools.filter(deny=["misspelled_tool"])
+    except ConfigError:
+        say.ok("Unknown patterns fail instead of silently leaving a tool exposed")
+    else:
+        raise AssertionError("unknown filter pattern was accepted")
+    say.note(
+        "require_approval() declares an advisory gate that filters preserve. "
+        "Nothing here binds or executes an MCP tool. "
+        "Descriptor tokens are roughly four JSON characters per token, not a bill."
+    )
+    try:
+        asyncio.run(tools.filter(allow=[]).langgraph())
+    except UngovernedMcpServer:
+        say.ok("Even an empty filtered view cannot bypass server governance")
+    else:
+        raise AssertionError("filter bypassed server governance")
+
+
+def act_3_binding_refuses_ungoverned(tools: ToolSet) -> None:
+    say.step(3, "Binding refuses ungoverned servers before it connects")
     say.code(
         """
-        tools.langgraph()   # → NotImplementedError("blocked on verification")
+        await tools.langgraph()     # → UngovernedMcpServer (no governance verdict)
         """
     )
     try:
-        tools.langgraph()
-        say.fail("expected blocked on verification")
-    except NotImplementedError as exc:
-        say.ok("blocked on verification — Exchange / MCP Bridge are unconfirmed")
-        say.field("message", str(exc).splitlines()[0])
+        asyncio.run(tools.langgraph())
+        raise AssertionError("expected UngovernedMcpServer")
+    except UngovernedMcpServer as exc:
+        say.ok("refused before any connection — no gateway credentials were sent")
+        say.field("servers", list(exc.servers), raw=True)
+        say.field("reasons", list(exc.reasons), raw=True)
     print()
     say.note(
-        "Filter and collision resolution are pure, so they shipped. The per-"
-        "framework binders open a real MCP session, and those class names are "
-        "not confirmed, so they raise rather than guess. @donkey.tool (demo 01) "
-        "is a different marker — it records a Python callable, it does not "
-        "discover MCP tools."
+        "The governed transport attaches your gateway credentials to every MCP "
+        "request, so binding a server the gateway does not front would hand them "
+        "to it. donkey.tools.discover(governed=True) attaches the verdict; a "
+        "handle built by hand has none, so it is refused. A governed set binds "
+        "for real (langgraph, llamaindex, anthropic, crewai, ...) against the live "
+        "gateway, which this offline demo does not contact. @donkey.tool (demo 01) "
+        "is a different marker: it records a Python callable, it does not discover "
+        "MCP tools."
     )
 
 
 def main() -> None:
     tools = act_1_independent_views()
     say.pause()
-    act_2_binding_is_blocked(tools)
+    act_2_narrowing_and_cost(tools)
+    say.pause()
+    act_3_binding_refuses_ungoverned(tools)
 
     print()
     say.section("The point")
     say.note(
-        "Two filtered views of the same servers, neither mutating the parent. "
-        "That is the whole shipped surface. Discover and bind come later."
+        "Two filtered views of the same servers, neither mutating the parent, and "
+        "a binder that refuses any server the gateway does not govern before it "
+        "opens a connection."
     )
 
 
@@ -104,6 +167,6 @@ if __name__ == "__main__":
     preflight.cli(
         main,
         title="Demo 12 — ToolSet.filter",
-        subtitle="Independent filtered views of MCP tools. Binding is still blocked on verification.",
+        subtitle="Independent filtered views of MCP tools. Binding refuses ungoverned servers.",
         target="offline",
     )
