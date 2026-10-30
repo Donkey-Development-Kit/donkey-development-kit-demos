@@ -30,9 +30,9 @@ from donkey_kit import (
     DonkeyError,
     GatewayApprovalPending,
     PromptInjectionBlocked,
-    RefusalContext,
     RequestRateLimitExceeded,
 )
+from donkey_kit.core import RefusalContext
 
 from .donkeys import get_donkey
 

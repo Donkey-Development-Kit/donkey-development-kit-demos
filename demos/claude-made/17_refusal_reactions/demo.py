@@ -13,11 +13,11 @@ from donkey_kit import (
     DonkeyConfig,
     PIIDetected,
     PolicyViolation,
-    RefusalContext,
     TokenBudgetExceeded,
     classify,
 )
 from donkey_kit.conformance.gateway import start_gateway
+from donkey_kit.core import RefusalContext
 from donkey_kit.core.transport import CALL_ID_HEADER, CORRELATION_HEADER
 from donkey_kit.simulator.scenarios import ScenarioHit
 

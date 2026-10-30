@@ -74,9 +74,10 @@ async def main() -> None:
                 )
             ]
 
-        (request,) = pending_approvals(await send(types.Part(text="Refund T-1")))
-        assert effects == [] and request.name == "adk_request_confirmation"
-        decision = (approve if allowed else reject)(request, by="demo-reviewer")
+        (approval,) = pending_approvals(await send(types.Part(text="Refund T-1")))
+        assert effects == [] and approval.native.name == "adk_request_confirmation"
+        # `.native` is the confirmation types.Part to send back.
+        decision = (approve if allowed else reject)(approval, by="demo-reviewer").native
         resumed = await send(decision)
         assert resumed[-1].content.parts[0].text == "done"
         assert effects == (["T-1"] if allowed else [])

@@ -78,12 +78,13 @@ async def main() -> None:
         )
         paused = await agent.invoke_async("Refund T-1")
         assert paused.stop_reason == "interrupt" and effects == []
-        (interrupt,) = pending_approvals(paused)
+        (approval,) = pending_approvals(paused)
         if allowed:
-            decision = approve(interrupt, by="demo-reviewer")
+            decision = approve(approval, by="demo-reviewer")
         else:
-            decision = reject(interrupt, by="demo-reviewer", message="Refund denied.")
-        done = await agent.invoke_async([decision])
+            decision = reject(approval, by="demo-reviewer", message="Refund denied.")
+        # `.native` is the Strands interruptResponse to resume with.
+        done = await agent.invoke_async([decision.native])
         assert done.stop_reason == "end_turn"
         assert effects == (["T-1"] if allowed else [])
         results = [
@@ -132,11 +133,11 @@ async def main() -> None:
         agent = Agent(
             model=model, tools=[tool(ask)], hooks=[ApprovalHook()], callback_handler=None
         )
-        (interrupt,) = pending_approvals(await agent.invoke_async("ask"))
+        (approval,) = pending_approvals(await agent.invoke_async("ask"))
         assert sends == []
         try:
             async with donkey.run(id="strands-approved-refusal"):
-                await agent.invoke_async([approve(interrupt, by="demo-reviewer")])
+                await agent.invoke_async([approve(approval, by="demo-reviewer").native])
         except PIIDetected:
             assert len(sends) == 1 and len(model.turns) == 1
             print("Approved governed tool: PIIDetected propagated, no second model turn.")
