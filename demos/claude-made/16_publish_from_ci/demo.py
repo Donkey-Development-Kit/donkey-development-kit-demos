@@ -31,7 +31,8 @@ def main() -> None:
     say.step(2, "The existing CI workflow, inspected but not executed")
     workflow = Path(__file__).resolve().parents[3] / ".github/workflows/publish-from-ci.yml"
     text = workflow.read_text(encoding="utf-8")
-    assert "Donkey-Development-Kit/donkey-development-kit/action@develop" in text
+    assert "Donkey-Development-Kit/donkey-development-kit/action@" in text
+    assert "action@develop" not in text
     say.ok("existing scan-and-publish CI workflow inspected, not executed")
     say.note(
         "The workflow dry-runs on PRs and publishes on develop. Fork PRs get no "
