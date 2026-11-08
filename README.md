@@ -73,6 +73,7 @@ checks upgrades a surface to live-verified status.
 | 21 | [local A2A serving](demos/claude-made/21_a2a_serving/) | Official SDK app/card/tasks, typed failed task, inbound/downstream trace parentage and lifespan cleanup | nothing (`[llm,local,test,otel,a2a]`) |
 | 22 | [typed MCP refusals](demos/claude-made/22_mcp_refusals/) | `donkey.simulate_mcp()` replays captured gateway refusals into a LangGraph binding: `PIIDetected`, `ToolNotInProfile`; schema/poisoning stay generic | nothing (`[langgraph,mcp]` + `langchain-mcp-adapters`) |
 | 23 | [tool lockfile](demos/claude-made/23_tool_lockfile/) | `donkey.tools.lock()` + `discover(locked=True)`: changed/removed/missing → `ToolLockDrift`; unpinned tools dropped | nothing (`[langgraph,mcp]` + `langchain-mcp-adapters`) |
+| 24 | [outbound A2A](demos/claude-made/24_a2a_outbound/) | `donkey.a2a` send/stream under `simulate_a2a()`: `ContentSafetyBlocked`, `TokenBudgetExceeded`, PII generic and not echoed; SDK-tracing gate; `donkey.a2a.call` spans | nothing (`[a2a,otel]`) |
 
 Harness-backed gateway stories can select `--target mock` (default) or
 `--target live`; local-only stories do not become live tests with that flag.
@@ -155,6 +156,10 @@ verification, streaming or exposure.
 python "demos/human-made/a2a/01 - serve.py" --port 8000  # blocks until Ctrl-C
 python demos/human-made/a2a/verify.py                   # isolated subprocess checks
 ```
+
+`02 - outbound-simulated.py` is the outbound side: `donkey.a2a.send()` and
+`stream()` under `donkey.simulate_a2a()`, with captured Azure and token-rate
+refusals typed. It is offline replay, not live delegation.
 
 ### `openai/`
 

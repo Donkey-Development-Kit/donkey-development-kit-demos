@@ -47,5 +47,19 @@ the official server logs operator-only exception detail.
 
 Narrative demo 21 independently verifies task/downstream trace parenting,
 sanitized downstream refusals, and task-worker drainage via ASGI lifespan with
-an isolated in-memory OTel provider. No gateway exposure, `donkey expose`,
-`donkey dev`, deployment or live verification status is changed by either demo.
+an isolated in-memory OTel provider. Neither demo exercises gateway exposure,
+`donkey expose`, `donkey dev` or a deployment, or changes live verification status.
+
+## Outbound
+
+`02 - outbound-simulated.py` calls a governed agent with `donkey.a2a.send()` and
+`stream()` inside `donkey.simulate_a2a()`. Captured Azure prompt-shield and
+token-rate refusals raise `ContentSafetyBlocked` and `TokenBudgetExceeded`, and
+the call after an injected one gets a simulated reply. It sets
+`OTEL_INSTRUMENTATION_A2A_SDK_ENABLED=false` before importing `a2a`, as outbound
+calls require. This is offline replay, not live delegation. Narrative demo 24
+covers the full story.
+
+```bash
+.venv/bin/python "demos/human-made/a2a/02 - outbound-simulated.py"
+```

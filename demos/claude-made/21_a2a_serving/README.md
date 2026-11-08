@@ -49,8 +49,12 @@ The model transport is an in-process `httpx.MockTransport` installed through
 the SDK's dev-only `_testing` seam, not a real gateway/provider. No private
 telemetry internals are patched. Reference: SDK `test_a2a_governed_inbound.py`.
 
-Gateway exposure, `donkey expose`, and `donkey dev` remain outside implemented
-scope. These local assertions do not change any live verification status.
+This demo does not exercise gateway exposure. `donkey expose` registers the real
+ingress (see the showcase card), and `donkey dev my_agent:handle --scenario ...`
+puts a simulated gateway in front of this agent locally. It replays captured
+A2A refusals, with `--protocol-version 1.0` (default) or `0.3.0`. Calling a
+governed agent is [demo 24](../24_a2a_outbound/). These local assertions do not
+change any live verification status.
 
 With `a2a-sdk` 1.2.3 the official dispatcher emits `Dispatcher task was cancelled
 or finished. Events may be lost.` and `Dispatcher task is not running. Cannot

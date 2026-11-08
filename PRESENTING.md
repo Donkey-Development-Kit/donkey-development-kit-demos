@@ -483,6 +483,21 @@ a new server version is not drift.
 gateway's policies still decide. Provisional in 0.2.1. Offline via
 `simulate_mcp()`, not a live listing.
 
+### 24 - Outbound A2A
+
+```bash
+DEMO_PAUSE=1 make demo N=24
+```
+
+**Story:** the agent delegates to another governed agent with
+`donkey.a2a.send()` / `stream()` by Exchange reference. Inside
+`simulate_a2a()`, captured Omni Gateway refusals come back as
+`ContentSafetyBlocked` and `TokenBudgetExceeded` (v1.0 and v0.3). PII stays a
+generic `ToolInvocationError` and its echoed value is not in the error text.
+Each call is one `donkey.a2a.call` span with only `error.type` on failure.
+**Talking point:** same typed refusals as a model call. Replayed captures;
+successful gateway send/SSE are not live-verified, and the facade is Provisional.
+
 ## Screen-recording safety
 
 Output masking is on by default and you should leave it on. It covers the three
