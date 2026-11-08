@@ -21,11 +21,27 @@ export DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/ddk-gemini-inboun
 
 The model is `gemini-2.5-flash` (the `MODEL` constant).
 
+### Offline: `donkey mock`
+
+`donkey mock` (SDK 0.2.1 or later) serves the native `POST /models/{model}:generateContent` route from a
+captured `Format=Gemini` proxy, so `01` runs without a gateway:
+
+```bash
+donkey mock --port 8799 &                     # needs donkey-kit[cli,local]
+export DONKEY_LLM_PROXY_URL=http://127.0.0.1:8799/
+export DONKEY_LLM_PROXY_CLIENT_ID=mock-id DONKEY_LLM_PROXY_CLIENT_SECRET=mock-secret
+python "demos/human-made/gemini/01 - native-generate-content.py"
+```
+
+The reply is the replayed capture, not a model answer. Every response carries
+`x-donkey-simulator: true`. `02` stays live-only: the mock serves `/chat/completions` in OpenAI
+format, so it cannot reproduce the Gemini proxy's rejection.
+
 ## Scripts
 
 | # | Script | Gateway |
 |---|---|---|
-| 01 | `native-generate-content.py` | live, `Format=Gemini` |
+| 01 | `native-generate-content.py` | live `Format=Gemini`, or `donkey mock` |
 | 02 | `openai-shape-rejected.py` | live, `Format=Gemini` |
 
 ### 01 — native-generate-content
