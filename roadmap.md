@@ -22,7 +22,7 @@ room must see it.
 
 ## Shipped
 
-### Claude-made (`01`-`22`)
+### Claude-made (`01`-`23`)
 
 Governed client (async and `sync=True`) and raw-vs-governed 403; typed refusals
 including live regex-prompt-guard, Azure content-safety and Bedrock Guardrails,
@@ -62,6 +62,7 @@ Coverage added for #47-59:
 | 20 descriptors | Framework-owned schema, `auto:check` drift, official MCP `tools/list` in memory | Auto imports execute; local protocol fidelity is not discovery/binding |
 | 21 A2A | Official SDK app/card/tasks, refusal recovery, task/model traces and cleanup | Narrative uses ASGI lifespan; human-made companion verifies blocking launcher over local TCP; no streaming or gateway exposure tested |
 | 22 MCP refusals | `simulate_mcp()` through a LangGraph binding: `PIIDetected` (both phases), `ToolNotInProfile`, baseline after `times=1`, schema/poisoning not typed | Replayed packaged captures, not live; selector is method-wide; ADK/CrewAI refused |
+| 23 tool lockfile | Deterministic `lock()`, `changed`/`tool_missing`/`server_missing` drift, `unpinned` exclusion, version-agnostic keys, missing-lock `ConfigError` | Declared servers via `simulate_mcp()`, not a live listing; detects drift, does not control access; Provisional |
 
 ### Human-made `openai/` (`01`-`18`)
 
@@ -78,10 +79,11 @@ Its header name is customer-configured, not a universal gateway contract.
 
 ### Human-made per framework
 
-**`langgraph/`** (`01`-`11`): stock vs governed `ChatOpenAI`, `simulate()` and
+**`langgraph/`** (`01`-`12`): stock vs governed `ChatOpenAI`, `simulate()` and
 live refusals through a `create_agent` graph with `typed_refusals()`, run id
 inside a tool, OTel, streaming, dead origin, `start_gateway()` and native approval
-checkpoint resume/rejection in 10, and `simulate_mcp()` typed MCP tool refusals in 11.
+checkpoint resume/rejection in 10, `simulate_mcp()` typed MCP tool refusals in 11,
+and the `donkey.lock` / `ToolLockDrift` round-trip in 12.
 **`openai-agents/`** (`01`-`05`) adds serialized native `RunState` approval and
 customer conformance plus task-dependent `on_llm_end` observations.
 **`strands/`** (`01`-`05`) adds native interrupt approval/rejection and propagation
