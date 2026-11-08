@@ -14,6 +14,7 @@ BASE = (
     "openai/17 - refusal-handlers.py",
     "openai/18 - dynamic-provider-key.py",
     "langgraph/10 - tool-approvals.py",
+    "langgraph/11 - mcp-refusals-simulated.py",
     "openai-agents/04 - approvals.py",
     "openai-agents/05 - governed-observations.py",
     "conformance/verify.py",
