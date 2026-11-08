@@ -246,7 +246,7 @@ async def _main() -> None:
         assert donkey.http_client().is_closed
         say.ok("Donkey transport closed")
         say.note(
-            "Gateway exposure, donkey expose and donkey dev remain outside implemented scope. ASGI checks do not verify the blocking uvicorn launcher, network reachability or a deployed gateway."
+            "ASGI checks do not verify the blocking uvicorn launcher, network reachability or a deployed gateway. To put a simulated gateway in front of this agent, use donkey dev; donkey expose registers the real ingress. Calling an agent is demo 24."
         )
     finally:
         assert provider.force_flush(timeout_millis=2000)

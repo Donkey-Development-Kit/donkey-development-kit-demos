@@ -20,6 +20,7 @@ BASE = (
     "openai-agents/05 - governed-observations.py",
     "conformance/verify.py",
     "a2a/verify.py",
+    "a2a/02 - outbound-simulated.py",
 )
 FRAMEWORKS = (
     "strands/05 - approvals.py",

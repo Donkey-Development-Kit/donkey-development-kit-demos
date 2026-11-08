@@ -22,7 +22,7 @@ room must see it.
 
 ## Shipped
 
-### Claude-made (`01`-`23`)
+### Claude-made (`01`-`24`)
 
 Governed client (async and `sync=True`) and raw-vs-governed 403; typed refusals
 including live regex-prompt-guard, Azure content-safety and Bedrock Guardrails,
@@ -63,6 +63,7 @@ Coverage added for #47-59:
 | 21 A2A | Official SDK app/card/tasks, refusal recovery, task/model traces and cleanup | Narrative uses ASGI lifespan; human-made companion verifies blocking launcher over local TCP; no streaming or gateway exposure tested |
 | 22 MCP refusals | `simulate_mcp()` through a LangGraph binding: `PIIDetected` (both phases), `ToolNotInProfile`, baseline after `times=1`, schema/poisoning not typed | Replayed packaged captures, not live; selector is method-wide; ADK/CrewAI refused |
 | 23 tool lockfile | Deterministic `lock()`, `changed`/`tool_missing`/`server_missing` drift, `unpinned` exclusion, version-agnostic keys, missing-lock `ConfigError` | Declared servers via `simulate_mcp()`, not a live listing; detects drift, does not control access; Provisional |
+| 24 outbound A2A | `send()`/`stream()` SDK types, v1/v0.3 Azure and token-rate captures typed, PII generic with no echo, tracing-gate `ConfigError`, error-only `donkey.a2a.call` spans | Replayed captures; successful gateway send/SSE not live; Provisional; `GatewayAuthRequired` and quality attributes described, not replayed |
 
 ### Human-made `openai/` (`01`-`18`)
 
@@ -100,7 +101,8 @@ modes and an isolated `verify.py`, including server request counting/port cleanu
 **`a2a/`** adds the real blocking `Donkey.serve()` launcher and an isolated
 subprocess verifier: card/tasks over loopback TCP, synthetic handler refusal and
 recovery, correlation IDs, graceful SIGINT shutdown, facade return and closed
-listener. This is locally verified, not live gateway/provider evidence.
+listener. This is locally verified, not live gateway/provider evidence. `02` is the
+outbound `donkey.a2a` send/stream under `simulate_a2a()` with typed refusals.
 
 `make coverage` runs the new core companions plus conformance/A2A verifiers;
 `scripts/verify_sdk_coverage.py --frameworks` runs only Strands/ADK in a separate
@@ -151,7 +153,7 @@ a shipped API does not verify the gateway or a framework's live round-trip.
 |---|---|
 | Connected-app Exchange publication | 16 exercises scan/dry-run only. User-session captures do not verify connected-app authentication, remote digest lookup or `unchanged` outcomes. Agent publication is skipped. |
 | Approval durability and service integration | Base pending calls are process-global memory. LangGraph uses `MemorySaver`; no process-restart durability test, authenticated approver service, queue/UI or gateway step-up is demonstrated. Native LangGraph pauses have no DDK expiry. |
-| A2A streaming and exposure | 21 covers official app behavior in an ASGI lifespan; human-made `a2a/verify.py` locally verifies the blocking `Donkey.serve()` launcher over TCP and graceful shutdown. Card advertises no streaming; narrative shutdown warnings remain visible. Gateway exposure is unimplemented; local TCP checks do not verify live gateway enforcement. |
+| A2A streaming and exposure | 21 covers official app behavior in an ASGI lifespan; human-made `a2a/verify.py` locally verifies the blocking `Donkey.serve()` launcher over TCP and graceful shutdown. Card advertises no streaming; narrative shutdown warnings remain visible. Gateway exposure (`donkey expose`) is not demonstrated; local TCP checks do not verify live gateway enforcement. Outbound (24) is replayed captures only: no successful gateway send/SSE. |
 | Attribution ingestion and remote shutdown/export failure | 06 proves isolated local scopes and flush ownership with loopback OTLP. Business-group header is unverified; no gateway authorization/ingestion or remote collector failure benchmark is established. |
 | CrowdStrike live verdict/outage | 15 uses policy-source-derived shapes. Model Armor, Azure and Bedrock captures do not establish a CrowdStrike round-trip. |
 | Dynamic provider-key live route | OpenAI 18 asserts local origin/auth placement only. Its customer-chosen header must match the route's Dynamic-key expression; no universal header or live route verification is claimed. |
@@ -169,9 +171,9 @@ status, not the demos'.
 | Exchange discovery + governed MCP binding | live | Filter (12) and descriptor fidelity (20) are local; a discover → bind story is still missing |
 | `donkey.simulate_mcp()`, typed MCP policy refusals on bindings | offline-verified | 22: MCP refusals offline (PII, CIBA/kill-switch 403s typed; schema validation and tool poisoning stay untyped, SDK #1401) |
 | `await donkey.tools.lock()`, `discover(locked=True)`, `ToolLockDrift` | offline-verified, provisional | 23: lock, re-discover locked, show drift |
-| Outbound A2A (`donkey.a2a`), `simulate_a2a()`, `GatewayAuthChallenge`, quality annotations | offline-verified | 24: call 21's agent, typed refusals, auth challenge, spans |
+| Outbound A2A (`donkey.a2a`), `simulate_a2a()`, `GatewayAuthChallenge`, quality annotations | offline-verified | **24** (shipped): `simulate_a2a()` send/stream, typed refusals, tracing gate, spans; auth challenge and quality described only (no packaged capture) |
 | `donkey expose` / `donkey preflight` (path positional, `--service`) | live 2026-10-28 | Showcase card only; 16 is scan/publish, not exposure |
-| `donkey dev` replaying A2A-instance refusals | offline | Act in 21 or human-made `a2a/` |
+| `donkey dev` replaying A2A-instance refusals | offline | Pointer in 21; a runnable `donkey dev` act is still missing |
 | `ModelNotRoutable` (missing-model 400) | live (missing-model 400 newly typed, #1547) | Scenario in 02 and human-made `openai/` |
 | Native Anthropic/Gemini routes in `donkey mock` | offline | Mock mode for human-made `anthropic/`, `gemini/` |
 | Exchange `llm` asset + `llm-metadata`, `resolve_agent()` on `a2a_v1` | captured | Showcase card |
