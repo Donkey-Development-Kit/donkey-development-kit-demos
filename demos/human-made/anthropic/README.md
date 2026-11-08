@@ -22,11 +22,26 @@ export DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/ddk-anthropic-inb
 The client id and secret are the same pair as the other proxies. The model is
 `claude-haiku-4-5-20251001` (the `MODEL` constant).
 
+### Offline: `donkey mock`
+
+`donkey mock` (SDK 0.2.1 or later) serves the native `POST /v1/messages` route from a
+captured `Format=Anthropic` proxy, so `01` runs without a gateway:
+
+```bash
+donkey mock --port 8799 &                     # needs donkey-kit[cli,local]
+export DONKEY_LLM_PROXY_URL=http://127.0.0.1:8799/
+export DONKEY_LLM_PROXY_CLIENT_ID=mock-id DONKEY_LLM_PROXY_CLIENT_SECRET=mock-secret
+python "demos/human-made/anthropic/01 - native-messages.py"
+```
+
+The reply is the replayed capture, not a model answer. Every response carries
+`x-donkey-simulator: true`. `last_call` reports `served_provider anthropic`.
+
 ## Scripts
 
 | # | Script | Gateway | Extra needs |
 |---|---|---|---|
-| 01 | `native-messages.py` | live, `Format=Anthropic` | — |
+| 01 | `native-messages.py` | live `Format=Anthropic`, or `donkey mock` | — |
 | 02 | `typed-refusals-simulated.py` | none (in-process) | any `DONKEY_LLM_PROXY_*` values |
 
 ### 01 — native-messages

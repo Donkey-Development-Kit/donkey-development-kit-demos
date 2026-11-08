@@ -175,7 +175,7 @@ status, not the demos'.
 | `donkey expose` / `donkey preflight` (path positional, `--service`) | live 2026-10-28 | Showcase card only; 16 is scan/publish, not exposure |
 | `donkey dev` replaying A2A-instance refusals | offline | Pointer in 21; a runnable `donkey dev` act is still missing |
 | `ModelNotRoutable` (missing-model 400) | live (missing-model 400 newly typed, #1547) | **Shipped**: 02 act 1/2 and human-made `openai/19` |
-| Native Anthropic/Gemini routes in `donkey mock` | offline | Mock mode for human-made `anthropic/`, `gemini/` |
+| Native Anthropic/Gemini routes in `donkey mock` | offline | **Shipped**: `anthropic/01` and `gemini/01` documented against `donkey mock` |
 | Exchange `llm` asset + `llm-metadata`, `resolve_agent()` on `a2a_v1` | captured | Showcase card |
 
 ---

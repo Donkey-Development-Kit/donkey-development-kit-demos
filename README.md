@@ -253,9 +253,9 @@ or an approval service. Rejection formats remain framework-native.
 
 | # | Script | Shows | Needs |
 |---|--------|-------|-------|
-| 01 | [native-messages](demos/human-made/anthropic/01%20-%20native-messages.py) | `donkey.anthropic.client()` on `/v1/messages`; `request-id` vs `request_id` | `Format=Anthropic` proxy |
+| 01 | [native-messages](demos/human-made/anthropic/01%20-%20native-messages.py) | `donkey.anthropic.client()` on `/v1/messages`; `request-id` vs `request_id` | `Format=Anthropic` proxy, or `donkey mock` |
 | 02 | [typed-refusals-simulated](demos/human-made/anthropic/02%20-%20typed-refusals-simulated.py) | `simulate()` through the native Anthropic client | proxy creds (no network) |
-| 01 | [native-generate-content](demos/human-made/gemini/01%20-%20native-generate-content.py) | `:generateContent` via `httpx` (no adapter ships) | `Format=Gemini` proxy |
+| 01 | [native-generate-content](demos/human-made/gemini/01%20-%20native-generate-content.py) | `:generateContent` via `httpx` (no adapter ships) | `Format=Gemini` proxy, or `donkey mock` |
 | 02 | [openai-shape-rejected](demos/human-made/gemini/02%20-%20openai-shape-rejected.py) | Gemini's list envelope → `UpstreamRequestError` | `Format=Gemini` proxy |
 
 **Strands note.** `donkey.strands.model()` hands Strands `client_args`, and
