@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE = (
     "openai/17 - refusal-handlers.py",
     "openai/18 - dynamic-provider-key.py",
+    "openai/19 - model-not-routable.py",
     "langgraph/10 - tool-approvals.py",
     "langgraph/11 - mcp-refusals-simulated.py",
     "langgraph/12 - tool-lockfile.py",

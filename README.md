@@ -183,6 +183,7 @@ refusals typed. It is offline replay, not live delegation.
 | 16 | [bedrock-guardrails](demos/human-made/openai/16%20-%20bedrock-guardrails.py) | Live Bedrock Guardrails → `ContentSafetyBlocked`; `request_id` from `x-amzn-requestid` | proxy + Bedrock Guardrails |
 | 17 | [refusal-handlers](demos/human-made/openai/17%20-%20refusal-handlers.py) | Local escalation, custom classifier cleanup and handler return cannot grant success | nothing (`[llm,local]`) |
 | 18 | [dynamic-provider-key](demos/human-made/openai/18%20-%20dynamic-provider-key.py) | Customer-chosen provider header beside consumer auth, origin stripping and JWT omission | nothing (`[llm]`) |
+| 19 | [model-not-routable](demos/human-made/openai/19%20-%20model-not-routable.py) | Bare model name on a multi-provider proxy → `ModelNotRoutable`, not a refusal or upstream error | nothing (`[llm]`) |
 
 ### `langgraph/`
 
