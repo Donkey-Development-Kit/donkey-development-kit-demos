@@ -266,7 +266,7 @@ source .venv/bin/activate      # once per terminal
 python -m pip install -e .
 
 # 2. The SDK. Either the branch this one tracks, from git…
-python -m pip install -e ".[full]"      # full narrative SDK extras + langchain + mcp
+python -m pip install -e ".[full]"      # full narrative SDK extras + langchain + mcp + langchain-mcp-adapters
 
 #    …or your own checkout, on the matching SDK branch (develop here)
 python -m pip install -e "../donkey-development-kit/python[llm,local,test,cli,otel,langgraph,openai-agents,a2a]" "mcp"

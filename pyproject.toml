@@ -27,9 +27,12 @@ sdk = [
 ]
 # Everything the full walkthrough can exercise, including the LangGraph deep adapter.
 # `langchain` is for demo 09's `create_agent`; no donkey-kit extra ships it.
+# `langchain-mcp-adapters` is the LangGraph MCP client the tool binding needs
+# (demos 22-23); no donkey-kit extra ships it either.
 full = [
-  "donkey-kit[llm,local,test,cli,otel,langgraph,openai-agents,a2a] @ git+https://github.com/Donkey-Development-Kit/donkey-development-kit.git@develop#subdirectory=python",
+  "donkey-kit[llm,local,test,cli,otel,langgraph,mcp,openai-agents,a2a] @ git+https://github.com/Donkey-Development-Kit/donkey-development-kit.git@develop#subdirectory=python",
   "langchain>=1.0",
+  "langchain-mcp-adapters",
   "mcp>=1.19.0",
 ]
 dev = ["ruff>=0.6"]
