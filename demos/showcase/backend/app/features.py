@@ -698,8 +698,10 @@ async with donkey.as_user(token=user_token):     # aud = the gateway instance
         "2026-10-28, discover() plus every ToolSet binding ran through governed "
         "gateway instances, and on 2026-10-29 the same ran against a Mule-hosted MCP "
         "server. Limits: governed defaults to True (governed servers only; pass "
-        "governed=None for all), and a binding still refuses an ungoverned server. domain= and locked=True raise "
-        "NotImplementedError. An audience-scoped token works for one instance only, "
+        "governed=None for all), and a binding still refuses an ungoverned server. domain= raises "
+        "NotImplementedError. locked=True reads a donkey.lock written by "
+        "await donkey.tools.lock() (offline-verified; the lockfile format and "
+        "ToolLockDrift are provisional). An audience-scoped token works for one instance only, "
         "so narrow with filter(servers=[...]). Tool results come back in a different "
         "shape per framework.",
         "without": """# Hand-wire each MCP URL and credential per framework,
@@ -1151,7 +1153,7 @@ target = "my-omni-gateway"
 [[donkey.expose.services.sku-manager.policies]]
 asset = "<policy-group-id>/mcp-support/1.1.1"
 
-$ donkey preflight sku-manager     # reads only, like expose --dry-run
+$ donkey preflight . --service sku-manager   # reads only, like expose --dry-run
   ✓ environment         present  Sandbox (…)
   ✓ gateway             present  my-omni-gateway, ingress port 8081
   · registry            planned  would publish <group-id>:sku-manager:1.0.0
@@ -1362,7 +1364,8 @@ estimate = narrow.descriptor_tokens()   # ~4 JSON chars/token""",
         "was only listed in the framework-agent run). Collision renames and approval "
         "gates were not re-run through the gateway. Whole-server bindings (ADK, "
         "Strands, OpenAI Agents, Agent Framework, CrewAI) refuse renames. Tool "
-        "results differ per framework. domain= and locked=True are not supported. "
+        "results differ per framework. domain= is not supported; locked=True "
+        "pins to donkey.lock (offline-verified, provisional). "
         "warm() is O(N) registry reads. The headline discover() story is the "
         "tool-access card.",
         "without": """# Without DDK: wire each framework's MCP client by hand, server by server,

@@ -154,6 +154,25 @@ a shipped API does not verify the gateway or a framework's live round-trip.
 | Dynamic provider-key live route | OpenAI 18 asserts local origin/auth placement only. Its customer-chosen header must match the route's Dynamic-key expression; no universal header or live route verification is claimed. |
 | Kill control plane | 18 consumes the simulated kill decision; no live kill issuance, control-plane operation or arbitrary HTTP blocking is demonstrated. |
 
+### Shipped in the SDK, no demo yet (0.2.0 / 0.2.1)
+
+These used to be listed as blocked. The SDK now ships them (SDK `develop`,
+Phase 2.1, `MIGRATION.md` §0.2.1). The showcase describes some of them, but
+no runnable demo does. The status column gives the SDK docs' verification
+status, not the demos'.
+
+| SDK surface | SDK status | Planned demo |
+|---|---|---|
+| Exchange discovery + governed MCP binding | live | Filter (12) and descriptor fidelity (20) are local; a discover → bind story is still missing |
+| `donkey.simulate_mcp()`, typed MCP policy refusals on bindings | offline-verified | 22: MCP refusals offline (PII, schema validation, tool poisoning, CIBA/kill-switch 403s) |
+| `await donkey.tools.lock()`, `discover(locked=True)`, `ToolLockDrift` | offline-verified, provisional | 23: lock, re-discover locked, show drift |
+| Outbound A2A (`donkey.a2a`), `simulate_a2a()`, `GatewayAuthChallenge`, quality annotations | offline-verified | 24: call 21's agent, typed refusals, auth challenge, spans |
+| `donkey expose` / `donkey preflight` (path positional, `--service`) | live 2026-10-28 | Showcase card only; 16 is scan/publish, not exposure |
+| `donkey dev` replaying A2A-instance refusals | offline | Act in 21 or human-made `a2a/` |
+| `ModelNotRoutable` (missing-model 400) | live (missing-model 400 newly typed, #1547) | Scenario in 02 and human-made `openai/` |
+| Native Anthropic/Gemini routes in `donkey mock` | offline | Mock mode for human-made `anthropic/`, `gemini/` |
+| Exchange `llm` asset + `llm-metadata`, `resolve_agent()` on `a2a_v1` | captured | Showcase card |
+
 ---
 
 ## Do not create yet — blocked on the SDK
@@ -163,10 +182,7 @@ static scan, local approvals or local A2A app now demonstrated above.
 
 | SDK surface | Phase | Demo implication |
 |---|---|---|
-| Exchange discovery | blocked | No "list my tools from Exchange" demo |
-| MCP tool binding | verification-blocked | Filter is shipped (12); descriptor fidelity (20) is local. `@donkey.tool` registration/approval is not remote governed binding. |
-| API-instance/proxy provisioning | blocked | Static scan/publication planning (16) is not "stand up an API instance" |
-| A2A gateway exposure / `expose` / `dev` | unimplemented | Local official-SDK app is covered by 21 and blocking TCP launcher by human-made `a2a/`; exposure/dev are not |
+| `discover(domain=...)` | blocked | Exchange has no domain filter; the SDK raises `NotImplementedError` |
 | Identity / on-behalf-of | Phase 2 | No OBO token-exchange demo |
 | Platform approval service / gateway step-up | not demonstrated | Local `@donkey.tool(approval=..., risk=...)` and native advisory gates are covered; no platform service is implied |
 | Policy handshake / in-force policy set | Phase 3 | No "read policies before calling" demo |
