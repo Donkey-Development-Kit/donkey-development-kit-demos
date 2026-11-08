@@ -65,7 +65,7 @@ Coverage added for #47-59:
 | 23 tool lockfile | Deterministic `lock()`, `changed`/`tool_missing`/`server_missing` drift, `unpinned` exclusion, version-agnostic keys, missing-lock `ConfigError` | Declared servers via `simulate_mcp()`, not a live listing; detects drift, does not control access; Provisional |
 | 24 outbound A2A | `send()`/`stream()` SDK types, v1/v0.3 Azure and token-rate captures typed, PII generic with no echo, tracing-gate `ConfigError`, error-only `donkey.a2a.call` spans | Replayed captures; successful gateway send/SSE not live; Provisional; `GatewayAuthRequired` and quality attributes described, not replayed |
 
-### Human-made `openai/` (`01`-`18`)
+### Human-made `openai/` (`01`-`19`)
 
 Stock client; governed call + `last_call`; `simulate()`; live refusals
 (blocking), including regex-prompt-guard and Azure content-safety; budget;
@@ -174,7 +174,7 @@ status, not the demos'.
 | Outbound A2A (`donkey.a2a`), `simulate_a2a()`, `GatewayAuthChallenge`, quality annotations | offline-verified | **24** (shipped): `simulate_a2a()` send/stream, typed refusals, tracing gate, spans; auth challenge and quality described only (no packaged capture) |
 | `donkey expose` / `donkey preflight` (path positional, `--service`) | live 2026-10-28 | Showcase card only; 16 is scan/publish, not exposure |
 | `donkey dev` replaying A2A-instance refusals | offline | Pointer in 21; a runnable `donkey dev` act is still missing |
-| `ModelNotRoutable` (missing-model 400) | live (missing-model 400 newly typed, #1547) | Scenario in 02 and human-made `openai/` |
+| `ModelNotRoutable` (missing-model 400) | live (missing-model 400 newly typed, #1547) | **Shipped**: 02 act 1/2 and human-made `openai/19` |
 | Native Anthropic/Gemini routes in `donkey mock` | offline | Mock mode for human-made `anthropic/`, `gemini/` |
 | Exchange `llm` asset + `llm-metadata`, `resolve_agent()` on `a2a_v1` | captured | Showcase card |
 

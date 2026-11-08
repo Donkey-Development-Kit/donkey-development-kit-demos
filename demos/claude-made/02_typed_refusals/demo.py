@@ -30,6 +30,7 @@ from donkey_kit import (
     DonkeyConfig,
     DonkeyError,
     GatewayUnavailable,
+    ModelNotRoutable,
     ModelSubstituted,
     PIIDetected,
     PolicyViolation,
@@ -57,6 +58,8 @@ SHAPES: tuple[tuple[str, str], ...] = (
     ("regex-prompt-guard", "regex prompt guard — 403 keyed on matched_patterns, not auth"),
     ("content-safety", "Azure content safety — 403 keyed on a vendor reject header"),
     ("content-moderation", "undiscriminated moderation — no live capture, left unnamed"),
+    ("model-not-routable", "multi-provider proxy, bare model name — your config, not a policy"),
+    ("model-missing", "no model field where the ingress expects one — same type"),
     ("model-not-found", "upstream passthrough — the provider's own error, not a policy"),
     ("upstream-5xx", "provider failure — retryable, unlike every refusal above"),
 )
@@ -71,6 +74,8 @@ EXPECTED: dict[str, type[Exception]] = {
     "regex-prompt-guard": PromptInjectionBlocked,
     "content-safety": ContentSafetyBlocked,
     "content-moderation": PolicyViolation,
+    "model-not-routable": ModelNotRoutable,
+    "model-missing": ModelNotRoutable,
     "model-not-found": UpstreamRequestError,
 }
 
@@ -97,6 +102,7 @@ def _detail(error: Exception) -> list[tuple[str, object]]:
         "code",
         "error_type",
         "param",
+        "model",
     ):
         value = getattr(error, attr, None)
         if value not in (None, [], ""):
@@ -105,7 +111,7 @@ def _detail(error: Exception) -> list[tuple[str, object]]:
 
 
 def act_1_the_taxonomy() -> None:
-    say.section("Nine captured responses through classify()")
+    say.section("Eleven captured responses through classify()")
     say.code(
         """
         from donkey_kit.core.errors import classify
@@ -138,6 +144,7 @@ def act_2_what_the_hierarchy_buys() -> None:
     safety = classify(_rebuild("content-safety"))
     regex = classify(_rebuild("regex-prompt-guard"))
     upstream = classify(_rebuild("model-not-found"))
+    unroutable = classify(_rebuild("model-not-routable"))
     unavailable = gateway_unavailable(
         base_url="http://127.0.0.1:9",
         cause=httpx.ConnectError("connection refused"),
@@ -166,6 +173,17 @@ def act_2_what_the_hierarchy_buys() -> None:
             "an upstream 400 is NOT a policy refusal — it is your request that is "
             "wrong, not the gateway saying no",
             not isinstance(upstream, PolicyViolation),
+        ),
+        (
+            "ModelNotRoutable is neither a refusal nor an upstream error — the "
+            "gateway never called a provider; fix the model name (provider/model)",
+            isinstance(unroutable, ModelNotRoutable)
+            and not isinstance(unroutable, (PolicyViolation, UpstreamRequestError)),
+        ),
+        (
+            "the PII block withholds the detected value: the exception text names "
+            "the entity type and offsets, never the address the gateway echoed",
+            "john.doe@example.com" not in f"{pii}{pii!r}" and pii.entities == ["Email"],
         ),
         (
             "the budget refusal carries retry_after, parsed from x-token-reset "
