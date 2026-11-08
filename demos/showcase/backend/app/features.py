@@ -743,6 +743,39 @@ report = await donkey.registry.explain(server.ref, criteria=STRICT)
 print(server.endpoint_url, report.governed, report.reasons_failed())""",
     },
     {
+        "id": "registry-agents-llms",
+        "group": "Governance",
+        "icon": "🗂️",
+        "title": "Registry: A2A agents & LLM assets",
+        "badge": "shipped",
+        "blurb": "resolve_agent() turns an A2A agent asset version into its governed "
+        "gateway URL, the way resolve_mcp() does for MCP servers. It prefers the "
+        "deployed a2a_v1 (A2A 1.0) instance and falls back to a2a (0.3). "
+        'search(asset_types=["llm"]) finds LLM proxies and custom LLM providers, '
+        "and llm_metadata() reads what a version's llm-metadata file declares.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not interactive here; the card makes no Exchange or API Manager "
+        'call. resolve_agent() on an a2a instance, search(asset_types=["llm"]) '
+        "and llm_metadata() were verified live against a sandbox (2026-10-29, "
+        "2026-11-02, 2026-11-04). a2a_v1 resolution is covered by unit tests only, "
+        "not re-captured live. The handle opens no connection and carries no "
+        "skills: those are on the agent card. A DDK LLM proxy's llm-metadata "
+        "sets only platform. llm_metadata() returns None when the version has no "
+        "such file. The SDK reads llm assets; it does not publish them.",
+        "without": """# Hand-query API Manager for the agent's instance, pick the right A2A
+# protocol, build the URL, and download the llm-metadata file yourself.""",
+        "with": """# SDK shipped; descriptive example, not executed by this card.
+agent = await donkey.registry.resolve_agent("<group-id>/claims-triage-agent/1.0.0")
+card_url = agent.endpoint_url + ".well-known/agent-card.json"
+
+llms = await donkey.registry.search(asset_types=["llm"])
+meta = await donkey.registry.llm_metadata(llms[0])   # LlmMetadata | None
+if meta:
+    print(meta.platform, meta.input_format, meta.models)""",
+    },
+    {
         "id": "mcp-ungoverned-approval",
         "group": "Governance",
         "icon": "🚧",
@@ -1383,6 +1416,37 @@ async with hr.anthropic() as bound:                 # BetaAsyncFunctionTool
     ...
 # span donkey.tools.discover: donkey.discover.cache=hit|miss,
 #   donkey.discover.servers, donkey.discover.left_out""",
+    },
+    {
+        "id": "mcp-gateway-catalogs",
+        "group": "Developer tooling",
+        "icon": "🧭",
+        "title": "Gateway-visible MCP catalogs",
+        "badge": "shipped",
+        "blurb": "Omni Gateway policies can change what an MCP server looks like. "
+        "Tool Mapping renames tools, Progressive Disclosure lists only search_tools "
+        "and invoke_tool, and Payload Optimization rewrites tool results. DDK "
+        "filters, approves, binds and locks the gateway-visible names, never the "
+        "hidden upstream ones.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not interactive here. Each policy's behavior was captured live "
+        "(2026-11-02, 2026-11-07), capture-only. A filter or approval rule naming "
+        "a hidden upstream name raises ConfigError when tools are listed. Under "
+        "Progressive Disclosure, a filter on a hidden name does not restrict what "
+        "invoke_tool may call, and DDK adds no client-side search. Payload "
+        "Optimization never refuses: a result can arrive as Markdown or TOON text "
+        "where JSON was expected, and DDK has no TOON decoder. donkey.lock pins "
+        "the mapped names, or just the two meta-tools.",
+        "without": """# Filter on the upstream name 'calculate' while the gateway lists 'arithmetic',
+# and the rule silently matches nothing.""",
+        "with": """# SDK shipped; descriptive example, not executed by this card.
+tools = await donkey.tools.discover(governed=True)
+calc = tools.filter(allow=["arithmetic"])   # the gateway-visible (mapped) name
+calc = await calc.describe()                # reads the catalog; logs INFO when it
+                                            #   is search_tools + invoke_tool
+await donkey.tools.lock()                   # pins mapped names / meta-tools""",
     },
     {
         "id": "tool-cost-warning",

@@ -176,7 +176,8 @@ status, not the demos'.
 | `donkey dev` replaying A2A-instance refusals | offline | Pointer in 21; a runnable `donkey dev` act is still missing |
 | `ModelNotRoutable` (missing-model 400) | live (missing-model 400 newly typed, #1547) | **Shipped**: 02 act 1/2 and human-made `openai/19` |
 | Native Anthropic/Gemini routes in `donkey mock` | offline | **Shipped**: `anthropic/01` and `gemini/01` documented against `donkey mock` |
-| Exchange `llm` asset + `llm-metadata`, `resolve_agent()` on `a2a_v1` | captured | Showcase card |
+| Exchange `llm` asset + `llm-metadata`, `resolve_agent()` on `a2a_v1` | live (`a2a_v1` unit-tested) | **Shipped**: showcase card "Registry: A2A agents & LLM assets" |
+| MCP Tool Mapping / Progressive Disclosure / Payload Optimization | live, capture-only | **Shipped**: showcase card "Gateway-visible MCP catalogs" (descriptive; no local story) |
 
 ---
 
