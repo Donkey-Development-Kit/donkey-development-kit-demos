@@ -71,6 +71,7 @@ checks upgrades a surface to live-verified status.
 | 19 | [tool approvals](demos/claude-made/19_tool_approvals/) | Base pending/resolve/reject/timeout, native LangGraph checkpoint resume, private-argument-free approval spans | nothing (`[llm,local,langgraph,otel]`) |
 | 20 | [descriptor fidelity](demos/claude-made/20_descriptor_fidelity/) | Framework-owned schemas, `auto:check` drift and local MCP `tools/list` fidelity | nothing (`[langgraph]` + `mcp`) |
 | 21 | [local A2A serving](demos/claude-made/21_a2a_serving/) | Official SDK app/card/tasks, typed failed task, inbound/downstream trace parentage and lifespan cleanup | nothing (`[llm,local,test,otel,a2a]`) |
+| 22 | [typed MCP refusals](demos/claude-made/22_mcp_refusals/) | `donkey.simulate_mcp()` replays captured gateway refusals into a LangGraph binding: `PIIDetected`, `ToolNotInProfile`; schema/poisoning stay generic | nothing (`[langgraph,mcp]` + `langchain-mcp-adapters`) |
 
 Harness-backed gateway stories can select `--target mock` (default) or
 `--target live`; local-only stories do not become live tests with that flag.
@@ -191,6 +192,7 @@ python demos/human-made/a2a/verify.py                   # isolated subprocess ch
 | 08 | [gateway-unavailable](demos/human-made/langgraph/08%20-%20gateway-unavailable.py) | `GatewayUnavailable` two causes down | nothing |
 | 09 | [start-gateway](demos/human-made/langgraph/09%20-%20start-gateway.py) | Graph against `start_gateway()`, every 2nd call PII | nothing (`[local]`) |
 | 10 | [tool-approvals](demos/human-made/langgraph/10%20-%20tool-approvals.py) | Native checkpoint interrupt, approve/reject and recompile/resume; no DDK native expiry | nothing (`[langgraph]`) |
+| 11 | [mcp-refusals-simulated](demos/human-made/langgraph/11%20-%20mcp-refusals-simulated.py) | `donkey.simulate_mcp()`: PII block then baseline, access denial; no gateway or Exchange | nothing (`[langgraph,mcp]` + `langchain-mcp-adapters`) |
 
 ### `openai-agents/`
 
