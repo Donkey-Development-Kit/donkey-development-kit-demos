@@ -164,7 +164,7 @@ status, not the demos'.
 | SDK surface | SDK status | Planned demo |
 |---|---|---|
 | Exchange discovery + governed MCP binding | live | Filter (12) and descriptor fidelity (20) are local; a discover → bind story is still missing |
-| `donkey.simulate_mcp()`, typed MCP policy refusals on bindings | offline-verified | 22: MCP refusals offline (PII, schema validation, tool poisoning, CIBA/kill-switch 403s) |
+| `donkey.simulate_mcp()`, typed MCP policy refusals on bindings | offline-verified | 22: MCP refusals offline (PII, CIBA/kill-switch 403s typed; schema validation and tool poisoning stay untyped, SDK #1401) |
 | `await donkey.tools.lock()`, `discover(locked=True)`, `ToolLockDrift` | offline-verified, provisional | 23: lock, re-discover locked, show drift |
 | Outbound A2A (`donkey.a2a`), `simulate_a2a()`, `GatewayAuthChallenge`, quality annotations | offline-verified | 24: call 21's agent, typed refusals, auth challenge, spans |
 | `donkey expose` / `donkey preflight` (path positional, `--service`) | live 2026-10-28 | Showcase card only; 16 is scan/publish, not exposure |
