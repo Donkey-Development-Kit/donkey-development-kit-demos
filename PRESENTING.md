@@ -469,6 +469,20 @@ offline baseline. Schema Validation and Tool Poisoning stay generic on purpose.
 gateway. These are replayed captures, not live evidence; the selector matches
 the RPC method, so a captured diagnostic can name a different tool.
 
+### 23 - Tool lockfile
+
+```bash
+DEMO_PAUSE=1 make demo N=23
+```
+
+**Story:** `await donkey.tools.lock()` writes a deterministic `donkey.lock`. Then
+the "gateway" changes: a reworded description, a removed tool, a missing server.
+Each is a `ToolLockDrift` before binding. A new tool is dropped as `unpinned`, and
+a new server version is not drift.
+**Talking point:** the lock detects drift, it does not control access; the
+gateway's policies still decide. Provisional in 0.2.1. Offline via
+`simulate_mcp()`, not a live listing.
+
 ## Screen-recording safety
 
 Output masking is on by default and you should leave it on. It covers the three
