@@ -22,7 +22,11 @@ from pathlib import Path
 
 SHOWCASE = Path(__file__).resolve().parents[1] / "demos" / "showcase"
 FEATURES_PY = SHOWCASE / "backend" / "app" / "features.py"
-ACTION_FILES = {"pace": "pace.json", "conformance": "conformance.json", "doctor": "doctor.json"}
+ACTION_FILES = {
+    "pace": "pace.json",
+    "conformance": "conformance.json",
+    "doctor": "doctor.json",
+}
 
 
 def load_features() -> list[dict]:
@@ -58,7 +62,9 @@ def check(replay: Path) -> list[str]:
             continue
         for key in sorted(set(f) | set(other)):
             if f.get(key) != other.get(key):
-                errors.append(f"card '{f['id']}': field '{key}' differs between features.py and features.json")
+                errors.append(
+                    f"card '{f['id']}': field '{key}' differs between features.py and features.json"
+                )
 
     def load(name: str):
         try:
@@ -67,6 +73,7 @@ def check(replay: Path) -> list[str]:
             return None
 
     chat, compare = load("chat.json") or {}, load("compare.json") or {}
+    stories = load("stories.json") or {}
     for f in py:
         action = f["action"]
         if action == "chat":
@@ -74,9 +81,44 @@ def check(replay: Path) -> list[str]:
             for name, data in (("chat.json", chat), ("compare.json", compare)):
                 if key not in data:
                     errors.append(f"card '{f['id']}': no recording for '{key}' in {name}")
+        elif action == "story":
+            result = stories.get(f["id"]) if isinstance(stories, dict) else None
+            if (
+                not isinstance(result, dict)
+                or result.get("feature") != f["id"]
+                or not isinstance(result.get("steps"), list)
+                or not result["steps"]
+                or any(
+                    not isinstance(step, dict)
+                    or any(
+                        not isinstance(step.get(k), str)
+                        for k in ("title", "outcome", "detail")
+                    )
+                    for step in result["steps"]
+                )
+                or not isinstance(result.get("spans"), list)
+                or any(
+                    not isinstance(span, dict)
+                    or any(
+                        not isinstance(span.get(k), str)
+                        for k in ("name", "trace_id", "span_id", "status")
+                    )
+                    or not isinstance(span.get("attributes"), dict)
+                    for span in result["spans"]
+                )
+            ):
+                errors.append(
+                    f"card '{f['id']}': missing/invalid story recording in stories.json"
+                )
+            elif result.get("title") != f["title"] or result.get("boundary") != f["watch"]:
+                errors.append(
+                    f"card '{f['id']}': story recording metadata differs from catalog"
+                )
         elif action in ACTION_FILES:
             if load(ACTION_FILES[action]) is None:
-                errors.append(f"card '{f['id']}': missing replay file {ACTION_FILES[action]}")
+                errors.append(
+                    f"card '{f['id']}': missing replay file {ACTION_FILES[action]}"
+                )
         elif action != "info":
             errors.append(f"card '{f['id']}': unknown action '{action}'")
     return errors
@@ -84,7 +126,9 @@ def check(replay: Path) -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--replay-dir", type=Path, default=SHOWCASE / "frontend" / "public" / "replay")
+    ap.add_argument(
+        "--replay-dir", type=Path, default=SHOWCASE / "frontend" / "public" / "replay"
+    )
     args = ap.parse_args()
     errors = check(args.replay_dir)
     if errors:
@@ -94,7 +138,9 @@ def main() -> int:
         print("See demos/showcase/README.md, 'Re-record the static replay'.")
         return 1
     n = len(load_features())
-    print(f"showcase catalog ok: {n} cards, features.py == features.json, every interactive card has a recording")
+    print(
+        f"showcase catalog ok: {n} cards, features.py == features.json, every interactive card has a recording"
+    )
     return 0
 
 

@@ -14,6 +14,7 @@ const ACTION_LABEL: Record<Feature["action"], string | null> = {
   pace: "▶ Run the batch",
   conformance: "▶ Run conformance",
   doctor: "▶ Run donkey doctor",
+  story: "Run protocol story",
   info: null,
 };
 

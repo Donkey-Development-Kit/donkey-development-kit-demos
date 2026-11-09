@@ -8,20 +8,32 @@ are not interchangeable:
 | | [`demos/claude-made/`](demos/claude-made/) | [`demos/human-made/`](demos/human-made/) |
 |---|---|---|
 | **For** | A room, a recording, or CI that must stay offline | A terminal you type in, or paste from |
-| **Shape** | Numbered narrative demos (`01`-`21`), each with `demo.py` + README | Straight-line framework scripts, compact pytest conformance and a local A2A launcher/verifier |
+| **Shape** | Numbered narrative demos (`01`-`24`), each with `demo.py` + README | Straight-line framework scripts, compact pytest conformance and a local A2A launcher/verifier |
 | **Runner** | `make demo N=03`, `make offline`, `_harness` (redact, mock, pause) | `python "demos/human-made/<framework>/….py"`; new local checks via `make coverage` |
-| **Network** | Twenty of twenty-one need no credentials or external gateway. Demo 09 is live-only | Live scripts need proxy variables; new approval/observation examples use real framework runners with scripted local models or transports |
+| **Network** | Twenty-three of twenty-four need no credentials or external gateway. Demo 09 is live-only | Live scripts need proxy variables; new approval/observation examples use real framework runners with scripted local models or transports |
 
 There is also a browser demo, the **[feature showcase](demos/showcase/)**: a
 LangGraph chat on one side and a clickable catalog of DDK features on the other,
-running against `donkey mock`. Try the static replay on
+running model chat against `donkey mock` and protocol stories through scoped
+MCP/A2A simulation. Try the static replay on
 **[GitHub Pages](https://donkey-development-kit.github.io/donkey-development-kit-demos/)**,
 or run it live locally with `demos/showcase/run.sh`. The catalog covers SDK
-`develop` (44 cards): live chat cards for typed refusals (including regex prompt
+`develop` (54 cards), grouped by Model, MCP, A2A, Identity & Approvals,
+Observability and Developer tooling: live chat cards for typed refusals (including regex prompt
 guard, request rate limit, CIBA pending/denied, terminal kill handling and
 refusal reactions, all against the simulator) plus descriptive-only cards that
-state what is verified and what is not. `make check-showcase` fails if the
-catalog and its static replay drift apart.
+state what is verified and what is not. Three runnable `story` cards use
+`POST /api/story` for MCP refusals, tool lockfiles and outbound A2A, with frontend
+step/span rendering and recorder support. Their responses are recorded in
+`demos/showcase/frontend/public/replay/stories.json`; `make check-showcase`
+checks catalog parity and all interactive recordings. Existing model recordings
+are unchanged. Executed showcase evidence is MCP request/response PII with
+`times=1` baselines, global-access denial only, generic schema/poisoning errors;
+lock unchanged/changed/removed/missing/unpinned listings; and A2A v1 synthetic
+send/stream baselines, Azure-send, rate-stream and generic PII-send privacy.
+Narrative 24 covers additional cases including v0.3; the showcase does not.
+These are offline handling checks, not live gateway enforcement or successful
+gateway A2A send/SSE evidence. Lockfiles and outbound A2A remain provisional.
 
 For the per-framework *reference* snippets (one `main.py` per framework,
 CI-gated), see [`python/examples/`](https://github.com/Donkey-Development-Kit/donkey-development-kit/tree/main/python/examples)
@@ -43,7 +55,7 @@ Each demo is a story with acts, a projector-safe narrator, and output masking.
 `run.py` discovers `**/demo.py` under `demos/`, so **only this suite** is listed
 by `make list` / `make offline`.
 
-**Twenty of twenty-one run without credentials or an external gateway.** Depending
+**Twenty-three of twenty-four run without credentials or an external gateway.** Depending
 on the story, they use SDK fixture replay, synthetic MockTransport responses,
 real loopback HTTP, or local framework/protocol execution. None of those local
 checks upgrades a surface to live-verified status.
@@ -86,7 +98,7 @@ OpenAI-format proxy serves.
 ```bash
 make list                   # claude-made table, from the filesystem
 make demo N=03              # one narrative demo
-make offline                # all twenty credential-free narratives
+make offline                # all twenty-three credential-free narratives
 make doctor                 # what is installed, what will therefore run
 make mock                   # simulator in the foreground, for a second pane
 
@@ -277,7 +289,7 @@ python -m pip install -e .
 python -m pip install -e ".[full]"      # full narrative SDK extras + langchain + mcp + langchain-mcp-adapters
 
 #    …or your own checkout, on the matching SDK branch (develop here)
-python -m pip install -e "../donkey-development-kit/python[llm,local,test,cli,otel,langgraph,openai-agents,a2a]" "mcp"
+python -m pip install -e "../donkey-development-kit/python[llm,local,test,cli,otel,langgraph,openai-agents,mcp,a2a]" "langchain-mcp-adapters"
 python -m pip install "langchain>=1.0"   # demo 09 only; no donkey-kit extra ships it
 ```
 
@@ -436,7 +448,7 @@ The demos say these boundaries out loud rather than gloss over:
   capture — one fixture per exception type.
 - **Model Armor and CrowdStrike have different provenance.** Demo 15 replays
   Google Model Armor's live capture (2026-10-19); CrowdStrike AIDR and its
-  fail-closed 503 are policy-source-derived. The 503 is `UpstreamModelError`,
+  fail-closed 503 are VERIFIED (POLICY SOURCE), not live-captured. The 503 is `UpstreamModelError`,
   not a content verdict. Neither sibling contract is a simulator vendor selector.
 - **Only one framework adapter has reached live-verified status; the rest have not.** The
   raw client and LangGraph are conformance-tested against the simulator; every
@@ -449,10 +461,12 @@ The demos say these boundaries out loud rather than gloss over:
   field it depends on. Cost tags live on `donkey.cost.*` spans; the gateway has no inbound
   cost-tag ingestion (verified-negative).
 
-Exchange discovery and governed MCP binding remain verification-blocked.
-Static scan and publication planning are demonstrated in 16, descriptor fidelity
-in 20, and local A2A serving in 21 plus the human-made blocking TCP launcher
-verifier; none proves remote discovery, provisioning or live gateway enforcement.
-Connected-app publication authentication is still unverified live, agent
-publication is skipped, and gateway exposure / `donkey expose` / `donkey dev`
-remain outside implemented scope. See [roadmap.md](roadmap.md) for remaining gaps.
+SDK discovery and governed MCP binding, connected-app MCP/agent publication and
+`donkey expose` are live-verified in the SDK, but these narrative companions do
+not establish those live round-trips. Static planning is demo 16, descriptors 20,
+local A2A serving 21, MCP capture replay 22, lockfile drift 23 and outbound A2A
+capture replay 24. The lockfile and outbound facade/simulator are provisional and
+offline-verified; successful gateway A2A send/SSE remains unverified. `donkey dev`
+ships version-specific inbound refusal replay, separate from outbound simulation.
+See [roadmap.md](roadmap.md) and the [showcase contract](demos/showcase/README.md)
+for the remaining evidence gaps and the recorded showcase's exact scope.

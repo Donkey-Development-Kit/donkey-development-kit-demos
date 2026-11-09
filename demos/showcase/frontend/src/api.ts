@@ -9,6 +9,7 @@ import type {
   ConformanceResult,
   Feature,
   SimulatorInfo,
+  StoryResult,
 } from "./features";
 
 export interface SSEEvent {
@@ -27,9 +28,34 @@ const STATIC_NOTE =
   "the feature cards only. Free-form prompts need the live backend: clone the " +
   "repo and run demos/showcase/run.sh.";
 
-async function replayJson<T>(name: string): Promise<T> {
-  const res = await fetch(REPLAY + name);
+async function replayJson<T>(name: string, signal?: AbortSignal): Promise<T> {
+  const res = await fetch(REPLAY + name, { signal });
+  if (!res.ok) throw new Error(`Replay ${name} responded ${res.status}`);
   return res.json();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStoryResult(value: unknown): value is StoryResult {
+  return isRecord(value)
+    && typeof value.feature === "string"
+    && typeof value.title === "string"
+    && typeof value.boundary === "string"
+    && Array.isArray(value.steps)
+    && value.steps.length > 0
+    && value.steps.every((step: unknown) => isRecord(step)
+      && typeof step.title === "string"
+      && typeof step.outcome === "string"
+      && typeof step.detail === "string")
+    && Array.isArray(value.spans)
+    && value.spans.every((span: unknown) => isRecord(span)
+      && typeof span.name === "string"
+      && typeof span.trace_id === "string"
+      && typeof span.span_id === "string"
+      && typeof span.status === "string"
+      && isRecord(span.attributes));
 }
 
 async function replaySSE(
@@ -95,6 +121,30 @@ async function streamSSE(
 }
 
 export const api = {
+  async story(feature: string, signal?: AbortSignal): Promise<StoryResult> {
+    let result: unknown;
+    if (STATIC) {
+      const stories = await replayJson<unknown>("stories.json", signal);
+      if (!isRecord(stories) || !Object.hasOwn(stories, feature)) {
+        throw new Error(`No recording for story ${feature}`);
+      }
+      result = stories[feature];
+    } else {
+      const res = await fetch("/api/story", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feature }),
+        signal,
+      });
+      if (!res.ok) throw new Error(`Protocol story responded ${res.status}`);
+      result = await res.json();
+    }
+    if (!isStoryResult(result) || result.feature !== feature) {
+      throw new Error(`Invalid response for story ${feature}`);
+    }
+    return result;
+  },
+
   async features(): Promise<Feature[]> {
     if (STATIC) return replayJson("features.json");
     const res = await fetch("/api/features");
@@ -156,15 +206,15 @@ export const api = {
     return res.json();
   },
 
-  async conformance(): Promise<ConformanceResult> {
-    if (STATIC) return replayJson("conformance.json");
-    const res = await fetch("/api/conformance", { method: "POST" });
+  async conformance(signal?: AbortSignal): Promise<ConformanceResult> {
+    if (STATIC) return replayJson("conformance.json", signal);
+    const res = await fetch("/api/conformance", { method: "POST", signal });
     return res.json();
   },
 
-  async doctor(): Promise<{ output: string; ok: boolean }> {
-    if (STATIC) return replayJson("doctor.json");
-    const res = await fetch("/api/doctor", { method: "POST" });
+  async doctor(signal?: AbortSignal): Promise<{ output: string; ok: boolean }> {
+    if (STATIC) return replayJson("doctor.json", signal);
+    const res = await fetch("/api/doctor", { method: "POST", signal });
     return res.json();
   },
 };

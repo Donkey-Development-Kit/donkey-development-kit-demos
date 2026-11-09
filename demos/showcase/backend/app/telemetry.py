@@ -66,6 +66,11 @@ def recent_spans(limit: int = 20) -> list[dict[str, Any]]:
     return [span_to_dict(s) for s in spans[-limit:]][::-1]
 
 
+def finished_spans() -> tuple[Any, ...]:
+    """Full spans for story checks, including status descriptions and events."""
+    return _exporter.get_finished_spans()
+
+
 def latest_span() -> dict[str, Any] | None:
     spans = list(_exporter.get_finished_spans())
     return span_to_dict(spans[-1]) if spans else None

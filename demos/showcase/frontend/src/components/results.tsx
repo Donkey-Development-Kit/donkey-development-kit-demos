@@ -1,6 +1,6 @@
 // Renderers for the non-chat action results that still land in the timeline:
 // the pacing batch, the conformance table, and the `donkey doctor` report.
-import type { Budget, ConformanceResult } from "../features";
+import type { Budget, ConformanceResult, StoryResult } from "../features";
 import { BudgetBar } from "./bits";
 
 export interface PaceCallRow {
@@ -110,4 +110,25 @@ export function ConformanceTable({ result }: { result: ConformanceResult }) {
 
 export function DoctorReport({ output }: { output: string }) {
   return <pre className="code scroll-fade">{output.trim()}</pre>;
+}
+
+export function StoryReport({ result }: { result: StoryResult }) {
+  return (
+    <section className="story-report" aria-label={result.title}>
+      <div className="watch-note"><span className="label">Evidence</span>{result.boundary}</div>
+      <ol className="story-steps">
+        {result.steps.map((step, i) => (
+          <li key={i}>
+            <div className="gov-head"><b>{step.title}</b><code className="pill">{step.outcome}</code></div>
+            <p>{step.detail}</p>
+          </li>
+        ))}
+      </ol>
+      {result.spans.length > 0 && (
+        <details><summary>Inspect {result.spans.length} SDK spans</summary>
+          <pre className="code">{JSON.stringify(result.spans, null, 2)}</pre>
+        </details>
+      )}
+    </section>
+  );
 }
