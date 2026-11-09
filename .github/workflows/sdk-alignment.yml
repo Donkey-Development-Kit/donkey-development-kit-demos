@@ -64,6 +64,11 @@ jobs:
         run: python -m pip install agent-framework-core agent-framework-openai
       - name: offline
         run: make offline
+      - name: Showcase SDK-backed stories and model regressions
+        if: matrix.branch == 'develop'
+        run: |
+          python -m pip install starlette uvicorn pytest
+          PYTHONPATH=demos/showcase/backend python -m pytest demos/showcase/backend/tests -q
       - name: SDK develop coverage examples
         if: matrix.branch == 'develop'
         run: python scripts/verify_sdk_coverage.py

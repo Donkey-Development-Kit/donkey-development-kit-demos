@@ -6,7 +6,7 @@ import type { Feature } from "../features";
 import type { Message } from "../messages";
 import { GovernanceEventCard } from "./GovernanceEventCard";
 import { InspectorCard } from "./InspectorCard";
-import { ConformanceTable, DoctorReport, PaceResult } from "./results";
+import { ConformanceTable, DoctorReport, PaceResult, StoryReport } from "./results";
 import { Spinner } from "./bits";
 
 function MessageView({ msg }: { msg: Message }) {
@@ -137,6 +137,17 @@ function MessageView({ msg }: { msg: Message }) {
           )}
         </div>
       );
+    case "story":
+      return (
+        <div className="msg assistant" style={{ maxWidth: "100%" }}>
+          <span className="role">{msg.title} {msg.running && <Spinner />}</span>
+          {msg.error ? <div className="bubble" role="alert">{msg.error}</div>
+            : msg.result ? <StoryReport result={msg.result} />
+              : <div className="bubble">{msg.running
+                ? "Executing the offline SDK protocol story..."
+                : "Protocol story canceled."}</div>}
+        </div>
+      );
   }
 }
 
@@ -161,6 +172,8 @@ function Composer({
     if (activeFeature && activeFeature.action === "chat") {
       setText(activeFeature.prompt);
       taRef.current?.focus();
+    } else {
+      setText("");
     }
   }, [activeFeature]);
 
@@ -182,7 +195,8 @@ function Composer({
         <div className="active-feature">
           <span>{activeFeature.icon}</span>
           <span>
-            Prepared prompt from <b>{activeFeature.title}</b>
+            {activeFeature.action === "story" ? "Protocol story: " : "Selected feature: "}
+            <b>{activeFeature.title}</b>
           </span>
           <button
             className="clear"
@@ -199,7 +213,8 @@ function Composer({
         <textarea
           ref={taRef}
           value={text}
-          placeholder="Ask the governed agent… or click a feature on the left."
+          aria-label="Model chat prompt"
+          placeholder="Model chat: ask the governed agent..."
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -215,12 +230,12 @@ function Composer({
           </button>
         ) : (
           <button className="btn btn-primary" onClick={submit} disabled={!text.trim()}>
-            Send
+            Model chat
           </button>
         )}
       </div>
       <div className="meta">
-        <span>model: {model}</span>
+        <span>Model chat: {model}</span>
         <span>·</span>
         <span>via donkey mock @ 127.0.0.1:8080</span>
         <span>·</span>
@@ -265,7 +280,7 @@ export function Chat({
         >
           »
         </button>
-        <span className="eyebrow">Governed agent · LangGraph</span>
+        <span className="eyebrow">Governed calls · Model / MCP / A2A</span>
       </div>
       <div className="chat-scroll scroll-fade" ref={scrollRef}>
         {messages.length === 0 ? (
@@ -273,10 +288,10 @@ export function Chat({
             <img src={logoSrc} alt="DDK" />
             <h2>Governance you can see</h2>
             <p>
-              Every message runs through a real LangGraph agent pointed at DDK's
-              local gateway simulator. Ask anything, or pick a feature on the
-              right to fire a prepared prompt and watch the typed refusals,
-              budget and OTel spans appear here.
+              Pick a feature on the left to explore governed model calls, MCP
+              tools or A2A delegation. Model chat uses LangGraph and donkey mock;
+              protocol stories use the SDK's offline MCP and A2A simulation.
+              The static build replays recorded results, not live requests.
             </p>
           </div>
         ) : (

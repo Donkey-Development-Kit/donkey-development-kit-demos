@@ -8,6 +8,7 @@ import type {
   LastCall,
   ReactionTrail,
   Span,
+  StoryResult,
 } from "./features";
 import type { PaceCallRow, ReserveReached } from "./components/results";
 
@@ -49,7 +50,8 @@ export type Message =
       result: ConformanceResult | null;
       running: boolean;
     }
-  | { kind: "doctor"; id: string; output: string; running: boolean };
+  | { kind: "doctor"; id: string; output: string; running: boolean }
+  | { kind: "story"; id: string; title: string; result: StoryResult | null; error: string | null; running: boolean };
 
 export function newId(): string {
   return Math.random().toString(36).slice(2, 10);

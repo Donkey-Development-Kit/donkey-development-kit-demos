@@ -7,6 +7,7 @@ export type FeatureAction =
   | "pace"
   | "conformance"
   | "doctor"
+  | "story"
   | "info";
 
 export interface Feature {
@@ -55,6 +56,14 @@ export interface Span {
   span_id: string;
   status: string;
   attributes: Record<string, unknown>;
+}
+
+export interface StoryResult {
+  feature: string;
+  title: string;
+  boundary: string;
+  steps: { title: string; outcome: string; detail: string }[];
+  spans: Span[];
 }
 
 export interface Governance {

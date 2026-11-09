@@ -26,6 +26,7 @@ from .routes.compare import compare
 from .routes.conformance import conformance
 from .routes.features import features
 from .routes.pace import pace
+from .routes.story import story
 from .routes.telemetry import budget, simulator_info, spans
 
 # Install telemetry before anything can trigger a governed call.
@@ -49,6 +50,7 @@ routes = [
     Route("/api/chat", chat, methods=["POST"]),
     Route("/api/compare", compare, methods=["POST"]),
     Route("/api/pace", pace, methods=["POST"]),
+    Route("/api/story", story, methods=["POST"]),
     Route("/api/conformance", conformance, methods=["POST"]),
     Route("/api/doctor", doctor, methods=["POST"]),
     Route("/api/spans", spans),

@@ -1,13 +1,14 @@
-// The left pane: features grouped exactly as the docs' feature overview
-// (Model access, Governance, Observability, Developer tooling, Roadmap), each a
+// The left pane: features grouped by governed surface and shared capabilities, each a
 // clickable card carrying a prepared prompt and a with/without comparison.
 import type { Feature } from "../features";
 import { FeatureCard } from "./FeatureCard";
 import { Badge } from "./bits";
 
 const GROUP_ORDER = [
-  "Model access",
-  "Governance",
+  "Model",
+  "MCP",
+  "A2A",
+  "Identity & Approvals",
   "Observability",
   "Developer tooling",
   "Roadmap",
@@ -40,9 +41,9 @@ export function FeatureCatalog({
   return (
     <div className="pane left">
       <div className="pane-head">
-        <span className="eyebrow">Features · milestone 11</span>
+        <span className="eyebrow">Features · Phase 2.1 / SDK 0.2.1</span>
         <span className="spacer" />
-        <span className="hint">Click a card, then run it in the chat →</span>
+        <span className="hint">Pick a model, tool or agent story</span>
         <button
           className="icon-btn collapse-btn"
           title="Collapse features"

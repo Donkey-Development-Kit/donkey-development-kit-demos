@@ -734,6 +734,12 @@ pre.code .code-line {
   margin-top: 1.4rem;
 }
 
+.story-report { width: 100%; min-width: 0; }
+.story-steps { padding-left: 1.4rem; }
+.story-steps li { margin: 0.8rem 0; padding: 0.75rem; border: 1px solid var(--af-border); border-radius: var(--af-radius-sm); }
+.story-steps .gov-head { flex-wrap: wrap; }
+.story-steps p { margin: 0.5rem 0 0; font-size: 0.82rem; line-height: 1.5; overflow-wrap: anywhere; }
+
 .catalog-group:first-child {
   margin-top: 0;
 }
@@ -1220,6 +1226,31 @@ pre.code .code-line {
 }
 
 @media (max-width: 640px) {
+  .app-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.6rem;
+  }
+  .app-header .brand {
+    width: 100%;
+  }
+  .header-spacer {
+    display: none;
+  }
+  .panes {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1.3fr);
+  }
+  .pane.left {
+    border-right: none;
+    border-bottom: 1px solid var(--af-border);
+  }
+  .pane-head, .composer {
+    padding: 0.6rem;
+  }
+  .composer .meta {
+    flex-wrap: wrap;
+  }
   .stats-tiles {
     grid-template-columns: repeat(2, 1fr);
   }

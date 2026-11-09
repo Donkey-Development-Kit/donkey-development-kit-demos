@@ -7,11 +7,13 @@ SDK develop but descriptive-only here (not wired); roadmap = not on SDK develop.
 None implies live gateway verification; each card's `watch` states the limits.
 Static replay uses frontend/public/replay/features.json with the same metadata.
 
-`action` values the frontend understands:
+`action` contract (story wiring is a separate integration change):
   chat        - send `prompt` through the governed LangGraph agent (SSE stream)
   pace        - run a small batch under donkey.budget.pace(reserve=)
   conformance - run the pytest conformance suite against the demo agent
-  doctor      - run `donkey doctor` against the simulator
+   doctor      - run `donkey doctor` against the simulator
+   story       - POST /api/story with {feature: id}; structured protocol steps,
+                 not model chat. Returns feature, title, boundary, steps and spans.
   info        - static explainer (no live call)
 """
 
@@ -20,10 +22,10 @@ from __future__ import annotations
 from typing import Any
 
 FEATURES: list[dict[str, Any]] = [
-    # ------------------------------------------------------------- Model access
+    # ------------------------------------------------------------------- Model
     {
         "id": "llm-client",
-        "group": "Model access",
+        "group": "Model",
         "icon": "🧩",
         "title": "Governed LLM client (LangGraph)",
         "badge": "live",
@@ -59,7 +61,7 @@ print(donkey.budget.remaining)   # updated in-band from the response""",
     },
     {
         "id": "openai-agents-deep",
-        "group": "Model access",
+        "group": "Model",
         "icon": "🧭",
         "title": "OpenAI Agents SDK deep adapter",
         "badge": "shipped",
@@ -101,7 +103,7 @@ $ pytest --donkey-conformance --donkey-agent=my_app:build""",
     },
     {
         "id": "dynamic-provider-key",
-        "group": "Model access",
+        "group": "Model",
         "icon": "\U0001f511",
         "title": "Dynamic provider key",
         "badge": "shipped",
@@ -117,14 +119,14 @@ $ pytest --donkey-conformance --donkey-agent=my_app:build""",
         "not live route verification; no credential values are shown here.",
         "without": "# Hand-forward provider secrets and risk leaking them off-origin.",
         "with": "# SDK shipped; configure secrets outside source control.\n"
-        '# DONKEY_LLM_PROXY_KEY supplies the provider secret.\n'
-        '# DONKEY_LLM_PROXY_KEY_HEADER must match the customer route.\n'
-        '# JWT wallet mode omits the provider key and consumer credential pair.',
+        "# DONKEY_LLM_PROXY_KEY supplies the provider secret.\n"
+        "# DONKEY_LLM_PROXY_KEY_HEADER must match the customer route.\n"
+        "# JWT wallet mode omits the provider key and consumer credential pair.",
     },
-    # --------------------------------------------------------------- Governance
+    # ---------------------------------------------------------- Model refusals
     {
         "id": "typed-refusal-pii",
-        "group": "Governance",
+        "group": "Model",
         "icon": "🛡️",
         "title": "Typed refusal — PII detected",
         "badge": "live",
@@ -159,7 +161,7 @@ except AuthError:
     },
     {
         "id": "typed-refusal-injection",
-        "group": "Governance",
+        "group": "Model",
         "icon": "🧨",
         "title": "Typed refusal — prompt injection",
         "badge": "live",
@@ -191,7 +193,7 @@ except PromptInjectionBlocked as e:
     },
     {
         "id": "typed-refusal-regex-guard",
-        "group": "Governance",
+        "group": "Model",
         "icon": "🔤",
         "title": "Typed refusal — regex prompt guard",
         "badge": "live",
@@ -227,7 +229,7 @@ except PromptInjectionBlocked as e:
     },
     {
         "id": "typed-refusal-content-safety",
-        "group": "Governance",
+        "group": "Model",
         "icon": "⚠️",
         "title": "Typed refusal — content safety",
         "badge": "live",
@@ -257,13 +259,13 @@ except ContentSafetyBlocked as e:
     },
     {
         "id": "typed-refusal-model-armor",
-        "group": "Governance",
+        "group": "Model",
         "icon": "🛡️",
         "title": "Typed refusal — Google Model Armor",
         "badge": "shipped",
         "blurb": "A Model Armor Guardrails block (403 + "
         "x-llm-proxy-model-armor-action: reject) is the same ContentSafetyBlocked, "
-        "with provider=\"google-model-armor\" and the template's matched filters in "
+        'with provider="google-model-armor" and the template\'s matched filters in '
         ".categories.",
         "action": "info",
         "prompt": "",
@@ -294,7 +296,7 @@ except UpstreamModelError:
     },
     {
         "id": "typed-refusal-crowdstrike-aidr",
-        "group": "Governance",
+        "group": "Model",
         "icon": "🦅",
         "title": "Typed refusal — CrowdStrike AIDR",
         "badge": "shipped",
@@ -305,8 +307,8 @@ except UpstreamModelError:
         "prompt": "",
         "model": "gpt-5.1",
         "watch": "Not interactive here, and not live-captured. verified-apis.md marks "
-        "this shape UNVERIFIED because it was read from the policy source, and the "
-        "capture is tracked upstream. No donkey-sim sentinel serves it. The policy "
+        "this shape VERIFIED (POLICY SOURCE), not VERIFIED (LIVE). Live capture "
+        "remains outstanding. No donkey-sim sentinel serves it. The policy "
         "covers OpenAI Chat Completions traffic only. Its fail-closed 503 stays a "
         "retryable UpstreamModelError.",
         "without": """# Without DDK — one more vendor header to special-case at every call site.
@@ -329,7 +331,7 @@ except ContentSafetyBlocked as e:
     },
     {
         "id": "typed-refusal-budget",
-        "group": "Governance",
+        "group": "Model",
         "icon": "⛔",
         "title": "Typed refusal — token budget (429)",
         "badge": "live",
@@ -358,7 +360,7 @@ except TokenBudgetExceeded as e:
     },
     {
         "id": "typed-refusal-request-rate-limit",
-        "group": "Governance",
+        "group": "Model",
         "icon": "🚦",
         "title": "Typed refusal — request rate limit (429)",
         "badge": "live",
@@ -394,7 +396,7 @@ print(donkey.budget.requests.fraction_used)   # pace() guards this window too"""
     },
     {
         "id": "budget-pacing",
-        "group": "Governance",
+        "group": "Model",
         "icon": "📊",
         "title": "Budget & pacing",
         "badge": "live",
@@ -427,7 +429,7 @@ except BudgetReserveReached:
     },
     {
         "id": "upstream-budget",
-        "group": "Governance",
+        "group": "Model",
         "icon": "\U0001f4ca",
         "title": "Observe-only upstream budget",
         "badge": "shipped",
@@ -442,12 +444,12 @@ except BudgetReserveReached:
         "observe-only and never drives pace(); missing reset units stay unknown.",
         "without": "# Confuse a shared provider quota with your gateway allowance.",
         "with": "# SDK shipped; observations, not a fresh allowance or billing data.\n"
-        'print(donkey.budget.upstream.requests.remaining)\n'
-        'print(donkey.budget.upstream.tokens.remaining)',
+        "print(donkey.budget.upstream.requests.remaining)\n"
+        "print(donkey.budget.upstream.tokens.remaining)",
     },
     {
         "id": "refusal-reactions",
-        "group": "Governance",
+        "group": "Model",
         "icon": "\U0001f6e1\ufe0f",
         "title": "Refusal reactions",
         "badge": "live",
@@ -486,7 +488,7 @@ reply = await model.ainvoke(messages)     # no try/except at the call site""",
     },
     {
         "id": "custom-classifier",
-        "group": "Governance",
+        "group": "Model",
         "icon": "\U0001f9e9",
         "title": "Custom refusal classifier",
         "badge": "shipped",
@@ -502,11 +504,11 @@ reply = await model.ainvoke(messages)     # no try/except at the call site""",
         "without": "# Parse the same custom policy response separately in each client.",
         "with": "# SDK shipped; DemoExportBlocked is defined by demo 17.\n"
         'classify.register(\n    match=dict(status=403, error_type="demo_export_block"),\n'
-        '    raises=DemoExportBlocked,\n)',
+        "    raises=DemoExportBlocked,\n)",
     },
     {
         "id": "kill-handling",
-        "group": "Governance",
+        "group": "Identity & Approvals",
         "icon": "\u26d4",
         "title": "Terminal kill handling",
         "badge": "live",
@@ -544,7 +546,7 @@ except AgentKilled as e:
     },
     {
         "id": "hitl",
-        "group": "Governance",
+        "group": "Identity & Approvals",
         "icon": "✋",
         "title": "Native tool approvals",
         "badge": "shipped",
@@ -578,7 +580,7 @@ except AgentKilled as e:
     },
     {
         "id": "ciba-pending",
-        "group": "Governance",
+        "group": "Identity & Approvals",
         "icon": "📲",
         "title": "Step-up approval pending (CIBA)",
         "badge": "live",
@@ -617,7 +619,7 @@ except GatewayApprovalPending as e:
     },
     {
         "id": "ciba-denied",
-        "group": "Governance",
+        "group": "Identity & Approvals",
         "icon": "🛑",
         "title": "Step-up approval denied (CIBA)",
         "badge": "live",
@@ -654,7 +656,7 @@ except GatewayApprovalDenied as e:
     },
     {
         "id": "identity-obo",
-        "group": "Governance",
+        "group": "Identity & Approvals",
         "icon": "👤",
         "title": "On-behalf-of user token",
         "badge": "shipped",
@@ -682,7 +684,7 @@ async with donkey.as_user(token=user_token):     # aud = the gateway instance
     },
     {
         "id": "tool-access",
-        "group": "Governance",
+        "group": "MCP",
         "icon": "🔧",
         "title": "Governed tool access (MCP)",
         "badge": "shipped",
@@ -715,7 +717,7 @@ agent = create_react_agent(model, tools=await hr.langgraph())""",
     },
     {
         "id": "registry-explain",
-        "group": "Governance",
+        "group": "Developer tooling",
         "icon": "🔎",
         "title": "Registry search, resolve & explain",
         "badge": "shipped",
@@ -744,7 +746,7 @@ print(server.endpoint_url, report.governed, report.reasons_failed())""",
     },
     {
         "id": "registry-agents-llms",
-        "group": "Governance",
+        "group": "Developer tooling",
         "icon": "🗂️",
         "title": "Registry: A2A agents & LLM assets",
         "badge": "shipped",
@@ -777,7 +779,7 @@ if meta:
     },
     {
         "id": "mcp-ungoverned-approval",
-        "group": "Governance",
+        "group": "MCP",
         "icon": "🚧",
         "title": "Ungoverned MCP refusal & discovered-tool approvals",
         "badge": "shipped",
@@ -814,7 +816,7 @@ async def lookup_sku(sku: str) -> dict: ...""",
     },
     {
         "id": "tool-not-in-profile",
-        "group": "Governance",
+        "group": "MCP",
         "icon": "🚫",
         "title": "Typed refusal — tool not in access profile",
         "badge": "shipped",
@@ -828,17 +830,18 @@ async def lookup_sku(sku: str) -> dict: ...""",
         "watch": "Not interactive here. The denial shape is VERIFIED (LIVE) for both "
         "policies on framework-built and Mule-hosted servers (verified-apis §9), "
         "byte-identical across them. How each framework surfaces it is VERIFIED "
-        "(local round-trip). Only the LangGraph, LlamaIndex and Anthropic bindings "
-        "raise the typed error. For other frameworks that raise the mcp error, "
-        "tool_access_denial(exc) converts it. ADK and Strands return text, which the "
-        "SDK does not classify. e.profile is always None, because the gateway names "
-        "no rule.",
+        "(local round-trip). LangGraph, LlamaIndex and Anthropic per-tool wrappers "
+        "raise it with server coordinates. typed_refusals() or donkey.run() also "
+        "recovers raised structured errors from OpenAI Agents, Agent Framework and "
+        "CrewAI, without server coordinates. ADK and Strands return text with the "
+        "code lost; the bridge never infers a policy from that text. "
+        "e.profile is always None, because the gateway names no rule.",
         "without": """# Without DDK: a denied tools/call is HTTP 200, so a status check sees
 # success. The real signal is a JSON-RPC -32008 "Unable to access" buried
 # in an ExceptionGroup, easily mistaken for a flaky tool and retried.""",
         "with": """# SDK shipped; descriptive example, not executed by this card.
 from donkey_kit import ToolNotInProfile
-from donkey_kit.experimental import tool_access_denial
+from donkey_kit import typed_refusals
 
 try:
     await lookup_proxy.ainvoke({"name": "orders"})   # a ToolSet.langgraph() tool
@@ -846,8 +849,10 @@ except ToolNotInProfile as e:
     print(e.tool_name, e.server)   # e.profile is None
     print(e.remediation)           # grant the tool in API Manager; not retried
 
-# whole-server bindings surface the mcp error; convert it yourself:
-#   if (denied := tool_access_denial(exc)) is not None: raise denied from exc""",
+# Whole-server bindings: wrap invocation on an already-connected native server.
+# This works only if the framework raises a structured error, not error text.
+with typed_refusals():
+    await server.call_tool("lookup_customer", {"customer_id": "C-1042"})""",
     },
     # ------------------------------------------------------------ Observability
     {
@@ -1026,8 +1031,8 @@ async with donkey.run(id=job.id):
         "owns no provider; False means timeout/failure. Offload this blocking call.",
         "without": "# Exit while batched spans are still queued, or flush the wrong owner.",
         "with": "# SDK shipped; no collector request is made by this card.\n"
-        'ok = await asyncio.to_thread(donkey.flush_telemetry, timeout_s=2.0)\n'
-        '# Flush/shut down a host-owned provider separately.',
+        "ok = await asyncio.to_thread(donkey.flush_telemetry, timeout_s=2.0)\n"
+        "# Flush/shut down a host-owned provider separately.",
     },
     # -------------------------------------------------------- Developer tooling
     {
@@ -1036,13 +1041,14 @@ async with donkey.run(id=job.id):
         "icon": "🧪",
         "title": "Local gateway simulator",
         "badge": "live",
-        "blurb": "This whole demo runs on `donkey mock` — a pure-Python stand-in "
+        "blurb": "Model chat runs on `donkey mock` — a pure-Python stand-in "
         "that replays the SAME captured gateway fixtures DDK's classifier is tested "
         "against. No Anypoint account, no credentials, byte-identical refusals.",
         "action": "info",
         "prompt": "",
         "model": "gpt-5.1",
-        "watch": "Nothing you clicked reached a real gateway. The sentinel model "
+        "watch": "Model chat reaches the local simulator, not a real gateway. "
+        "MCP/A2A stories use separate scoped protocol simulation. The sentinel model "
         "`donkey-sim/<shape>` forces a specific refusal; a `--scenario` fires them "
         "on a rule across the whole session.",
         "without": """# Without DDK — your PIIDetected branch first runs on a REAL
@@ -1098,8 +1104,8 @@ $ pytest --donkey-conformance --donkey-agent=my_app.agent:build""",
         "standalone command. Uncaptured custom refusal shapes need in-process mode.",
         "without": "# A transport stub alone cannot prove the real loopback HTTP path.",
         "with": "# SDK shipped; run separately with your agent factory.\n"
-        '$ pytest --donkey-conformance --donkey-mode=server \\\n'
-        '    --donkey-agent=my_app.agent:build',
+        "$ pytest --donkey-conformance --donkey-mode=server \\\n"
+        "    --donkey-agent=my_app.agent:build",
     },
     {
         "id": "cli-doctor",
@@ -1130,7 +1136,7 @@ async def handle_ticket(ticket): ...""",
     },
     {
         "id": "a2a",
-        "group": "Developer tooling",
+        "group": "A2A",
         "icon": "🤝",
         "title": "A2A serving & donkey dev",
         "badge": "shipped",
@@ -1144,8 +1150,16 @@ async def handle_ticket(ticket): ...""",
         "watch": "Not interactive here. Checked locally (round-trip, verified-apis "
         "§8.5): serve() and donkey dev, called with curl on 127.0.0.1. "
         "demos/claude-made/21_a2a_serving/demo.py asserts the app in-process. Limits: "
-        "streaming is not advertised. The ingress in donkey dev is SIMULATED and "
-        "enforces no policy. Whether a gateway proxy forwards the caller's "
+        "streaming is not advertised by build_app(). donkey dev defaults to v1 "
+        "SendMessage/SendStreamingMessage replay: PII stays ToolInvocationError, "
+        "Azure injection is ContentSafetyBlocked, and request_limit is a trigger "
+        "for captured token-rate 429s (TokenBudgetExceeded), not token accounting. "
+        "--protocol-version 0.3.0 supports PII/rate message/send only; injection "
+        "fails at startup and message/stream with scenarios returns local HTTP 400. "
+        "Without scenarios legacy streams pass through if the agent supports them. "
+        "Wrong-version calls return local 400, not policy refusals. Captured IDs "
+        "and rate headers are retained. The ingress is SIMULATED, not enforcement. "
+        "Whether a gateway proxy forwards the caller's "
         "X-Correlation-Id to the agent is still UNVERIFIED. This card exposes nothing.",
         "without": "",
         "with": "# SDK shipped; descriptive example, not executed by this card.\n"
@@ -1342,8 +1356,7 @@ except AuthError as e:
         "import-safe. auto:static and the standalone fastmcp package are UNSUPPORTED. "
         "The ADK read uses a private method. Gateway discovery and binding are "
         "covered on the MCP tool-access card; this one is local.",
-        "without": "# Reconstruct schemas from annotations and miss framework "
-        "semantics.",
+        "without": "# Reconstruct schemas from annotations and miss framework semantics.",
         "with": """# SDK shipped; explicit import-safe entrypoint from demo 20.
 from donkey_kit.registry.introspect import derive_descriptor
 
@@ -1352,7 +1365,7 @@ await derive_descriptor("tools:TOOLS", mode="auto:check", against="descriptor.js
     },
     {
         "id": "tool-filter-tokens",
-        "group": "Developer tooling",
+        "group": "MCP",
         "icon": "🔧",
         "title": "Tool filtering & token estimates",
         "badge": "shipped",
@@ -1380,7 +1393,7 @@ estimate = narrow.descriptor_tokens()   # ~4 JSON chars/token""",
     },
     {
         "id": "mcp-bindings",
-        "group": "Developer tooling",
+        "group": "MCP",
         "icon": "🔌",
         "title": "Framework-native MCP bindings & discovery warm-up",
         "badge": "shipped",
@@ -1419,7 +1432,7 @@ async with hr.anthropic() as bound:                 # BetaAsyncFunctionTool
     },
     {
         "id": "mcp-gateway-catalogs",
-        "group": "Developer tooling",
+        "group": "MCP",
         "icon": "🧭",
         "title": "Gateway-visible MCP catalogs",
         "badge": "shipped",
@@ -1449,8 +1462,230 @@ calc = await calc.describe()                # reads the catalog; logs INFO when 
 await donkey.tools.lock()                   # pins mapped names / meta-tools""",
     },
     {
-        "id": "tool-cost-warning",
+        "id": "model-not-routable",
+        "group": "Model",
+        "icon": "?",
+        "title": "Model not routable",
+        "badge": "shipped",
+        "blurb": "ModelNotRoutable distinguishes a missing model or a bare model "
+        "name on a multi-provider proxy from policy refusal and upstream failure.",
+        "action": "info",
+        "prompt": "",
+        "model": "",
+        "watch": "Descriptive-only. SDK 0.2.1 types the captured missing-model 400 "
+        "as ModelNotRoutable with model=None. It is not a PolicyViolation. "
+        "Human-made openai/19 demonstrates the bare-name case offline; the wire "
+        "shapes are live-verified, not live calls from this card.",
+        "without": "# Treat a missing routing selector as an ordinary policy 400.",
+        "with": "from donkey_kit import ModelNotRoutable\n\n"
+        'try:\n    reply = await donkey.openai().responses.create(model="gpt-4o", input="Hello")\n'
+        "except ModelNotRoutable as exc:\n    print(exc.model, exc.remediation)",
+    },
+    {
+        "id": "mcp-refusals",
+        "group": "MCP",
+        "icon": "!",
+        "title": "Typed MCP refusals",
+        "badge": "live",
+        "blurb": "Run captured tool refusals through a native LangGraph MCP "
+        "binding: PII in both phases, access denial, and deliberately generic "
+        "schema/poisoning errors. No model call chooses the protocol.",
+        "action": "story",
+        "prompt": "",
+        "model": "",
+        "watch": "POST /api/story with feature=mcp-refusals returns structured "
+        "steps. Offline capture replay, companion 22: pii-request and "
+        "pii-response-sse raise PIIDetected with request/response phase; the latter "
+        "is HTTP 403 JSON, not an SSE error event. abac-denied/global-access raise "
+        "ToolNotInProfile. schema-invalid-args and poisoning-block-list stay native "
+        "generic errors, not guessed policy types. times=1 then uses the baseline. "
+        "Injection is method-wide and rewrites RPC IDs, not byte-verbatim. "
+        "Safe PII projections omit raw values; raw diagnostics remain sensitive. "
+        "No live framework/policy certification.",
+        "without": "# Native MCP tools, without a typed refusal boundary.\n"
+        "from langchain_mcp_adapters.client import MultiServerMCPClient\n\n"
+        "client = MultiServerMCPClient(connections)\n"
+        "tools = await client.get_tools()\n"
+        'await tools[0].ainvoke({"customer_id": "C-1042"})',
+        "with": "from donkey_kit import PIIDetected\n\n"
+        'servers = {"acme/crm-tools/1.0.0": [{"name": "lookup_customer",\n'
+        '    "description": "Look up a customer.", "inputSchema": {"type": "object",\n'
+        '    "properties": {"customer_id": {"type": "string"}}, "required": ["customer_id"]}}]}\n'
+        'with donkey.simulate_mcp("pii-request", servers=servers):\n'
+        "    tools = await donkey.tools.discover()\n"
+        "    (lookup,) = await tools.langgraph()\n"
+        '    try:\n        await lookup.ainvoke({"customer_id": "C-1042"})\n'
+        "    except PIIDetected as exc:\n        print(exc.phase, exc.entities)\n"
+        '    await lookup.ainvoke({"customer_id": "C-1042"})  # offline baseline',
+    },
+    {
+        "id": "tool-lockfile",
+        "group": "MCP",
+        "icon": "#",
+        "title": "Pin the gateway-visible tool catalog",
+        "badge": "live",
+        "blurb": "Write donkey.lock, accept an unchanged listing, refuse changed "
+        "or missing pinned descriptors, and exclude new unpinned tools.",
+        "action": "story",
+        "prompt": "",
+        "model": "",
+        "watch": "POST /api/story with feature=tool-lockfile runs an offline "
+        "lock/discover/bind story (companion 23). Unchanged catalogs bind; changed "
+        "descriptors raise ToolLockDrift(kind=changed), removed tools tool_missing, "
+        "and absent servers server_missing. New tools are excluded as unpinned, "
+        "not drift; a missing/invalid lock is ConfigError before discovery. "
+        "Server keys ignore version. Provisional, offline-verified in SDK 0.2.1; "
+        "no live lock round-trip. The lock detects drift, never grants access.",
+        "without": "# Rebind a changed gateway catalog without a reviewable pin.\n"
+        "tools = await donkey.tools.discover()\n"
+        "bound = await tools.langgraph()",
+        "with": "from donkey_kit import ToolLockDrift\n\n"
+        "path = await donkey.tools.lock()  # async; lock the full listing first\n"
+        "try:\n    tools = await donkey.tools.discover(locked=True, lock_path=path)\n"
+        "    bound = await tools.langgraph()\n"
+        "except ToolLockDrift as exc:\n"
+        "    for drift in exc.drift:\n        print(drift.server, drift.tool, drift.kind)\n"
+        "    raise",
+    },
+    {
+        "id": "a2a-outbound",
+        "group": "A2A",
+        "icon": ">",
+        "title": "Outbound A2A send & stream",
+        "badge": "live",
+        "blurb": "Delegate with official a2a-sdk request/response types. Run an "
+        "offline send/stream baseline, typed Azure safety and token-rate refusals, "
+        "and privacy-safe generic PII handling.",
+        "action": "story",
+        "prompt": "",
+        "model": "",
+        "watch": "POST /api/story with feature=a2a-outbound returns steps and "
+        "spans (companion 24). send returns SendMessageResponse; stream yields "
+        "StreamResponse inside async with. v1 Azure captures raise "
+        "ContentSafetyBlocked; v1 send/stream and v0.3 send rate captures raise "
+        "TokenBudgetExceeded. PII is ToolInvocationError, not PIIDetected: its "
+        "echo is absent from error text and spans, but raw response is sensitive. "
+        "Disable official SDK tracing before import or explicitly opt in. "
+        "Provisional, offline-verified; successful gateway send/SSE not verified. "
+        "No retry, OAuth completion or remote task cancellation.",
+        "without": "from a2a.client.transports.jsonrpc import JsonRpcTransport\n\n"
+        "# Hand-resolve a v1 card/endpoint and configure a scoped httpx client.\n"
+        "transport = JsonRpcTransport(http_client, card, endpoint)\n"
+        "response = await transport.send_message(request)\n"
+        "# HTTP success still needs task-status inspection and safe error handling.\n"
+        'print(response.WhichOneof("payload"))',
+        "with": "import os\n"
+        'os.environ["OTEL_INSTRUMENTATION_A2A_SDK_ENABLED"] = "false"\n'
+        "from a2a.types import Message, Part, Role, SendMessageRequest\n\n"
+        'ref = "acme/triage-agent/1.0.0"\n'
+        "request = SendMessageRequest(message=Message(\n"
+        '    message_id="triage-1", role=Role.ROLE_USER, parts=[Part(text="Summarize.")]))\n'
+        'with donkey.simulate_a2a("pii-stream", agents=[ref]):\n'
+        "    response = await donkey.a2a.send(ref, request)  # send baseline\n"
+        'with donkey.simulate_a2a("pii-send", agents=[ref]):\n'
+        "    async with donkey.a2a.stream(ref, request) as events:  # stream baseline\n"
+        '        async for event in events:\n            print(event.WhichOneof("payload"))',
+    },
+    {
+        "id": "a2a-auth-challenge",
+        "group": "A2A",
+        "icon": "?",
+        "title": "A2A authentication challenge",
+        "badge": "shipped",
+        "blurb": "A complete v0.3 HTTP 200 auth-required task becomes "
+        "GatewayAuthRequired with a frozen GatewayAuthChallenge, not completion "
+        "or a CIBA approval wait.",
+        "action": "info",
+        "prompt": "",
+        "model": "",
+        "watch": "Descriptive-only, not a packaged simulate_a2a capture. Treat "
+        "challenge URLs and OAuth metadata as untrusted; explicit field access "
+        "and raw responses can expose sensitive data. No token acquisition, "
+        "redirect, resend or wait_for_approval polling. Incomplete/unknown layouts "
+        "and v1 tasks remain native SDK responses; successful token resubmission "
+        "and a v1 challenge contract are unverified. Outbound facade is provisional.",
+        "without": "# Treat an HTTP 200 auth-required task as successful delegation.",
+        "with": "from donkey_kit import GatewayAuthRequired\n\n"
+        "try:\n    response = await donkey.a2a.send(ref, request)\n"
+        "except GatewayAuthRequired as pending:\n"
+        "    challenge = pending.challenge\n"
+        "    # Validate URLs before handing metadata to your application's OAuth flow.",
+    },
+    {
+        "id": "a2a-quality",
+        "group": "A2A",
+        "icon": "+",
+        "title": "A2A quality annotations",
+        "badge": "shipped",
+        "blurb": "Quality Evaluation headers on successful outbound POSTs become "
+        "donkey.a2a.quality.* span annotations, not a new refusal or local evaluator.",
+        "action": "info",
+        "prompt": "",
+        "model": "",
+        "watch": "Descriptive-only. Header captures include a completed v0.3 send "
+        "with score=3 and a separate pending response with no score. No score range "
+        "or evaluator failure semantics are inferred. SDK span recording is "
+        "offline-tested, including mock streams; live facade, v1 evaluation and "
+        "streaming are unverified. Card GETs and failed HTTP responses add nothing. "
+        "Explanation requires telemetry_capture_content=True, is unsanitized and "
+        "capped at 4096 characters. Story 24's captures contain no quality headers.",
+        "without": "# Parse vendor evaluation headers yourself, or lose them in tracing.",
+        "with": "# Successful POST annotations: donkey.a2a.quality.*\n"
+        "# Explanation is opt-in content, not a safe diagnostic.\n"
+        "donkey = Donkey.from_env(telemetry_capture_content=True)",
+    },
+    {
+        "id": "simulate-mcp",
         "group": "Developer tooling",
+        "icon": "~",
+        "title": "MCP fault injection without Exchange",
+        "badge": "shipped",
+        "blurb": "simulate_mcp() declares governed servers for offline discovery "
+        "and injects a selected capture into native tool calls, not model chat.",
+        "action": "info",
+        "prompt": "",
+        "model": "",
+        "watch": "Descriptive companion to the mcp-refusals story. Bind inside "
+        "the scope; model calls stay untouched and retained bindings fail closed "
+        "after exit. times counts matching RPC requests, not tool names. Discovery "
+        "filters are not applied to declared servers. Native coverage: LangGraph, "
+        "LlamaIndex, Anthropic, Agent Framework, OpenAI Agents and Strands; stable "
+        "framework/MCP version gates apply to the last three. ADK/CrewAI simulation "
+        "refuses before connecting. Strands returns error results, not typed PII. "
+        "mcp_baseline() is a stateless helper, not a full policy/MCP server. "
+        "Offline-verified; no live policy enforcement claim.",
+        "without": "# Build initialization, catalog and refusal MockTransport handlers by hand.",
+        "with": 'with donkey.simulate_mcp("global-access", servers=servers):\n'
+        "    tools = await donkey.tools.discover()\n"
+        "    bound = await tools.langgraph()\n"
+        "    await bound[0].ainvoke(arguments)",
+    },
+    {
+        "id": "simulate-a2a",
+        "group": "Developer tooling",
+        "icon": "~",
+        "title": "Outbound A2A fault injection",
+        "badge": "shipped",
+        "blurb": "simulate_a2a() declares remote agent refs and replays gateway "
+        "refusals through the official SDK transports, without gateway or Exchange.",
+        "action": "info",
+        "prompt": "",
+        "model": "",
+        "watch": "Descriptive companion to a2a-outbound. Provisional and "
+        "offline-verified. -send captures target send only; -stream targets stream "
+        "only. v1 supports PII/Azure/rate send and stream; v0.3 supports PII/rate "
+        "send only. Unmatched calls and calls after times=1 use simulated replies. "
+        "Undeclared refs raise RegistryError; blocks do not nest. SDK tracing gate "
+        "still applies. No auth-challenge or quality capture selector, no successful "
+        "gateway SSE proof. donkey dev is inbound replay, a separate surface.",
+        "without": "# Hand-build agent cards, official protocol replies and refusal handlers.",
+        "with": "# Set OTEL_INSTRUMENTATION_A2A_SDK_ENABLED=false before importing a2a.\n"
+        'with donkey.simulate_a2a("rate-send", agents=[ref], version="0.3"):\n'
+        "    response = await donkey.a2a.send(ref, request)",
+    },
+    {
+        "id": "tool-cost-warning",
+        "group": "MCP",
         "icon": "📏",
         "title": "Descriptor cost warning on bind",
         "badge": "shipped",
@@ -1478,6 +1713,18 @@ bound = await tools.langgraph()
 narrow = tools.filter(allow=["get_*"])   # see tool-filter-tokens""",
     },
 ]
+
+# Keep the catalog and replay in the same surface-first order; stable within groups.
+FEATURES.sort(
+    key=lambda feature: (
+        "Model",
+        "MCP",
+        "A2A",
+        "Identity & Approvals",
+        "Observability",
+        "Developer tooling",
+    ).index(feature["group"])
+)
 
 
 def public_features() -> list[dict[str, Any]]:
