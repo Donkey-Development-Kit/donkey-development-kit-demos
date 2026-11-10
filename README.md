@@ -18,7 +18,7 @@ running model chat against `donkey mock` and protocol stories through scoped
 MCP/A2A simulation. Try the static replay on
 **[GitHub Pages](https://donkey-development-kit.github.io/donkey-development-kit-demos/)**,
 or run it live locally with `demos/showcase/run.sh`. The catalog covers SDK
-`develop` (54 cards), grouped by Model, MCP, A2A, Identity & Approvals,
+`0.2.1` (54 cards), grouped by Model, MCP, A2A, Identity & Approvals,
 Observability and Developer tooling: live chat cards for typed refusals (including regex prompt
 guard, request rate limit, CIBA pending/denied, terminal kill handling and
 refusal reactions, all against the simulator) plus descriptive-only cards that
@@ -285,10 +285,10 @@ source .venv/bin/activate      # once per terminal
 # 1. The demo harness (adds _harness to the path; no SDK pinned)
 python -m pip install -e .
 
-# 2. The SDK. Either the branch this one tracks, from git…
-python -m pip install -e ".[full]"      # full narrative SDK extras + langchain + mcp + langchain-mcp-adapters
+# 2. The SDK. Either the release this branch tracks, from PyPI…
+python -m pip install -e ".[full]"      # donkey-kit 0.2.1 + langchain + mcp + langchain-mcp-adapters
 
-#    …or your own checkout, on the matching SDK branch (develop here)
+#    …or your own checkout, on the matching SDK branch (main here)
 python -m pip install -e "../donkey-development-kit/python[llm,local,test,cli,otel,langgraph,openai-agents,mcp,a2a]" "langchain-mcp-adapters"
 python -m pip install "langchain>=1.0"   # demo 09 only; no donkey-kit extra ships it
 ```
@@ -313,10 +313,10 @@ companions, conformance and the A2A TCP launcher verifier. `--frameworks` runs
 only Strands/ADK companions; use a separate Python 3.12 environment with their
 extras installed. Neither command loads dotenv or establishes live verification.
 
-**Which SDK each branch tracks.** `main` runs against the SDK's latest release
-(`main`, on PyPI), so there `[sdk]` and `[full]` pin it exactly. `develop` (this
-branch) tracks the SDK's `develop`, so here they pin the git ref `@develop`. Don't
-mix the two: module paths and CLI flags change between releases.
+**Which SDK each branch tracks.** `main` (this branch) runs against the SDK's
+latest release (`main`, on PyPI), so here `[sdk]` and `[full]` pin it exactly.
+`develop` tracks the SDK's `develop`, so there they pin the git ref `@develop`.
+Don't mix the two: module paths and CLI flags change between releases.
 CI enforces this: the `SDK alignment` workflow checks the pin
 (`make check-sdk`) and runs `make offline` against it on every PR, and nightly
 on both branches, so an SDK release or a breaking SDK `develop` change shows up

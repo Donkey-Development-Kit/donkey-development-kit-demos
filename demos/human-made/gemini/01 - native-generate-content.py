@@ -7,7 +7,7 @@ from donkey_kit import DonkeyConfig
 #
 # python "demos/human-made/gemini/01 - native-generate-content.py"
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.8-flash"
 
 cfg = DonkeyConfig.from_env().validated(need="llm")
 headers = {"client_id": cfg.llm_proxy_client_id, "client_secret": cfg.llm_proxy_client_secret}
