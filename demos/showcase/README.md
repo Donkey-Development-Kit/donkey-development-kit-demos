@@ -6,14 +6,23 @@ actionable inside agent code**.
 
 - **Left pane** — a clickable catalog with side-by-side **Without DDK vs With
   DDK** code comparisons. **Live** cards are wired into this showcase; run them
-  to watch typed refusals, budgets and OTel spans. Descriptive-only cards state
+  to watch typed refusals, budgets and OTel spans. The 54-card catalog is grouped
+  by **Model / MCP / A2A / Identity & Approvals / Observability / Developer tooling**.
+  Three runnable protocol story cards use the story endpoint and frontend
+  step/span rendering described below. Descriptive-only cards state
   which SDK capabilities shipped and which limits still apply.
 - **Right pane** — a live chat backed by a real **LangGraph** agent.
 
-Everything runs against **`donkey mock`**, DDK's local gateway simulator, which
+Catalog totals: **13 chat, 3 story, 1 pace, 1 conformance, 1 doctor and 35 info**
+cards; **20 live / 34 shipped** badges. By group: Model 16, MCP 9, A2A 4,
+Identity & Approvals 5, Observability 6, Developer tooling 14.
+
+Model chat runs against **`donkey mock`**, DDK's local gateway simulator, which
 replays the *same captured gateway fixtures* DDK's error classifier is tested
-against. So the refusals, budget windows, and spans are **real** — with **no
-Anypoint account, no credentials, and no OpenAI key**.
+against. Protocol stories use **`simulate_mcp()` / `simulate_a2a()`** and native
+bindings/official SDK transports, not model-chat pseudo protocols. These are
+offline handling checks, not gateway policy enforcement; happy-path model budget
+windows are synthetic. No Anypoint account, credentials or OpenAI key is needed.
 
 ```
 ┌────────────────────────────┬───────────────────────────┐
@@ -35,10 +44,14 @@ Anypoint account, no credentials, and no OpenAI key**.
 
 The Pages build is a **static replay**. There is no backend in the browser, so
 interactive feature cards replay the responses the real backend returned against
-`donkey mock`, recorded into [`frontend/public/replay/`](frontend/public/replay/).
+`donkey mock` or scoped MCP/A2A simulation, recorded into
+[`frontend/public/replay/`](frontend/public/replay/). All three protocol stories
+are recorded in [`stories.json`](frontend/public/replay/stories.json), keyed by
+feature ID, and rendered by the frontend as steps and spans.
 The header shows a `static replay` pill. Free-form prompts typed into the chat
 get a note pointing here instead of an answer. Run it locally for the live
-version. Descriptive-only cards have no run/compare controls and no fabricated
+version, where the story route executes the SDK calls again.
+Descriptive-only cards have no run/compare controls and no fabricated
 recordings. Cards carry one of three badges: **Live** means the capability is wired into
 this showcase; **SDK shipped** means it is on SDK `develop` but the card is
 descriptive-only here (not wired); **Roadmap** means it is not on SDK `develop`.
@@ -82,7 +95,7 @@ From this folder, inside the repo's virtual environment (see the top-level
 
 ```bash
 cd demos/showcase
-python -m pip install -e "../../../donkey-development-kit/python[llm,local,otel,langgraph,cli,test]" starlette uvicorn
+python -m pip install -e "../../../donkey-development-kit/python[llm,local,otel,langgraph,cli,test,mcp,a2a]" langchain-mcp-adapters starlette uvicorn
 ./run.sh          # builds the frontend, serves everything on http://127.0.0.1:8000
 # or
 ./run.sh --dev    # backend on :8000, Vite dev server on :5173 (hot reload)
@@ -103,15 +116,63 @@ hand to move it too:
 
 ## Re-record the static replay
 
-For catalog-only changes, manually synchronize `backend/app/features.py` with
-`frontend/public/replay/features.json`; do not regenerate response recordings.
+From this showcase folder with the backend running, for protocol-story changes
+only use `python3 scripts/record_replay.py http://127.0.0.1:8000 --stories-only`.
+This refreshes the catalog and `stories.json` without changing existing model recordings.
+
+For catalog-only changes, serialize `backend/app/features.py` into
+`frontend/public/replay/features.json`; do not regenerate response recordings:
+
+```bash
+# From the repository root; serialization only, no SDK/backend/network needed.
+python3 -c 'import json, runpy; from pathlib import Path; p = Path("demos/showcase"); features = runpy.run_path(str(p / "backend/app/features.py"))["FEATURES"]; (p / "frontend/public/replay/features.json").write_text(json.dumps(features, indent=2, ensure_ascii=False) + "\n")'
+```
+
 `make check-showcase` (also run on every PR) fails on any difference between
 the two, and on any `chat` card with no `model::prompt` recording in
 `chat.json` / `compare.json` (or a pace / conformance / doctor card with no
-replay file). A new interactive card therefore needs a re-record, below.
+replay file). It also validates every `story` card's entry in `stories.json`,
+including feature ID, nonempty steps and title/boundary parity with the catalog.
+The recorder calls `POST /api/story` and stores actual responses by feature ID,
+not `model::prompt`; `--stories-only` preserves existing chat/compare recordings.
 The live API wraps the catalog in `{"features": [...]}`; the replay file is the
 same list without that wrapper. Preserve IDs, prompts and models for existing
 interactive cards because chat/compare recordings key on `model::prompt`.
+
+### Protocol Story Contract
+
+`mcp-refusals`, `tool-lockfile` and `a2a-outbound` have `action="story"` and
+`badge="live"`, meaning runnable offline protocol stories,
+never live-gateway verification. Their model and prompt fields
+are empty. Run sends `POST /api/story` with `{"feature": "<id>"}`. The response is:
+
+```json
+{
+  "feature": "<id>",
+  "title": "<story title>",
+  "boundary": "<offline evidence and limits>",
+  "steps": [{"title": "<step title>", "outcome": "<observed outcome>", "detail": "<safe detail>"}],
+  "spans": []
+}
+```
+
+Steps come from actual SDK calls, not prewritten chat completions. The endpoint
+owns safe projection of results and errors; raw refusal bodies, framework error
+text and echoed PII are not safe UI/recording fields. Spans can be empty; outbound
+A2A can return observed `donkey.a2a.call` spans with safe attributes. Protocol
+comparison examples use actual MCP/A2A APIs, not fake model names. The auth
+challenge and quality cards remain descriptive: no packaged capture selector
+is invented for them. The backend route, frontend run/replay rendering and
+recorder support are implemented, and all three responses are in `stories.json`.
+
+The executed showcase steps are narrower than the companion narratives and
+some descriptive catalog boundaries:
+
+| Story | Executed and recorded steps | Not established by this showcase |
+| --- | --- | --- |
+| `mcp-refusals` | Request and response PII as `PIIDetected`, each followed by a successful `times=1` baseline; `global-access` as `ToolNotInProfile`; schema/poisoning generic | No ABAC execution. Native LangGraph capture replay is not live gateway policy enforcement or a framework/policy certification. |
+| `tool-lockfile` | Deterministic lock; unchanged catalog binds; changed descriptor, removed tool and missing server raise `ToolLockDrift`; added unpinned tool is excluded | Missing/invalid lock is SDK/narrative coverage, not a showcase step. Provisional/offline-verified; no live lock round-trip and no access grant. |
+| `a2a-outbound` | v1 synthetic baseline `send()` and `stream()` using official SDK types; `azure-block-send` as `ContentSafetyBlocked`, `rate-stream` as `TokenBudgetExceeded`, `pii-send` as generic `ToolInvocationError`; safe call spans | No v0.3 or additional refusal-method combinations here; narrative 24 covers those. No successful gateway send/SSE, OAuth completion or quality evaluation. PII echo is absent from error text/spans, but raw response remains sensitive. Provisional/offline-verified. |
 
 Only when interactive behavior changes, refresh what Pages replays:
 
@@ -123,8 +184,8 @@ cd .. && python3 scripts/record_replay.py http://127.0.0.1:8000
 kill %1
 ```
 
-Clearing the three variables guarantees the recording only ever sees
-`donkey mock`. Run `python3 scripts/scan_secrets.py --all` from the repo root
+Clearing the three variables keeps model recording on `donkey mock`; protocol
+stories use their scoped offline simulations. Run `python3 scripts/scan_secrets.py --all` from the repo root
 before committing the new JSON. To preview the Pages build locally:
 
 ```bash
@@ -139,7 +200,7 @@ VITE_BASE=/donkey-development-kit-demos/ npx vite preview   # http://localhost:4
 | **Governed LLM client** | `donkey.langgraph.chat_model()` → native `ChatOpenAI` | A normal answer streams; a budget bar and one `donkey.llm.chat` span with `donkey.policy.decision=allow` appear. |
 | **OpenAI Agents SDK deep adapter** | `donkey.openai_agents.model()` → native `OpenAIChatCompletionsModel` | SDK shipped, descriptive-only. The second conformance-tested adapter next to LangGraph. Model round-trip is live-verified; conformance and approvals are tested offline. The showcase chat stays on LangGraph. |
 | **Typed refusals** (PII / injection / content-safety / budget) | `PIIDetected`, `PromptInjectionBlocked`, `ContentSafetyBlocked`, `TokenBudgetExceeded` | The chat shows a typed refusal card with entities/categories/`retry_after` and a remediation — not an opaque 403/429. **Compare live** shows the raw HTTP body a non-DDK app gets. |
-| **Typed refusals — Model Armor / CrowdStrike AIDR** | `ContentSafetyBlocked` (`.provider == "google-model-armor"` / `"crowdstrike-aidr"`, `.categories`) | SDK shipped, descriptive-only; no simulator sentinel serves these shapes. Model Armor's 403 is VERIFIED (LIVE); AIDR's is read from the policy source, not live-captured. Either fail-closed 503 stays a retryable `UpstreamModelError`. |
+| **Typed refusals — Model Armor / CrowdStrike AIDR** | `ContentSafetyBlocked` (`.provider == "google-model-armor"` / `"crowdstrike-aidr"`, `.categories`) | SDK shipped, descriptive-only; no simulator sentinel serves these shapes. Model Armor's 403 is VERIFIED (LIVE); AIDR's is VERIFIED (POLICY SOURCE), not live-captured. Either fail-closed 503 stays a retryable `UpstreamModelError`. |
 | **Typed refusals — regex prompt guard / request rate limit** | `PromptInjectionBlocked` (`policy="regex-prompt-guard"`), `RequestRateLimitExceeded.retry_after`, `donkey.budget.requests` | Live, through the `donkey-sim/regex-prompt-guard` and `donkey-sim/request-rate-limit` sentinels; both shapes VERIFIED (LIVE). A deny-list match is typed and names its patterns. A request-count 429 is never confused with a token-budget 429: `retry_after` comes from `x-ratelimit-reset`, and the chat shows `donkey.budget.requests` at 0 of 3. The window numbers are the capture's. The request-rate-limit card runs on a throwaway `Donkey`, so the pacing card is unaffected. Compare live shows the raw bodies. |
 | **Step-up approval pending / denied (CIBA)** | `GatewayApprovalPending.retry_after`, `donkey_kit.core.step_up.wait_for_approval()`, `GatewayApprovalDenied` (`policy="oauth2-obo-ciba"`) | Live, through `donkey-sim/ciba-pending` / `ciba-denied`. The OBO policy's 401 `authorization_pending` is shown as *pending*, with `retry_after=5`; it is not an auth failure. The card sends once, because the sentinel always answers pending. The 403 denial is terminal and never retried. Both were captured live on an A2A route, not an LLM proxy route. A pending answer sets no policy span attributes. |
 | **Budget & pacing** | `donkey.budget.pace(reserve=)`, `wait_for_reset()` | `fraction_used` climbs call by call, and `BudgetReserveReached` fires *before* the limit. Under fan-out the shared budget never moves backwards. `pace()` admits calls, it does not reserve for them, so size `reserve` to the fan-out width. |
@@ -155,12 +216,13 @@ VITE_BASE=/donkey-development-kit-demos/ npx vite preview   # http://localhost:4
 | **Custom classifier** | `classify.register(...)` | SDK shipped, descriptive-only. Custom classification is process-wide, and no simulator shape exercises it. |
 | **Terminal kill handling** | `AgentKilled`, budget pacing/reset latch | Live, through `donkey-sim/agent-killed` (shape VERIFIED (LIVE)). The chat shows a terminal `AgentKilled` (`policy=agent-kill-switch`) and that the Budget latched, so `pace()` raises it too. It runs on a throwaway `Donkey`, so the latch does not stop the rest of the showcase. There is no recovery handler. It consumes a platform decision; it is not a kill-switch administration API or an HTTP firewall. |
 | **Native tool approvals** | `@donkey.tool(approval="required")`, LangGraph `interrupt()`, `openai_agents.function_tool`/`approve`/`reject`, Strands `ApprovalHook`, ADK `approval_plugin()` | SDK shipped, descriptive-only. Pauses live in the framework (checkpointer, `RunState`, ADK session) with no DDK expiry. Only LangGraph raises `ApprovalRejected`. The Strands hook re-raises governed tool refusals as typed errors. Advisory and client-side. Agents/Strands/ADK approvals are tested offline only. |
-| **Governed tool access (MCP)** | `donkey.tools.discover(governed=True)`, `ToolSet.<framework>()` bindings | SDK shipped, descriptive-only. Discovery plus every binding is VERIFIED (LIVE) through the governed gateway, for framework-built and Mule-hosted servers. `domain=` and `locked=True` are not supported yet. An audience-scoped token is good for one instance, so narrow with `filter(servers=[...])`. |
+| **Governed tool access (MCP)** | `donkey.tools.discover(governed=True)`, `ToolSet.<framework>()` bindings | SDK shipped, descriptive-only. Discovery plus every binding is VERIFIED (LIVE) through the governed gateway, for framework-built and Mule-hosted servers. `domain=` is not supported yet. `locked=True` pins discovery to a `donkey.lock` written by `await donkey.tools.lock()` (offline-verified; format and `ToolLockDrift` are provisional). An audience-scoped token is good for one instance, so narrow with `filter(servers=[...])`. |
 | **On-behalf-of user token** | `donkey.as_user(token=...)` | SDK shipped, descriptive-only. The user's token is forwarded unchanged on model calls and MCP bindings (VERIFIED (LIVE) header). The gateway's OBO policy does the exchange, not the SDK, so the token must already be issued for the gateway's audience. |
 | **Registry search, resolve & explain** | `donkey.registry.search()`, `resolve_mcp()`, `explain(criteria=STRICT)` | SDK shipped, descriptive-only. Verified live against a sandbox. `domain`/`environment`/`governed` filters and the `a2a-agent` type are still blocked. A refused read is UNKNOWN, not a pass. |
+| **Registry: A2A agents & LLM assets** | `donkey.registry.resolve_agent()`, `search(asset_types=["llm"])`, `llm_metadata()` | SDK shipped, descriptive-only. Verified live against a sandbox: `resolve_agent()` on an `a2a` instance, the `llm` search and `llm-metadata` read-back. `a2a_v1` resolution (preferred over `a2a`) is unit-tested only. The handle carries no skills; those are on the agent card. The SDK reads `llm` assets but does not publish them. |
 | **Ungoverned refusal & tool approvals** | `UngovernedMcpServer`, `ToolSet.require_approval()`, `@donkey.tool(server=)` | SDK shipped, descriptive-only. A server the gateway does not front is refused before any credential is sent, with no opt-out. Approval gates are verified locally on the LangGraph, LlamaIndex and Anthropic bindings only, and are client-side and advisory. `server=` is attribution metadata for `donkey scan`. |
-| **Tool not in access profile** | `ToolNotInProfile`, `tool_access_denial()` | SDK shipped, descriptive-only. The gateway's HTTP 200 + JSON-RPC `-32008` denial (live-verified) becomes a typed, never-retried refusal on the per-tool bindings. ADK and Strands return text that the SDK does not classify, and `profile` is always `None`. |
-| **A2A serving & donkey dev** | `@donkey.agent`, `donkey.serve()`, `build_app()`, `donkey dev` | SDK shipped, descriptive-only. `serve`/`dev` are local round-trips, and the `dev` ingress is simulated. No streaming. Gateway forwarding of the inbound correlation id is UNVERIFIED. Gateway exposure is the Expose & preflight row. |
+| **Tool not in access profile** | `ToolNotInProfile`, `typed_refusals()` / `donkey.run()` | SDK shipped, descriptive-only. HTTP 200 + JSON-RPC `-32008` / `Unable to access` is live-captured. Per-tool wrappers include server coordinates; the shared bridge recovers raised structured errors from OpenAI Agents, Agent Framework and CrewAI without coordinates. ADK/Strands error text is never classified; `profile` is always `None`. Local bridge evidence is not a live framework/policy round-trip. |
+| **A2A serving & donkey dev** | `@donkey.agent`, `donkey.serve()`, `build_app()`, `donkey dev` | SDK shipped, descriptive-only. `build_app()` advertises no streaming. Default v1 ingress replays PII/Azure/rate on send and streaming methods before SSE starts; legacy `--protocol-version 0.3.0` supports PII/rate send only. Legacy injection fails at startup; streaming with scenarios returns local HTTP 400, and without scenarios passes through if the agent supports it. Wrong-version calls also return local 400. `request_limit` is a request-count trigger for captured token-rate headers, not local token accounting; IDs/headers remain captured. PII is generic `ToolInvocationError`, not `PIIDetected`. Gateway forwarding of the inbound correlation id is UNVERIFIED. |
 | **Scan & publication** | `donkey scan`, `donkey publish --dry-run`, `--if-changed` | SDK shipped, descriptive-only. MCP and agent publish are VERIFIED (LIVE). The card shows only offline dry-run plans and publishes nothing. Changed content needs a new version. CI and the Exchange page are the Publish from CI row. |
 | **Expose & preflight** | `donkey expose`, `donkey preflight`, `[donkey.expose]` | SDK shipped, descriptive-only. Verified live (2026-10-28) with a seven-scope connected app. Only adds: never deletes, never edits policies, never creates the gateway or environment. |
 | **Publish from CI** | `donkey publish --json`, the GitHub Action, GitLab CI / Bitbucket recipes | SDK shipped, descriptive-only. MCP and agent assets, each with a generated Exchange page (Overview, tool governance, "Changes since"). The changelog was tested offline only, and the GitLab/Bitbucket YAML has not run on those platforms. |
@@ -168,15 +230,25 @@ VITE_BASE=/donkey-development-kit-demos/ npx vite preview   # http://localhost:4
 | **Missing connected-app scope, named** | `AuthError.remediation` from `resolve_mcp()` / `explain()` / `donkey publish` / `donkey expose` | SDK shipped, descriptive-only. A control-plane 401/403 names the scope to grant (scope table VERIFIED (LIVE)). The showcase makes no control-plane call. |
 | **Descriptor fidelity / tool filtering** | `derive_descriptor()`, `ToolSet.filter()`, `describe()`, `descriptor_tokens()` | SDK shipped, descriptive-only. Descriptor reads are local captures. The auto modes run imports and factories, and `auto:static` is unsupported. `filter(servers=)` was used in the live gateway binds. The token count is an estimate, not a bill. |
 | **MCP bindings & discovery warm-up** | `ToolSet.langgraph()` / `llamaindex()` / `anthropic()` / `adk()` / `strands()` / `openai()` / `agent_framework()` / `crewai()`, `donkey.tools.warm()`, `donkey.tools.discover` span | SDK shipped, descriptive-only. Each binding returns that framework's own tool objects. Live-verified through Omni Gateway for framework-built and Mule-hosted servers. Collision renames and approval gates were not re-run through the gateway, and whole-server bindings refuse renames. The span records `donkey.discover.cache=hit/miss`, `.servers` and `.left_out`. |
+| **Gateway-visible MCP catalogs** | Tool Mapping, Progressive Disclosure, Payload Optimization | SDK shipped, descriptive-only. Policy behavior captured live, capture-only. Filters, approvals, bindings and `donkey.lock` use the gateway-visible names; naming a hidden upstream name raises `ConfigError`. Under Progressive Disclosure only `search_tools`/`invoke_tool` are listed, and a filter does not restrict what `invoke_tool` calls. Payload Optimization never refuses but can return Markdown or TOON text; DDK has no TOON decoder. |
 | **Descriptor cost warning** | `DONKEY_TOOL_WARN_COUNT` / `DONKEY_TOOL_WARN_TOKENS`, `descriptor_tokens()` | SDK shipped, descriptive-only. Each bind logs its tool count and estimated descriptor tokens, and warns above 20 tools or 10,000 tokens. The figure is an estimate, not a bill. |
 | **Server-mode conformance** | `--donkey-mode=server` | SDK shipped, descriptive-only. Real loopback HTTP; uncaptured custom shapes require in-process mode. The existing showcase button is unchanged. |
 | **Telemetry flush** | `flush_telemetry(timeout_s=...)` | SDK shipped, descriptive-only. Flushes DDK-owned spans only; host providers need host flush/shutdown. `True` can be a no-op; `False` is timeout/failure. |
 | **Upstream budget / dynamic key** | `budget.upstream`, `llm_proxy_key_header` | SDK shipped, descriptive-only. Provider quota is observe-only; dynamic header names belong to customer routes, not a universal gateway contract. |
+| **Model not routable** | `ModelNotRoutable` | Descriptive-only. Missing-model 400 has `model=None` in 0.2.1; bare multi-provider model names are also routing failures, not `PolicyViolation`. Wire shapes live-verified; human-made OpenAI 19 is offline. |
+| **Typed MCP refusals** | `simulate_mcp()` → `discover()` → `langgraph()` → `ainvoke()` | Runnable and recorded. Request/response PII becomes `PIIDetected`, each followed by the `times=1` baseline; the `global-access` denial becomes `ToolNotInProfile` (the only access-denial capture executed here); schema/poisoning stay generic. Method-wide replay rewrites RPC IDs; not enforcement or byte-verbatim replay. Companion 22 also covers ABAC, not executed here. |
+| **Tool lockfile** | `await donkey.tools.lock()`, `discover(locked=True)`, `ToolLockDrift` | Runnable and recorded. Unchanged binds; changed descriptor, removed tool and missing server raise drift; unpinned tools are excluded. Missing/invalid lock `ConfigError` is SDK/narrative 23 coverage, not a recorded showcase step. Provisional/offline-verified; detects drift, not access control. |
+| **Outbound A2A** | `donkey.a2a.send()` / `stream()` | Runnable and recorded: v1 synthetic baseline send/stream, Azure-send safety, rate-stream token budget and PII-send generic privacy, with safe spans. Raw response stays sensitive. Companion 24 adds v0.3, more refusal cases and a tracing-gate probe; these are not showcase steps. SDK tracing permission still applies. Provisional/offline-verified; successful gateway send/SSE unverified. |
+| **MCP simulation** | `donkey.simulate_mcp()` / `mcp_baseline()` | Descriptive-only. Declared discovery, scoped native binding, no model interception; retained bindings fail closed. Agent Framework/Agents/Strands stable-version gates apply; Strands returns error results. ADK/CrewAI simulation unsupported. Baseline is stateless, not a complete MCP server. |
+| **A2A simulation** | `donkey.simulate_a2a()` | Descriptive-only, provisional/offline-verified. v1 PII/Azure/rate send/stream; v0.3 PII/rate send only. Matching methods inject; others or calls after `times=1` use the baseline. No auth/quality selector. Separate from inbound `donkey dev`. |
+| **A2A auth challenge** | `GatewayAuthRequired`, `GatewayAuthChallenge` | Descriptive-only. Complete v0.3 auth-required task is not HTTP-success completion, CIBA pending or local approval. Validate untrusted OAuth metadata; no automatic OAuth/resend. Incomplete/v1 tasks remain native; successful token resubmission unverified. |
+| **A2A quality** | `donkey.a2a.quality.*` | Descriptive-only. Successful POST annotations are offline-tested, including mock streams. Completed score=3 and pending/no-score capture evidence establishes no score range or failure semantics. Explanation is opt-in unsanitized content, capped at 4096 characters. No live facade/v1 evaluation/streaming proof. |
 
 ### Narrative Companions
 
-These are separate local scripts, not showcase recordings. See each linked README
-for dependencies, asserted evidence and synthetic-input boundaries.
+These are separate local scripts with their own evidence, not the source of the
+showcase recordings. Stories are recorded from `POST /api/story`. See each linked
+README for dependencies, broader assertions and synthetic-input boundaries.
 
 | Demo | Real files and scope |
 | --- | --- |
@@ -185,6 +257,9 @@ for dependencies, asserted evidence and synthetic-input boundaries.
 | [19 - Tool approvals](../claude-made/19_tool_approvals/README.md) | `19_tool_approvals/demo.py`: base approval lifecycle, native checkpoint resume and downstream governance after approval. In-memory checkpoints do not prove restart durability. |
 | [20 - Descriptor fidelity](../claude-made/20_descriptor_fidelity/README.md) | `20_descriptor_fidelity/demo.py`, `example.py`, `tools.py`, `memory_server.py`, `descriptor.json`: real framework schemas, drift and in-memory official MCP `tools/list`. No remote discovery/bind. |
 | [21 - Local A2A serving](../claude-made/21_a2a_serving/README.md) | `21_a2a_serving/demo.py`: official SDK app through ASGITransport/lifespan, card/tasks/refusals/trace relationships and worker cleanup. No socket launcher, streaming or gateway exposure claim. |
+| [22 - Typed MCP refusals](../claude-made/22_mcp_refusals/README.md) | `22_mcp_refusals/demo.py`: native LangGraph binding, PII both phases, access denial, schema/poisoning generic; packaged capture replay, not live policy enforcement. |
+| [23 - Tool lockfile](../claude-made/23_tool_lockfile/README.md) | `23_tool_lockfile/demo.py`: deterministic lock, unchanged/changed/missing/unpinned listings and missing-lock configuration error. Provisional; no live lock round-trip. |
+| [24 - Outbound A2A](../claude-made/24_a2a_outbound/README.md) | `24_a2a_outbound/demo.py`: official send/stream baseline, v1 Azure send/stream and v1/v0.3 rate/PII refusal cases, tracing-gate probe and safe spans. Broader than the showcase's v1 subset. Provisional; no successful gateway send/SSE proof; auth/quality are descriptive, not executed. |
 
 Related evidence: [03 - budgets](../claude-made/03_budget_and_pacing/README.md),
 [05 - conformance](../claude-made/05_conformance/README.md),
@@ -207,13 +282,15 @@ demos/showcase/
       agent.py              the LangGraph graph (call_model inside typed_refusals())
       features.py           the feature catalog (single source of truth)
       routes/               chat (SSE), cli, compare, conformance, features, pace (SSE), telemetry
+        story.py            POST /api/story: SDK protocol steps + safe spans
     tests/
       agent_app.py          the agent factory the conformance suite grades
   frontend/                 Vite + React + TypeScript
     public/replay/          recorded responses the static (Pages) build replays
+      stories.json          three story responses, keyed by feature ID
     src/
       App.tsx               two-pane shell + run orchestration
-      api.ts                fetch + hand-rolled SSE client; replay when VITE_STATIC=1
+      api.ts                fetch + SSE + story client; replay when VITE_STATIC=1
       components/           Chat, FeatureCatalog, FeatureCard, ComparePanel, …
 ```
 
@@ -238,11 +315,12 @@ stays entirely on the in-memory exporter — no Docker required.
 
 ## Notes
 
-- The wired showcase actions remain chat, pacing, conformance and doctor.
-  SDK capabilities without a simulator shape are descriptive-only
+- Wired actions are chat, pacing, conformance, doctor and three runnable
+  protocol stories, recorded in `stories.json`. Other
+  SDK capabilities without a replayed showcase story are descriptive-only
   (`action: "info"`, `badge: "shipped"`), with explicit shipped status and limits.
 - No card carries the Roadmap badge today: MCP tool access and on-behalf-of
-  identity are on SDK `develop`. The badge and group stay for future cards.
+  identity are on SDK `develop`. The badge stays for future cards.
 - The kill-switch, CIBA, regex-prompt-guard, request-rate-limit and
   refusal-reactions cards are `chat` cards. All but refusal reactions use a
   `donkey-sim/<shape>` sentinel, which replays a live-captured fixture
@@ -255,7 +333,8 @@ stays entirely on the in-memory exporter — no Docker required.
   `retry_after`.
 - Catalog drift is guarded: `scripts/check_showcase_catalog.py` (`make
   check-showcase`, run by the SDK alignment workflow on pull requests) needs no
-  credentials. It compares the catalog with the replay and checks recordings.
+  credentials. It compares the catalog with the replay and validates chat,
+  story, pace, conformance and doctor recordings, including story metadata parity.
 - This demo consumes the installed `donkey-kit` package; it never modifies the
   SDK repo.
 - Docs: <https://donkey-development-kit.github.io/donkey-development-kit> ·

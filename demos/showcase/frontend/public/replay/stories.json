@@ -1,0 +1,150 @@
+{
+ "mcp-refusals": {
+  "feature": "mcp-refusals",
+  "title": "Typed MCP refusals",
+  "boundary": "POST /api/story with feature=mcp-refusals returns structured steps. Offline capture replay, companion 22: pii-request and pii-response-sse raise PIIDetected with request/response phase; the latter is HTTP 403 JSON, not an SSE error event. abac-denied/global-access raise ToolNotInProfile. schema-invalid-args and poisoning-block-list stay native generic errors, not guessed policy types. times=1 then uses the baseline. Injection is method-wide and rewrites RPC IDs, not byte-verbatim. Safe PII projections omit raw values; raw diagnostics remain sensitive. No live framework/policy certification.",
+  "steps": [
+   {
+    "title": "pii-request",
+    "outcome": "PIIDetected",
+    "detail": "phase=request; flagged values withheld. The next call succeeds from the offline baseline (times=1)."
+   },
+   {
+    "title": "pii-response-sse",
+    "outcome": "PIIDetected",
+    "detail": "phase=response; flagged values withheld. The next call succeeds from the offline baseline (times=1)."
+   },
+   {
+    "title": "Access-profile denial",
+    "outcome": "ToolNotInProfile",
+    "detail": "HTTP 200 is not success: JSON-RPC -32008 denies access. No retry."
+   },
+   {
+    "title": "Schema validation / tool poisoning",
+    "outcome": "generic",
+    "detail": "Framework errors remain untyped: generic JSON-RPC codes do not identify a policy. Raw diagnostics are not displayed."
+   }
+  ],
+  "spans": []
+ },
+ "tool-lockfile": {
+  "feature": "tool-lockfile",
+  "title": "Pin the gateway-visible tool catalog",
+  "boundary": "POST /api/story with feature=tool-lockfile runs an offline lock/discover/bind story (companion 23). Unchanged catalogs bind; changed descriptors raise ToolLockDrift(kind=changed), removed tools tool_missing, and absent servers server_missing. New tools are excluded as unpinned, not drift; a missing/invalid lock is ConfigError before discovery. Server keys ignore version. Provisional, offline-verified in SDK 0.2.1; no live lock round-trip. The lock detects drift, never grants access.",
+  "steps": [
+   {
+    "title": "Pin the gateway-visible catalog",
+    "outcome": "locked",
+    "detail": "await donkey.tools.lock() writes deterministic descriptor hashes; repeated bytes match."
+   },
+   {
+    "title": "Unchanged catalog",
+    "outcome": "bound",
+    "detail": "Native tools: get_stock, reserve_item."
+   },
+   {
+    "title": "Changed description",
+    "outcome": "ToolLockDrift",
+    "detail": "Before binding: changed. Review the change before re-locking."
+   },
+   {
+    "title": "Removed tool",
+    "outcome": "ToolLockDrift",
+    "detail": "Before binding: tool_missing. Review the change before re-locking."
+   },
+   {
+    "title": "Missing server",
+    "outcome": "ToolLockDrift",
+    "detail": "Before binding: server_missing. Review the change before re-locking."
+   },
+   {
+    "title": "Added, unpinned tool",
+    "outcome": "excluded",
+    "detail": "delete_all is excluded as unpinned; get_stock and reserve_item still bind. Drift detection is not authorization."
+   }
+  ],
+  "spans": []
+ },
+ "a2a-outbound": {
+  "feature": "a2a-outbound",
+  "title": "Outbound A2A send & stream",
+  "boundary": "POST /api/story with feature=a2a-outbound returns steps and spans (companion 24). send returns SendMessageResponse; stream yields StreamResponse inside async with. v1 Azure captures raise ContentSafetyBlocked; v1 send/stream and v0.3 send rate captures raise TokenBudgetExceeded. PII is ToolInvocationError, not PIIDetected: its echo is absent from error text and spans, but raw response is sensitive. Disable official SDK tracing before import or explicitly opt in. Provisional, offline-verified; successful gateway send/SSE not verified. No retry, OAuth completion or remote task cancellation.",
+  "steps": [
+   {
+    "title": "Delegate with send()",
+    "outcome": "SendMessageResponse",
+    "detail": "Official SDK message from a synthetic offline reply. HTTP success does not imply a completed task."
+   },
+   {
+    "title": "Delegate with stream()",
+    "outcome": "StreamResponse",
+    "detail": "Official SDK events: message. Closing the stream does not cancel the remote task."
+   },
+   {
+    "title": "azure-block-send",
+    "outcome": "ContentSafetyBlocked",
+    "detail": "provider=azure-content-safety; categories=['prompt_shield']. Captured gateway block, replayed offline."
+   },
+   {
+    "title": "rate-stream",
+    "outcome": "TokenBudgetExceeded",
+    "detail": "retry_after=60.0; no automatic replay of the delegated request."
+   },
+   {
+    "title": "pii-send",
+    "outcome": "ToolInvocationError",
+    "detail": "Generic JSON-RPC refusal, not PIIDetected. Exception text and spans omit echoed PII; the raw response remains sensitive."
+   }
+  ],
+  "spans": [
+   {
+    "name": "donkey.a2a.call",
+    "trace_id": "0xab42d1b7e819ccfa239af32ecf81a9a1",
+    "span_id": "0xded91618144fcd49",
+    "status": "UNSET",
+    "attributes": {
+     "donkey.correlation_id": "f4b4a01840a74c03ab9247cac8916b85"
+    }
+   },
+   {
+    "name": "donkey.a2a.call",
+    "trace_id": "0xd3ab67d2fe96d4fc8dd05c14b8976ebf",
+    "span_id": "0xeb9a5c5d6a99e9f1",
+    "status": "UNSET",
+    "attributes": {
+     "donkey.correlation_id": "f4b4a01840a74c03ab9247cac8916b85"
+    }
+   },
+   {
+    "name": "donkey.a2a.call",
+    "trace_id": "0x29b55f25961f2c60f9a229868a4554a0",
+    "span_id": "0x39f9be3061db072d",
+    "status": "ERROR",
+    "attributes": {
+     "donkey.correlation_id": "f4b4a01840a74c03ab9247cac8916b85",
+     "error.type": "ContentSafetyBlocked"
+    }
+   },
+   {
+    "name": "donkey.a2a.call",
+    "trace_id": "0xfae50aa33c1d1ccdb3438b9162a96941",
+    "span_id": "0x6623afdb579920da",
+    "status": "ERROR",
+    "attributes": {
+     "donkey.correlation_id": "f4b4a01840a74c03ab9247cac8916b85",
+     "error.type": "TokenBudgetExceeded"
+    }
+   },
+   {
+    "name": "donkey.a2a.call",
+    "trace_id": "0x6ea71ebb30867a460fd67f9caa51b340",
+    "span_id": "0x3e373004daeb8185",
+    "status": "ERROR",
+    "attributes": {
+     "donkey.correlation_id": "f4b4a01840a74c03ab9247cac8916b85",
+     "error.type": "ToolInvocationError"
+    }
+   }
+  ]
+ }
+}

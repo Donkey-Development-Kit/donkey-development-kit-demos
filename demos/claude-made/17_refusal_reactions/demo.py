@@ -135,17 +135,26 @@ async def story() -> None:
             donkey.on(PIIDetected).call(revise, max_times=1)
             gateway.reset()
             with donkey.simulate(PIIDetected), donkey.run(id="reaction-resend"):
-                reply = await client.responses.create(
-                    model="gpt-4o", input="synthetic identifier"
+                # The public httpx view exposes the actual resend's request;
+                # OpenAI's httpx2 bridge binds metadata to its original request.
+                response = await donkey.http_client().post(
+                    f"{gateway.url}/responses",
+                    json={"model": "gpt-4o", "input": "synthetic identifier"},
                 )
-            assert reply.output_text
+            response.raise_for_status()
+            assert response.json()["output"]
             assert gateway.requests_received == 1  # The injected refusal never hit TCP.
             first_correlation, first_call = refused_ids[-1]
-            sent = gateway.requests[0]
-            assert first_correlation == sent.headers[CORRELATION_HEADER.lower()]
-            assert first_correlation == "reaction-resend"
-            assert first_call and first_call != sent.headers[CALL_ID_HEADER.lower()]
+            sent = response.request
+            assert (
+                first_correlation == sent.headers[CORRELATION_HEADER] == "reaction-resend"
+            )
+            assert first_call and sent.headers[CALL_ID_HEADER] != first_call
+            recorded = gateway.requests[0]
+            assert recorded.headers[CORRELATION_HEADER.lower()] == "***"
+            assert recorded.headers[CALL_ID_HEADER.lower()] == "***"
             say.ok("Resend preserved the correlation ID and received a fresh call ID")
+            say.ok("Gateway records keep correlation and call IDs redacted")
             try:
                 with (
                     donkey.simulate(PIIDetected, times=2),

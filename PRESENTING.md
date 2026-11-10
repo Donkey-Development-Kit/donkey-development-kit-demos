@@ -454,6 +454,50 @@ messages or tracebacks; cleanup asserts no worker leaks.
 its blocking uvicorn launcher, a listening port, streaming delivery or gateway
 exposure. Official dispatcher shutdown warnings are visible, not suppressed.
 
+### 22 - Typed MCP tool refusals
+
+```bash
+DEMO_PAUSE=1 make demo N=22
+```
+
+**Story:** inside `donkey.simulate_mcp(capture, servers=...)` the agent's own
+`discover()` → `langgraph()` → `ainvoke()` path hits a replayed Omni Gateway
+refusal. PII blocks are `PIIDetected` (request and response phase), access
+denials are `ToolNotInProfile`, and the next call in the block succeeds from the
+offline baseline. Schema Validation and Tool Poisoning stay generic on purpose.
+**Talking point:** same typed exceptions as model calls, testable in CI with no
+gateway. These are replayed captures, not live evidence; the selector matches
+the RPC method, so a captured diagnostic can name a different tool.
+
+### 23 - Tool lockfile
+
+```bash
+DEMO_PAUSE=1 make demo N=23
+```
+
+**Story:** `await donkey.tools.lock()` writes a deterministic `donkey.lock`. Then
+the "gateway" changes: a reworded description, a removed tool, a missing server.
+Each is a `ToolLockDrift` before binding. A new tool is dropped as `unpinned`, and
+a new server version is not drift.
+**Talking point:** the lock detects drift, it does not control access; the
+gateway's policies still decide. Provisional in 0.2.1. Offline via
+`simulate_mcp()`, not a live listing.
+
+### 24 - Outbound A2A
+
+```bash
+DEMO_PAUSE=1 make demo N=24
+```
+
+**Story:** the agent delegates to another governed agent with
+`donkey.a2a.send()` / `stream()` by Exchange reference. Inside
+`simulate_a2a()`, captured Omni Gateway refusals come back as
+`ContentSafetyBlocked` and `TokenBudgetExceeded` (v1.0 and v0.3). PII stays a
+generic `ToolInvocationError` and its echoed value is not in the error text.
+Each call is one `donkey.a2a.call` span with only `error.type` on failure.
+**Talking point:** same typed refusals as a model call. Replayed captures;
+successful gateway send/SSE are not live-verified, and the facade is Provisional.
+
 ## Screen-recording safety
 
 Output masking is on by default and you should leave it on. It covers the three

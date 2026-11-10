@@ -92,6 +92,7 @@ export default function App() {
       abortRef.current = ctrl;
 
       const onEvent = (ev: SSEEvent) => {
+        if (abortRef.current !== ctrl || ctrl.signal.aborted) return;
         const d = ev.data as Record<string, unknown>;
         switch (ev.event) {
           case "token":
@@ -142,7 +143,7 @@ export default function App() {
       try {
         await api.chat({ prompt, model, feature }, onEvent, ctrl.signal);
       } catch (err) {
-        if (!ctrl.signal.aborted) {
+        if (abortRef.current === ctrl && !ctrl.signal.aborted) {
           patch(asstId, (m) =>
             m.kind === "assistant"
               ? { ...m, text: m.text || `⚠️ ${String(err)}` }
@@ -150,11 +151,13 @@ export default function App() {
           );
         }
       } finally {
-        patch(asstId, (m) =>
-          m.kind === "assistant" ? { ...m, streaming: false } : m,
-        );
-        setBusy(false);
-        abortRef.current = null;
+        if (abortRef.current === ctrl) {
+          patch(asstId, (m) =>
+            m.kind === "assistant" ? { ...m, streaming: false } : m,
+          );
+          setBusy(false);
+          abortRef.current = null;
+        }
       }
     },
     [patch, patchInspector],
@@ -181,6 +184,7 @@ export default function App() {
     abortRef.current = ctrl;
 
     const onEvent = (ev: SSEEvent) => {
+      if (abortRef.current !== ctrl || ctrl.signal.aborted) return;
       const d = ev.data as Record<string, unknown>;
       switch (ev.event) {
         case "budget":
@@ -209,10 +213,18 @@ export default function App() {
 
     try {
       await api.pace({ calls: 6, reserve: 0.05 }, onEvent, ctrl.signal);
+    } catch (error) {
+      if (abortRef.current === ctrl && !ctrl.signal.aborted) {
+        setMessages((prev) => [...prev, {
+          kind: "note", id: newId(), icon: "", title: "Pacing failed", body: String(error),
+        }]);
+      }
     } finally {
-      patch(id, (m) => (m.kind === "pace" ? { ...m, running: false } : m));
-      setBusy(false);
-      abortRef.current = null;
+      if (abortRef.current === ctrl) {
+        patch(id, (m) => (m.kind === "pace" ? { ...m, running: false } : m));
+        setBusy(false);
+        abortRef.current = null;
+      }
     }
   }, [patch]);
 
@@ -225,14 +237,27 @@ export default function App() {
       { kind: "conformance", id, result: null, running: true },
     ]);
     setBusy(true);
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     try {
-      const result: ConformanceResult = await api.conformance();
-      patch(id, (m) =>
-        m.kind === "conformance" ? { ...m, result, running: false } : m,
-      );
+      const result: ConformanceResult = await api.conformance(ctrl.signal);
+      if (abortRef.current === ctrl && !ctrl.signal.aborted) {
+        patch(id, (m) =>
+          m.kind === "conformance" ? { ...m, result, running: false } : m,
+        );
+      }
+    } catch (error) {
+      if (abortRef.current === ctrl && !ctrl.signal.aborted) {
+        patch(id, (m) => m.kind === "conformance" ? {
+          kind: "note", id, icon: "", title: "Conformance failed", body: String(error),
+        } : m);
+      }
     } finally {
-      patch(id, (m) => (m.kind === "conformance" ? { ...m, running: false } : m));
-      setBusy(false);
+      if (abortRef.current === ctrl) {
+        patch(id, (m) => (m.kind === "conformance" ? { ...m, running: false } : m));
+        setBusy(false);
+        abortRef.current = null;
+      }
     }
   }, [patch]);
 
@@ -243,23 +268,61 @@ export default function App() {
       { kind: "doctor", id, output: "", running: true },
     ]);
     setBusy(true);
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     try {
-      const res = await api.doctor();
-      patch(id, (m) =>
-        m.kind === "doctor" ? { ...m, output: res.output, running: false } : m,
-      );
+      const res = await api.doctor(ctrl.signal);
+      if (abortRef.current === ctrl && !ctrl.signal.aborted) {
+        patch(id, (m) =>
+          m.kind === "doctor" ? { ...m, output: res.output, running: false } : m,
+        );
+      }
+    } catch (error) {
+      if (abortRef.current === ctrl && !ctrl.signal.aborted) {
+        patch(id, (m) => m.kind === "doctor"
+          ? { ...m, output: `Diagnostics failed: ${String(error)}`, running: false } : m);
+      }
     } finally {
-      patch(id, (m) => (m.kind === "doctor" ? { ...m, running: false } : m));
-      setBusy(false);
+      if (abortRef.current === ctrl) {
+        patch(id, (m) => (m.kind === "doctor" ? { ...m, running: false } : m));
+        setBusy(false);
+        abortRef.current = null;
+      }
     }
   }, [patch]);
 
   // ---- dispatch --------------------------------------------------------
 
+  const runStory = useCallback(async (feature: Feature) => {
+    const id = newId();
+    setMessages((prev) => [...prev, {
+      kind: "story", id, title: feature.title, result: null, error: null, running: true,
+    }]);
+    setBusy(true);
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    try {
+      const result = await api.story(feature.id, ctrl.signal);
+      if (abortRef.current === ctrl && !ctrl.signal.aborted) {
+        patch(id, (m) => m.kind === "story" ? { ...m, result } : m);
+      }
+    } catch (error) {
+      if (abortRef.current === ctrl && !ctrl.signal.aborted) {
+        patch(id, (m) => m.kind === "story" ? { ...m, error: String(error) } : m);
+      }
+    } finally {
+      if (abortRef.current === ctrl) {
+        patch(id, (m) => m.kind === "story" ? { ...m, running: false } : m);
+        setBusy(false);
+        abortRef.current = null;
+      }
+    }
+  }, [patch]);
+
   const onRun = useCallback(
     (f: Feature) => {
       setSelectedId(f.id);
-      if (busy) return;
+      if (busy || abortRef.current) return;
       track(`run-${f.id}`, f.title);
       switch (f.action) {
         case "chat":
@@ -273,6 +336,9 @@ export default function App() {
           break;
         case "doctor":
           runDoctor();
+          break;
+        case "story":
+          runStory(f);
           break;
         case "info":
           setMessages((prev) => [
@@ -288,11 +354,12 @@ export default function App() {
           break;
       }
     },
-    [busy, runChat, runPace, runConformance, runDoctor],
+    [busy, runChat, runPace, runConformance, runDoctor, runStory],
   );
 
   const onSend = useCallback(
     (text: string) => {
+      if (busy || abortRef.current) return;
       const model =
         activeFeature && activeFeature.action === "chat"
           ? activeFeature.model
@@ -304,17 +371,37 @@ export default function App() {
         activeFeature && activeFeature.action === "chat" ? activeFeature.id : undefined,
       );
     },
-    [activeFeature, runChat],
+    [activeFeature, busy, runChat],
   );
 
   const onCancel = useCallback(() => {
-    abortRef.current?.abort();
+    const ctrl = abortRef.current;
+    abortRef.current = null;
+    ctrl?.abort();
+    setMessages((prev) => prev.map((m) => {
+      if (m.kind === "story" && m.running) {
+        return { ...m, running: false, error: "Protocol story canceled." };
+      }
+      if (m.kind === "assistant" && m.streaming) {
+        return { ...m, streaming: false, text: `${m.text}${m.text ? "\n\n" : ""}Model chat canceled.` };
+      }
+      if (m.kind === "pace" && m.running) return { ...m, running: false };
+      if (m.kind === "conformance" && m.running) return {
+        kind: "note", id: m.id, icon: "", title: "Conformance", body: "Conformance canceled.",
+      };
+      if (m.kind === "doctor" && m.running) {
+        return { ...m, running: false, output: "Diagnostics canceled." };
+      }
+      return m;
+    }));
     setBusy(false);
   }, []);
 
   // "clear" resets the conversation: stop any stream, empty the chat, deselect.
   const onClear = useCallback(() => {
-    abortRef.current?.abort();
+    const ctrl = abortRef.current;
+    abortRef.current = null;
+    ctrl?.abort();
     setBusy(false);
     setMessages([]);
     setSelectedId(null);

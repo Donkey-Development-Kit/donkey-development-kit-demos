@@ -20,7 +20,7 @@ async def main() -> None:
             max_tokens=32,
             messages=[{"role": "user", "content": "Say hello in exactly three words."}],
         )
-        print(raw.parse().content[0].text)
+        print((await raw.parse()).content[0].text)
 
         last = donkey.last_call
         print("served_provider", last.served_provider)
