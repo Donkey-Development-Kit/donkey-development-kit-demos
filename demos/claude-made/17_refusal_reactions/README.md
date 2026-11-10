@@ -29,9 +29,13 @@ process-wide isolation is for a standalone demo, not concurrent embedded use.
   beyond `max_wait="1ms"` propagates without resending. The story has a 15-second
   watchdog, a 2-second request timeout, and no long sleeps.
 - Resend: `on(PIIDetected).call(...)` revises a copy of the request through
-  `RefusalContext.resend(json=...)`. Assertions compare the injected refusal's
-  correlation/call IDs with the simulator's received request: same correlation,
-  fresh call ID. A second injected refusal still propagates.
+  `RefusalContext.resend(json=...)`. Assertions compare the first typed refusal's
+  correlation/call IDs with the successful response's request metadata through
+  the public `donkey.http_client()` view: same correlation, fresh call ID. The
+  gateway recorder retains only redacted values for both headers. The OpenAI
+  adapter is used separately to show that a second injected refusal still
+  propagates; its httpx2 bridge binds response request metadata to the original
+  request, not the resend.
 - Model fallback: `on(TokenBudgetExceeded).fallback(...)` sends a new request;
   `donkey.last_call.requested_model` asserts the fallback model was requested.
 - Escalation: `on(ContentSafetyBlocked).escalate(to=sink.append)` records in a
