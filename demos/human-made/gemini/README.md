@@ -16,7 +16,7 @@ python -m pip install -e "../donkey-development-kit/python[llm]"   # httpx + cla
 
 ```bash
 set -a; source .env.local; set +a
-export DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/ddk-gemini-inbound/   # overrides the file
+export DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/model/gemini-inbound/   # overrides the file
 ```
 
 The model is `gemini-2.5-flash` (the `MODEL` constant).
