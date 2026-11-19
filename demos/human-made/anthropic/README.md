@@ -16,7 +16,7 @@ python -m pip install -e "../donkey-development-kit/python[llm,anthropic]"
 
 ```bash
 set -a; source .env.local; set +a
-export DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/ddk-anthropic-inbound/   # 01 only; overrides the file
+export DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/model/anthropic-inbound/   # 01 only; overrides the file
 ```
 
 The client id and secret are the same pair as the other proxies. The model is

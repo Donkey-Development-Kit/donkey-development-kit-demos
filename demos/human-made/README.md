@@ -44,7 +44,7 @@ A shell `export` always wins over the file, so you can point one run at a
 different proxy without editing anything:
 
 ```bash
-DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/ddk-anthropic-inbound/ python "demos/human-made/anthropic/01 - native-messages.py"
+DONKEY_LLM_PROXY_URL=https://REPLACE-ME.example.invalid/model/anthropic-inbound/ python "demos/human-made/anthropic/01 - native-messages.py"
 ```
 
 ## Three things that trip people up

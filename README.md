@@ -286,7 +286,7 @@ source .venv/bin/activate      # once per terminal
 python -m pip install -e .
 
 # 2. The SDK. Either the release this branch tracks, from PyPI…
-python -m pip install -e ".[full]"      # donkey-kit 0.2.1 + langchain + mcp + langchain-mcp-adapters
+python -m pip install -e ".[full]"      # donkey-kit 0.2.2 + langchain + mcp + langchain-mcp-adapters
 
 #    …or your own checkout, on the matching SDK branch (main here)
 python -m pip install -e "../donkey-development-kit/python[llm,local,test,cli,otel,langgraph,openai-agents,mcp,a2a]" "langchain-mcp-adapters"
