@@ -16,7 +16,7 @@ There is also a browser demo, the **[feature showcase](demos/showcase/)**: a
 LangGraph chat on one side and a clickable catalog of DDK features on the other,
 running model chat against `donkey mock` and protocol stories through scoped
 MCP/A2A simulation. Try the static replay on
-**[GitHub Pages](https://donkey-development-kit.github.io/donkey-development-kit-demos/)**,
+**[GitHub Pages](https://demos.donkey-kit.dev/)**,
 or run it live locally with `demos/showcase/run.sh`. The catalog covers SDK
 `develop` (54 cards), grouped by Model, MCP, A2A, Identity & Approvals,
 Observability and Developer tooling: live chat cards for typed refusals (including regex prompt
