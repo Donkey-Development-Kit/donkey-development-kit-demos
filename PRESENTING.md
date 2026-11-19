@@ -498,6 +498,15 @@ Each call is one `donkey.a2a.call` span with only `error.type` on failure.
 **Talking point:** same typed refusals as a model call. Replayed captures;
 successful gateway send/SSE are not live-verified, and the facade is Provisional.
 
+### 25 - donkey scaffold
+
+```bash
+DEMO_PAUSE=1 make demo N=25
+```
+
+**Story:** the first publish usually fails one missing key at a time. `donkey scan` names the table and key the code cannot say, `scaffold --dry-run` previews the tables and what each workflow still needs without writing a file, and `--set` fills the values you know while refusing secrets and credential URLs. A rerun adds nothing. A value that is set but wrong is `invalid`, not `undeclared`, and is never echoed.
+**Talking point:** readiness reads the committed file only. Do not say "verified": `donkey doctor`, `preflight` and `expose --dry-run` check the live side, and this demo runs none of them. Pairs with 11 (init) and 16 (publish from CI).
+
 ## Screen-recording safety
 
 Output masking is on by default and you should leave it on. It covers the three
