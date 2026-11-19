@@ -22,7 +22,7 @@ room must see it.
 
 ## Shipped
 
-### Claude-made (`01`-`24`)
+### Claude-made (`01`-`25`)
 
 Governed client (async and `sync=True`) and raw-vs-governed 403; typed refusals
 including live regex-prompt-guard, Azure content-safety and Bedrock Guardrails,
@@ -34,12 +34,12 @@ routing/usage attributes, and **zero-config OTLP**; model handles; framework
 objects including Agents SDK `connection_kwargs() → {openai_client}` and Agent
 Framework `policy_middleware()`; LangGraph live loop; `last_call` and opt-in
 `ModelSubstituted`; `@donkey.governed` / `@donkey.tool` (in 01 and 09);
-**`donkey init`**; **`ToolSet.filter`**; **JWT / model-wallet auth**
+**`donkey init`**; **`donkey scaffold`** and its readiness report (25); **`ToolSet.filter`**; **JWT / model-wallet auth**
 (`llm_proxy_auth="jwt"`); **`donkey doctor` against the local simulator**;
 **provider passthrough** — per-provider `request_id`, Gemini's list error
 envelope, and the Anthropic/Gemini ingress Formats.
 
-Browser showcase (`demos/showcase`, 54 cards): 13 live chat cards, including the
+Browser showcase (`demos/showcase`, 55 cards): 13 live chat cards, including the
 simulator-backed kill-handling, CIBA pending/denied, regex-prompt-guard,
 request-rate-limit and refusal-reactions cards, plus descriptive-only
 `shipped` cards. Groups are Model / MCP / A2A / Identity & Approvals /
@@ -73,6 +73,7 @@ Coverage added for #47-59:
 | 22 MCP refusals | `simulate_mcp()` through a LangGraph binding: `PIIDetected` (both phases), `ToolNotInProfile`, baseline after `times=1`, schema/poisoning not typed | Replayed packaged captures, not live; selector is method-wide; ADK/CrewAI refused |
 | 23 tool lockfile | Deterministic `lock()`, `changed`/`tool_missing`/`server_missing` drift, `unpinned` exclusion, version-agnostic keys, missing-lock `ConfigError` | Declared servers via `simulate_mcp()`, not a live listing; detects drift, does not control access; Provisional |
 | 24 outbound A2A | `send()`/`stream()` SDK types, v1 Azure send/stream and v1/v0.3 token-rate/PII captures, PII generic with no echo, tracing-gate `ConfigError`, error-only `donkey.a2a.call` spans | Broader narrative evidence, not the showcase's v1 subset. Replayed captures; successful gateway send/SSE not live; Provisional; `GatewayAuthRequired` and quality attributes described, not replayed |
+| 25 donkey scaffold | Real CLI on a temporary project: scan names the gap, `scaffold --dry-run` writes nothing, `--set` writes values and refuses secrets and credential URLs, a rerun adds nothing, a rejected value is `invalid` not `undeclared` and is never echoed | Static and offline. Readiness reads the committed file only and never claims live verification (doctor, preflight and `expose --dry-run` do) |
 
 ### Human-made `openai/` (`01`-`19`)
 
