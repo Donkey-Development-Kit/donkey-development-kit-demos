@@ -48,7 +48,7 @@ jobs:
           npm run build
         env:
           VITE_STATIC: "1"
-          VITE_BASE: /donkey-development-kit-demos/
+          VITE_BASE: /
           VITE_GOATCOUNTER: ddk
       - name: Build develop (preview) at /next/
         working-directory: develop/demos/showcase/frontend
@@ -58,7 +58,7 @@ jobs:
         env:
           VITE_STATIC: "1"
           VITE_PREVIEW: "1"
-          VITE_BASE: /donkey-development-kit-demos/next/
+          VITE_BASE: /next/
           VITE_GOATCOUNTER: ddk
       - name: Assemble site
         run: |

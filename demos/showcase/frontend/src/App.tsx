@@ -465,7 +465,7 @@ export default function App() {
         </button>
         <a
           className="header-link"
-          href="https://donkey-development-kit.github.io/donkey-development-kit"
+          href="https://docs.donkey-kit.dev"
           target="_blank"
           rel="noreferrer"
         >

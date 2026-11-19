@@ -40,7 +40,7 @@ windows are synthetic. No Anypoint account, credentials or OpenAI key is needed.
 
 ## Try it on GitHub Pages
 
-**<https://donkey-development-kit.github.io/donkey-development-kit-demos/>**
+**<https://demos.donkey-kit.dev/>**
 
 The Pages build is a **static replay**. There is no backend in the browser, so
 interactive feature cards replay the responses the real backend returned against
@@ -189,8 +189,8 @@ stories use their scoped offline simulations. Run `python3 scripts/scan_secrets.
 before committing the new JSON. To preview the Pages build locally:
 
 ```bash
-cd frontend && VITE_STATIC=1 VITE_BASE=/donkey-development-kit-demos/ npm run build
-VITE_BASE=/donkey-development-kit-demos/ npx vite preview   # http://localhost:4173/donkey-development-kit-demos/
+cd frontend && VITE_STATIC=1 VITE_BASE=/ npm run build
+VITE_BASE=/ npx vite preview   # http://localhost:4173/
 ```
 
 ## What each feature demonstrates
@@ -337,5 +337,5 @@ stays entirely on the in-memory exporter — no Docker required.
   story, pace, conformance and doctor recordings, including story metadata parity.
 - This demo consumes the installed `donkey-kit` package; it never modifies the
   SDK repo.
-- Docs: <https://donkey-development-kit.github.io/donkey-development-kit> ·
+- Docs: <https://docs.donkey-kit.dev> ·
   Source: <https://github.com/Donkey-Development-Kit/donkey-development-kit>
