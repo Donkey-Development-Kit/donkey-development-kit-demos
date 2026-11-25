@@ -6,16 +6,16 @@ actionable inside agent code**.
 
 - **Left pane** — a clickable catalog with side-by-side **Without DDK vs With
   DDK** code comparisons. **Live** cards are wired into this showcase; run them
-  to watch typed refusals, budgets and OTel spans. The 54-card catalog is grouped
+  to watch typed refusals, budgets and OTel spans. The 55-card catalog is grouped
   by **Model / MCP / A2A / Identity & Approvals / Observability / Developer tooling**.
   Three runnable protocol story cards use the story endpoint and frontend
   step/span rendering described below. Descriptive-only cards state
   which SDK capabilities shipped and which limits still apply.
 - **Right pane** — a live chat backed by a real **LangGraph** agent.
 
-Catalog totals: **13 chat, 3 story, 1 pace, 1 conformance, 1 doctor and 35 info**
-cards; **20 live / 34 shipped** badges. By group: Model 16, MCP 9, A2A 4,
-Identity & Approvals 5, Observability 6, Developer tooling 14.
+Catalog totals: **13 chat, 3 story, 1 pace, 1 conformance, 1 doctor and 36 info**
+cards; **20 live / 35 shipped** badges. By group: Model 16, MCP 9, A2A 4,
+Identity & Approvals 5, Observability 6, Developer tooling 15.
 
 Model chat runs against **`donkey mock`**, DDK's local gateway simulator, which
 replays the *same captured gateway fixtures* DDK's error classifier is tested
@@ -224,6 +224,7 @@ VITE_BASE=/ npx vite preview   # http://localhost:4173/
 | **Tool not in access profile** | `ToolNotInProfile`, `typed_refusals()` / `donkey.run()` | SDK shipped, descriptive-only. HTTP 200 + JSON-RPC `-32008` / `Unable to access` is live-captured. Per-tool wrappers include server coordinates; the shared bridge recovers raised structured errors from OpenAI Agents, Agent Framework and CrewAI without coordinates. ADK/Strands error text is never classified; `profile` is always `None`. Local bridge evidence is not a live framework/policy round-trip. |
 | **A2A serving & donkey dev** | `@donkey.agent`, `donkey.serve()`, `build_app()`, `donkey dev` | SDK shipped, descriptive-only. `build_app()` advertises no streaming. Default v1 ingress replays PII/Azure/rate on send and streaming methods before SSE starts; legacy `--protocol-version 0.3.0` supports PII/rate send only. Legacy injection fails at startup; streaming with scenarios returns local HTTP 400, and without scenarios passes through if the agent supports it. Wrong-version calls also return local 400. `request_limit` is a request-count trigger for captured token-rate headers, not local token accounting; IDs/headers remain captured. PII is generic `ToolInvocationError`, not `PIIDetected`. Gateway forwarding of the inbound correlation id is UNVERIFIED. |
 | **Scan & publication** | `donkey scan`, `donkey publish --dry-run`, `--if-changed` | SDK shipped, descriptive-only. MCP and agent publish are VERIFIED (LIVE). The card shows only offline dry-run plans and publishes nothing. Changed content needs a new version. CI and the Exchange page are the Publish from CI row. |
+| **Scaffold & readiness** | `donkey scaffold`, `--set`, the readiness report | SDK shipped, descriptive-only. Static and offline: a scan becomes the `.donkey-kit.toml` tables, `--set` refuses secrets and credential URLs, and readiness reads the committed file only, so it never says a service is verified. A set-but-rejected value is reported as invalid, not undeclared. Narrative 25 runs it; the card runs nothing. |
 | **Expose & preflight** | `donkey expose`, `donkey preflight`, `[donkey.expose]` | SDK shipped, descriptive-only. Verified live (2026-10-28) with a seven-scope connected app. Only adds: never deletes, never edits policies, never creates the gateway or environment. |
 | **Publish from CI** | `donkey publish --json`, the GitHub Action, GitLab CI / Bitbucket recipes | SDK shipped, descriptive-only. MCP and agent assets, each with a generated Exchange page (Overview, tool governance, "Changes since"). The changelog was tested offline only, and the GitLab/Bitbucket YAML has not run on those platforms. |
 | **Verify published vs live** | `donkey verify`, `Publication.verify(raise_on_drift=)` | SDK shipped, descriptive-only. Read-only drift check of MCP tools and A2A cards through the governed gateway. Parameter types and deployment-specific card fields are not compared. |
@@ -260,6 +261,7 @@ README for dependencies, broader assertions and synthetic-input boundaries.
 | [22 - Typed MCP refusals](../claude-made/22_mcp_refusals/README.md) | `22_mcp_refusals/demo.py`: native LangGraph binding, PII both phases, access denial, schema/poisoning generic; packaged capture replay, not live policy enforcement. |
 | [23 - Tool lockfile](../claude-made/23_tool_lockfile/README.md) | `23_tool_lockfile/demo.py`: deterministic lock, unchanged/changed/missing/unpinned listings and missing-lock configuration error. Provisional; no live lock round-trip. |
 | [24 - Outbound A2A](../claude-made/24_a2a_outbound/README.md) | `24_a2a_outbound/demo.py`: official send/stream baseline, v1 Azure send/stream and v1/v0.3 rate/PII refusal cases, tracing-gate probe and safe spans. Broader than the showcase's v1 subset. Provisional; no successful gateway send/SSE proof; auth/quality are descriptive, not executed. |
+| [25 - donkey scaffold](../claude-made/25_cli_scaffold/README.md) | `25_cli_scaffold/demo.py`: scan, scaffold preview, `--set` and its refusals, idempotent rerun and invalid-versus-undeclared, on a temporary project. Offline and static; readiness is never live verification. |
 
 Related evidence: [03 - budgets](../claude-made/03_budget_and_pacing/README.md),
 [05 - conformance](../claude-made/05_conformance/README.md),

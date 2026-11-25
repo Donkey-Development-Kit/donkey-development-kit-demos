@@ -8,9 +8,9 @@ are not interchangeable:
 | | [`demos/claude-made/`](demos/claude-made/) | [`demos/human-made/`](demos/human-made/) |
 |---|---|---|
 | **For** | A room, a recording, or CI that must stay offline | A terminal you type in, or paste from |
-| **Shape** | Numbered narrative demos (`01`-`24`), each with `demo.py` + README | Straight-line framework scripts, compact pytest conformance and a local A2A launcher/verifier |
+| **Shape** | Numbered narrative demos (`01`-`25`), each with `demo.py` + README | Straight-line framework scripts, compact pytest conformance and a local A2A launcher/verifier |
 | **Runner** | `make demo N=03`, `make offline`, `_harness` (redact, mock, pause) | `python "demos/human-made/<framework>/….py"`; new local checks via `make coverage` |
-| **Network** | Twenty-three of twenty-four need no credentials or external gateway. Demo 09 is live-only | Live scripts need proxy variables; new approval/observation examples use real framework runners with scripted local models or transports |
+| **Network** | Twenty-four of twenty-five need no credentials or external gateway. Demo 09 is live-only | Live scripts need proxy variables; new approval/observation examples use real framework runners with scripted local models or transports |
 
 There is also a browser demo, the **[feature showcase](demos/showcase/)**: a
 LangGraph chat on one side and a clickable catalog of DDK features on the other,
@@ -18,7 +18,7 @@ running model chat against `donkey mock` and protocol stories through scoped
 MCP/A2A simulation. Try the static replay on
 **[GitHub Pages](https://demos.donkey-kit.dev/)**,
 or run it live locally with `demos/showcase/run.sh`. The catalog covers SDK
-`0.2.1` (54 cards), grouped by Model, MCP, A2A, Identity & Approvals,
+`0.2.3` (55 cards), grouped by Model, MCP, A2A, Identity & Approvals,
 Observability and Developer tooling: live chat cards for typed refusals (including regex prompt
 guard, request rate limit, CIBA pending/denied, terminal kill handling and
 refusal reactions, all against the simulator) plus descriptive-only cards that
@@ -55,7 +55,7 @@ Each demo is a story with acts, a projector-safe narrator, and output masking.
 `run.py` discovers `**/demo.py` under `demos/`, so **only this suite** is listed
 by `make list` / `make offline`.
 
-**Twenty-three of twenty-four run without credentials or an external gateway.** Depending
+**Twenty-four of twenty-five run without credentials or an external gateway.** Depending
 on the story, they use SDK fixture replay, synthetic MockTransport responses,
 real loopback HTTP, or local framework/protocol execution. None of those local
 checks upgrades a surface to live-verified status.
@@ -86,6 +86,7 @@ checks upgrades a surface to live-verified status.
 | 22 | [typed MCP refusals](demos/claude-made/22_mcp_refusals/) | `donkey.simulate_mcp()` replays captured gateway refusals into a LangGraph binding: `PIIDetected`, `ToolNotInProfile`; schema/poisoning stay generic | nothing (`[langgraph,mcp]` + `langchain-mcp-adapters`) |
 | 23 | [tool lockfile](demos/claude-made/23_tool_lockfile/) | `donkey.tools.lock()` + `discover(locked=True)`: changed/removed/missing → `ToolLockDrift`; unpinned tools dropped | nothing (`[langgraph,mcp]` + `langchain-mcp-adapters`) |
 | 24 | [outbound A2A](demos/claude-made/24_a2a_outbound/) | `donkey.a2a` send/stream under `simulate_a2a()`: `ContentSafetyBlocked`, `TokenBudgetExceeded`, PII generic and not echoed; SDK-tracing gate; `donkey.a2a.call` spans | nothing (`[a2a,otel]`) |
+| 25 | [donkey scaffold](demos/claude-made/25_cli_scaffold/) | `donkey scan` names the gaps, `scaffold --dry-run` previews the tables and readiness, `--set` fills values and refuses secrets and credential URLs, a set-but-rejected value is `invalid`, not `undeclared` | nothing (`[cli]`) |
 
 Harness-backed gateway stories can select `--target mock` (default) or
 `--target live`; local-only stories do not become live tests with that flag.
@@ -98,7 +99,7 @@ OpenAI-format proxy serves.
 ```bash
 make list                   # claude-made table, from the filesystem
 make demo N=03              # one narrative demo
-make offline                # all twenty-three credential-free narratives
+make offline                # all twenty-four credential-free narratives
 make doctor                 # what is installed, what will therefore run
 make mock                   # simulator in the foreground, for a second pane
 
@@ -286,7 +287,7 @@ source .venv/bin/activate      # once per terminal
 python -m pip install -e .
 
 # 2. The SDK. Either the release this branch tracks, from PyPI…
-python -m pip install -e ".[full]"      # donkey-kit 0.2.2 + langchain + mcp + langchain-mcp-adapters
+python -m pip install -e ".[full]"      # donkey-kit 0.2.3 + langchain + mcp + langchain-mcp-adapters
 
 #    …or your own checkout, on the matching SDK branch (main here)
 python -m pip install -e "../donkey-development-kit/python[llm,local,test,cli,otel,langgraph,openai-agents,mcp,a2a]" "langchain-mcp-adapters"

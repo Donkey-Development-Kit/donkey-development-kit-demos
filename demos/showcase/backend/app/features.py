@@ -1235,6 +1235,33 @@ $ donkey publish demos/claude-made/16_publish_from_ci/server --dry-run --json
 # A real publish runs in CI with a connected app holding manage:exchange.""",
     },
     {
+        "id": "scaffold-readiness",
+        "group": "Developer tooling",
+        "icon": "🧱",
+        "title": "Scaffold & readiness",
+        "badge": "shipped",
+        "blurb": "donkey scaffold turns a static scan into the .donkey-kit.toml tables the "
+        "code needs: what the code says becomes a key, what it cannot say is a commented "
+        "placeholder. --set fills one with a value you know and refuses secrets and "
+        "credential URLs. A readiness report says what publish and each expose still need. "
+        "A value that is set but rejected is shown as invalid, not undeclared.",
+        "action": "info",
+        "prompt": "",
+        "model": "gpt-5.1",
+        "watch": "Not interactive here. demos/claude-made/25_cli_scaffold runs the real CLI "
+        "offline on a temporary project and asserts each step. Readiness reads the committed "
+        "file only and never says a service is verified: donkey doctor, donkey preflight and "
+        "donkey expose --dry-run check the live side. No platform call is made, so there is "
+        "nothing to verify live. This card changes nothing.",
+        "without": "",
+        "with": """# SDK shipped; offline, static, nothing is imported or sent.
+$ donkey scan                        # names the key and table the code lacks
+$ donkey scaffold --dry-run          # previews the tables and readiness, writes nothing
+$ donkey scaffold --set publication.version=1.0.0 \\
+    --set mcp_servers.sku-manager.transport=streamable-http
+$ donkey scaffold                    # a rerun adds nothing""",
+    },
+    {
         "id": "publish-exchange-ci",
         "group": "Developer tooling",
         "icon": "📚",
