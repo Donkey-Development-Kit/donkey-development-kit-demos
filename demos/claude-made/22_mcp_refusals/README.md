@@ -51,6 +51,6 @@ results after the PII blocks.
 - `AttributeError: simulate_mcp`: your SDK checkout is older than 0.2.1.
 - `The demo raised`: re-run with `DEMO_TRACEBACK=1`.
 
-Docs: [Simulator: MCP](https://docs.donkey-kit.dev/simulator),
+Docs: [Simulator: MCP](https://docs.donkey-kit.dev/simulator/mcp),
 [MCP gateway policies](https://docs.donkey-kit.dev/tool-access/gateway-policies).
 Build guide: `BG §1.5`. See [PRESENTING.md](../../../PRESENTING.md#22---typed-mcp-tool-refusals).
