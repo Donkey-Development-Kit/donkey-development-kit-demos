@@ -55,5 +55,5 @@ make demo N=24
 - `needs a fresh process`: another OTel provider is installed. Run the demo on its own.
 - `The demo raised`: re-run with `DEMO_TRACEBACK=1`.
 
-Docs: [Outbound A2A](https://docs.donkey-kit.dev/tool-access/a2a).
+Docs: [Outbound A2A](https://docs.donkey-kit.dev/a2a/call).
 Build guide: `BG §1.5`. See [PRESENTING.md](../../../PRESENTING.md#24---outbound-a2a).
